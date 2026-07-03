@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>基础提成方案维护 — 机叉叉车组长绩效（原型）</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1890ff; --primary-hover: #40a9ff;
+      --sidebar-bg: #001529; --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65); --sidebar-text-active: #fff;
+      --bg: #f0f2f5; --card: #fff; --border: #e8e8e8;
+      --text: rgba(0,0,0,.85); --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px; --sidebar-collapsed: 64px; --header-height: 40px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; color: var(--text); background: var(--bg); overflow: hidden; }
+    .layout { display: flex; height: 100vh; }
+    .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); display: flex; flex-direction: column; flex-shrink: 0; transition: width .2s; overflow: hidden; }
+    .sidebar.collapsed { width: var(--sidebar-collapsed); }
+    .sidebar-logo { height: 48px; display: flex; align-items: center; padding: 0 16px; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.08); color: #fff; font-weight: 600; white-space: nowrap; }
+    .sidebar-logo .logo-icon { width: 28px; height: 28px; background: var(--primary); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+    .sidebar.collapsed .logo-text { display: none; }
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .menu-item { display: flex; align-items: center; padding: 0 16px; height: 40px; color: var(--sidebar-text); cursor: pointer; white-space: nowrap; gap: 10px; font-size: 14px; }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .sidebar-toggle { height: 40px; display: flex; align-items: center; justify-content: center; color: var(--sidebar-text); cursor: pointer; border-top: 1px solid rgba(255,255,255,.08); }
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .top-tabs { height: var(--header-height); background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 8px; flex-shrink: 0; }
+    .page-tabs { display: flex; flex: 1; overflow-x: auto; gap: 2px; padding: 0 4px; }
+    .page-tab { display: flex; align-items: center; gap: 6px; padding: 0 12px; height: 32px; border-radius: 4px; color: var(--text-secondary); cursor: pointer; white-space: nowrap; font-size: 13px; }
+    .page-tab.active { color: var(--primary); background: #e6f7ff; }
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
+    .content-card { background: var(--card); border-radius: 4px; padding: 16px; min-height: calc(100vh - var(--header-height) - 32px); display: flex; flex-direction: column; gap: 16px; }
+    /* 查询条件：3 列网格 + 右侧独立按钮区（按钮列上方无条件） */
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 84px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap {
+      width: 100%;
+    }
+    .filter-control { width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px; padding: 0 11px; font-size: 14px; background: #fff; outline: none; }
+    .select-wrap { position: relative; flex: 1; min-width: 0; }
+    .select-wrap .filter-control { appearance: none; padding-right: 28px; cursor: pointer; width: 100%; }
+    .select-wrap::after { content: "▼"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--text-secondary); pointer-events: none; }
+    .filter-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      padding-bottom: 1px;
+    }
+    .btn { height: 32px; padding: 0 16px; border-radius: 4px; font-size: 14px; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text); white-space: nowrap; }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .content-tabs { display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; }
+    .content-tab { padding: 8px 16px; cursor: pointer; color: var(--text); font-size: 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action { height: 32px; padding: 0 15px; border-radius: 4px; font-size: 14px; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text); }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .table-wrap { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1400px; }
+    .data-table th, .data-table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; white-space: nowrap; }
+    .data-table th { background: #fafafa; font-weight: 500; }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 40px; text-align: center !important; }
+    .tag { display: inline-block; padding: 0 8px; border-radius: 2px; font-size: 12px; }
+    .tag-blue { background: #e6f7ff; color: var(--primary); border: 1px solid #91d5ff; }
+    .tag-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+    .link { color: var(--primary); cursor: pointer; }
+    .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 16px; font-size: 13px; color: var(--text-secondary); }
+    /* Modal */
+    .modal-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-mask.show { display: flex; }
+    .modal { background: #fff; border-radius: 4px; width: 920px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 4px 24px rgba(0,0,0,.15); }
+    .modal-header { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 16px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+    .modal-close { cursor: pointer; font-size: 20px; color: var(--text-secondary); line-height: 1; }
+    .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    .modal-footer { padding: 12px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+    .form-section { margin-bottom: 20px; }
+    .form-section-title { font-weight: 500; margin-bottom: 12px; padding-left: 8px; border-left: 3px solid var(--primary); }
+    .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; }
+    .form-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px; }
+    /* 弹窗表单项：名称 + 输入框左右排列 */
+    .form-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .form-item > label:first-child {
+      flex: 0 0 132px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 0;
+      white-space: nowrap;
+    }
+    .form-item > label:first-child .req { color: #ff4d4f; margin-right: 2px; }
+    .form-item > .select-wrap,
+    .form-item > .form-control,
+    .form-item > .radio-group { flex: 1; min-width: 0; }
+    .form-control { width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px; padding: 0 11px; font-size: 14px; }
+    .modal-body .select-wrap { position: relative; }
+    .modal-body .select-wrap .form-control { appearance: none; padding-right: 28px; cursor: pointer; }
+    .modal-body .select-wrap::after {
+      content: "▼"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-secondary); pointer-events: none;
+    }
+    .radio-group { display: flex; gap: 20px; align-items: center; height: 32px; }
+    .radio-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text); margin: 0; font-size: 14px; white-space: nowrap; }
+    .hidden { display: none !important; }
+    /* 表单预览弹窗 */
+    .modal.preview-modal { width: 960px; }
+    .preview-body { position: relative; padding: 16px 24px 24px; overflow-y: auto; flex: 1; max-height: calc(90vh - 110px); }
+    .preview-stamp {
+      position: absolute; top: 8px; right: 24px; width: 72px; height: 72px;
+      border: 2px solid #52c41a; border-radius: 50%; color: #52c41a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; transform: rotate(-15deg); opacity: .85; pointer-events: none;
+    }
+    .preview-stamp.stamp-trial { border-color: #faad14; color: #faad14; }
+    .preview-block { margin-bottom: 20px; }
+    .preview-block:last-child { margin-bottom: 0; }
+    .preview-block-title {
+      font-weight: 500; font-size: 14px; margin-bottom: 12px; padding-left: 8px;
+      border-left: 3px solid var(--primary); color: var(--text);
+    }
+    .preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 48px; }
+    .preview-row { display: flex; font-size: 13px; line-height: 22px; min-height: 22px; }
+    .preview-row .p-label { flex: 0 0 auto; color: var(--text-secondary); white-space: nowrap; }
+    .preview-row .p-label::after { content: "："; }
+    .preview-row .p-value { color: var(--text); word-break: break-all; }
+    .preview-row .p-value.red { color: #ff4d4f; }
+    .preview-tag {
+      display: inline-block; margin-left: 8px; padding: 0 6px; height: 20px; line-height: 18px;
+      font-size: 12px; color: var(--primary); background: #e6f7ff; border: 1px solid #91d5ff; border-radius: 2px; vertical-align: middle;
+    }
+    .preview-price-head { font-size: 13px; color: var(--text); margin-bottom: 10px; }
+    .preview-price-head .preview-tag { margin-left: 12px; }
+    .preview-reason {
+      font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap;
+      background: #fafafa; border: 1px solid var(--border); border-radius: 4px; padding: 12px 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon">智</div><span class="logo-text">数智分拨</span></div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">📊</span><span class="menu-label">绩效提成</span></div>
+      <div class="menu-sub">
+        <div class="menu-item">薪资线上化</div>
+        <div class="menu-item active">基础提成方案维护</div>
+      </div>
+    </nav>
+    <div class="sidebar-toggle" id="sidebarToggle">☰</div>
+  </aside>
+  <div class="main-wrapper">
+    <header class="top-tabs">
+      <div class="page-tabs">
+        <div class="page-tab active">基础提成方案维护</div>
+      </div>
+    </header>
+    <main class="content-area">
+      <div class="content-card">
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item"><span class="filter-label">省区</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option>请选择</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">分拨中心</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option>请选择</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">有效期限</span><div class="filter-control-wrap"><input class="filter-control" placeholder="开始月份 ~ 结束月份" readonly /></div></div>
+            <div class="filter-item"><span class="filter-label">维度</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option>全部</option><option>分拨</option><option>人员</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">适用岗位</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option>全部</option><option>机叉司机</option><option>叉车组长</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">状态</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option>试用中、使用中</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">方案编号</span><div class="filter-control-wrap"><input class="filter-control" placeholder="精准查询，多个换行或逗号分隔" /></div></div>
+            <div class="filter-item"><span class="filter-label">方案类型</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option>全部</option><option>总部</option><option>临时</option><option>长期</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">计价方式</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option>全部</option><option>统计计价</option><option>阶梯计价</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">人员</span><div class="filter-control-wrap"><input class="filter-control" placeholder="姓名/工号模糊" /></div></div>
+          </div>
+          <div class="filter-actions"><button class="btn">重置</button><button class="btn btn-primary">查询</button></div>
+        </section>
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab">移动提成</div>
+          <div class="content-tab active">机叉叉车组长绩效</div>
+          <div class="content-tab">装卸提成</div>
+          <div class="content-tab">兼职提成</div>
+        </nav>
+        <section class="action-bar">
+          <button class="btn-action primary" id="btnAdd">新增</button>
+          <button class="btn-action" id="btnEdit">编辑</button>
+          <button class="btn-action">复制</button>
+          <button class="btn-action">发起流程</button>
+          <button class="btn-action">数据复核</button>
+          <button class="btn-action">编辑结束月份</button>
+          <button class="btn-action">删除</button>
+          <button class="btn-action">导出</button>
+        </section>
+        <section class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>
+                <th>分拨中心</th><th>所属省区</th><th>维度</th><th>人员</th><th>方案编号</th>
+                <th>申请有效期限</th><th>实际有效期限</th><th>真实有效期限</th><th>方案类型</th>
+                <th>适用岗位</th><th>基本工资</th><th>绩效薪资</th><th>移动提成下限</th><th>移动提成上限</th>
+                <th>状态</th><th>实际状态</th><th>表单预览</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-edit-key="hub">
+                <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                <td>温州分拨</td><td>浙南</td><td><span class="tag tag-blue">分拨</span></td><td>—</td>
+                <td>JX202601001</td><td>2026-01 ~ 2026-12</td><td>2026-01 ~ 2026-12</td><td>2026-01 ~ 2026-12</td>
+                <td>长期</td><td>机叉司机</td><td>1900</td><td>2000</td><td>600</td><td>999999</td>
+                <td>使用中</td><td>使用中</td><td><span class="link btn-preview" data-preview="hub">预览</span></td>
+              </tr>
+              <tr data-edit-key="person">
+                <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                <td>温州分拨</td><td>浙南</td><td><span class="tag tag-green">人员</span></td><td>张三(10001)</td>
+                <td>JX202601088</td><td>2026-01 ~ 2026-12</td><td>2026-01 ~ 2026-12</td><td>2026-01 ~ 2026-12</td>
+                <td>长期</td><td>机叉司机</td><td>3000</td><td>2500</td><td>0</td><td>999999</td>
+                <td>使用中</td><td>使用中</td><td><span class="link btn-preview" data-preview="person">预览</span></td>
+              </tr>
+              <tr data-edit-key="leader">
+                <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                <td>南通分拨</td><td>苏中</td><td><span class="tag tag-blue">分拨</span></td><td>—</td>
+                <td>JX202601002</td><td>2026-01 ~ 2026-12</td><td>2026-01 ~ 2026-12</td><td>2026-01 ~ 2026-12</td>
+                <td>总部</td><td>叉车组长</td><td>1900</td><td>1800</td><td>—</td><td>—</td>
+                <td>试用中</td><td>试用中</td><td><span class="link btn-preview" data-preview="leader">预览</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+        <div class="pagination"><span>共 3 条</span><button class="btn">1</button></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 表单预览弹窗 -->
+<div class="modal-mask" id="previewMask">
+  <div class="modal preview-modal">
+    <div class="modal-header">
+      <span>表单预览</span>
+      <span class="modal-close" id="previewClose">×</span>
+    </div>
+    <div class="preview-body" id="previewBody">
+      <div class="preview-stamp" id="previewStamp">使用中</div>
+
+      <div class="preview-block">
+        <div class="preview-block-title">基础设定</div>
+        <div class="preview-grid" id="previewBasic"></div>
+      </div>
+
+      <div class="preview-block" id="previewDamageBlock">
+        <div class="preview-block-title">破损关联绩效</div>
+        <div class="preview-grid" id="previewDamage"></div>
+      </div>
+
+      <div class="preview-block">
+        <div class="preview-block-title">单价设定</div>
+        <div class="preview-price-head">网点卸车移动　干线卸车移动<span class="preview-tag">现行方案</span></div>
+        <div class="preview-grid" id="previewPrice"></div>
+      </div>
+
+      <div class="preview-block" id="previewReasonBlock">
+        <div class="preview-block-title">申请理由</div>
+        <div class="preview-reason" id="previewReason"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="previewCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新增/编辑弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="modalTitle">新增 — 机叉叉车组长绩效</span>
+      <span class="modal-close" id="modalClose">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">
+        <div class="form-section-title">基础设定</div>
+        <div class="form-grid-2" style="margin-bottom:16px">
+          <div class="form-item">
+            <label><span class="req">*</span>维度</label>
+            <div class="radio-group" id="dimRadio">
+              <label><input type="radio" name="dim" value="hub" /> 分拨</label>
+              <label><input type="radio" name="dim" value="person" /> 人员</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-item" id="fieldHubMulti">
+            <label><span class="req">*</span>分拨中心</label>
+            <div class="select-wrap"><select class="form-control" id="hubSelectMulti"><option value="">请选择</option><option>温州分拨</option><option>杭州分拨</option><option>南通分拨</option></select></div>
+          </div>
+          <div class="form-item hidden" id="fieldHubSingle">
+            <label><span class="req">*</span>分拨中心</label>
+            <div class="select-wrap"><select class="form-control" id="hubSelectSingle"><option value="">请选择</option><option>温州分拨</option><option>杭州分拨</option><option>南通分拨</option></select></div>
+          </div>
+          <div class="form-item hidden" id="fieldPerson">
+            <label><span class="req">*</span>人员</label>
+            <input class="form-control" id="personInput" placeholder="姓名/工号搜索，单选" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>适用岗位</label>
+            <div class="select-wrap"><select class="form-control" id="jobSelect"><option value="">请选择</option><option>机叉司机</option><option>叉车组长</option></select></div>
+          </div>
+          <div class="form-item"><label><span class="req">*</span>有效期限开始月份</label><input class="form-control" id="startMonth" placeholder="请选择月份" /></div>
+          <div class="form-item"><label><span class="req">*</span>有效期限结束月份</label><input class="form-control" id="endMonth" placeholder="请选择月份" /></div>
+          <div class="form-item"><label>试用时长</label><input class="form-control" id="trialDuration" placeholder="1" readonly /></div>
+          <div class="form-item"><label><span class="req">*</span>基本工资</label><input class="form-control" id="baseSalary" placeholder="请输入" /></div>
+          <div class="form-item"><label><span class="req">*</span>责任吨位(吨)</label><input class="form-control" id="tonnage" placeholder="请输入" /></div>
+          <div class="form-item"><label><span class="req">*</span>责任托数</label><input class="form-control" id="pallets" placeholder="请输入" /></div>
+          <div class="form-item"><label><span class="req">*</span>绩效薪资</label><input class="form-control" id="performanceSalary" placeholder="请输入" /></div>
+          <div class="form-item job-only"><label><span class="req">*</span>移动提成下限</label><input class="form-control" id="mobileMin" placeholder="请输入" /></div>
+          <div class="form-item job-only"><label><span class="req">*</span>移动提成上限</label><input class="form-control" id="mobileMax" placeholder="请输入" /></div>
+          <div class="form-item job-only"><label><span class="req">*</span>提成类型</label><div class="select-wrap"><select class="form-control" id="commissionType"><option value="">请选择</option><option>移动提成</option><option>移动+协助提成</option></select></div></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">破损关联绩效</div>
+        <div class="form-grid">
+          <div class="form-item"><label><span class="req">*</span>是否关联破损</label><div class="select-wrap"><select class="form-control" id="damageLink"><option value="">请选择</option><option value="yes">是</option><option value="no">否</option></select></div></div>
+        </div>
+        <div class="form-grid hidden" id="damageConfig">
+          <div class="form-item"><label>连续评估月数</label><input class="form-control" id="evalMonths" placeholder="请输入" /></div>
+          <div class="form-item"><label>升档金额</label><input class="form-control" id="upAmount" placeholder="正数，最多1位小数" /></div>
+          <div class="form-item"><label>降档金额</label><input class="form-control" id="downAmount" placeholder="降档幅度，如 600；可为 0" /></div>
+          <div class="form-item"><label>绩效薪资下限</label><input class="form-control" id="perfMin" placeholder="请输入" /></div>
+          <div class="form-item"><label>绩效薪资上限</label><input class="form-control" id="perfMax" placeholder="请输入" /></div>
+          <div class="form-item"><label>升档绩效分门槛</label><input class="form-control" id="scoreThreshold" placeholder="请输入" /></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">单价设定</div>
+        <p style="font-size:13px;color:var(--text-secondary)">与现网「机叉叉车组长绩效」tab 一致，本版规则不变。</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="modalCancel">取消</button>
+      <button class="btn btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
+  document.getElementById('contentTabs').addEventListener('click', e => {
+    const t = e.target.closest('.content-tab'); if (!t) return;
+    document.querySelectorAll('.content-tab').forEach(x => x.classList.remove('active')); t.classList.add('active');
+  });
+  document.getElementById('checkAll').addEventListener('change', function () {
+    document.querySelectorAll('.row-check').forEach(cb => { cb.checked = this.checked; });
+  });
+  const mask = document.getElementById('modalMask');
+  const modalTitle = document.getElementById('modalTitle');
+
+  const editFormData = {
+    hub: {
+      dim: 'hub', hub: '温州分拨', person: '', job: '机叉司机',
+      start: '2026-01', end: '2026-12', trial: '1',
+      baseSalary: '1900', tonnage: '0', pallets: '0', performanceSalary: '2000',
+      mobileMin: '600', mobileMax: '999999', commissionType: '移动提成',
+      damageLink: 'yes', evalMonths: '2', upAmount: '600', downAmount: '-600',
+      perfMin: '2000', perfMax: '4000', scoreThreshold: '90',
+    },
+    person: {
+      dim: 'person', hub: '温州分拨', person: '张三(10001)', job: '机叉司机',
+      start: '2026-01', end: '2026-12', trial: '1',
+      baseSalary: '3000', tonnage: '0', pallets: '0', performanceSalary: '2500',
+      mobileMin: '0', mobileMax: '999999', commissionType: '移动提成',
+      damageLink: 'yes', evalMonths: '2', upAmount: '600', downAmount: '-600',
+      perfMin: '2000', perfMax: '5000', scoreThreshold: '90',
+    },
+    leader: {
+      dim: 'hub', hub: '南通分拨', person: '', job: '叉车组长',
+      start: '2026-01', end: '2026-12', trial: '1',
+      baseSalary: '1900', tonnage: '0', pallets: '0', performanceSalary: '1800',
+      mobileMin: '', mobileMax: '', commissionType: '',
+      damageLink: 'no', evalMonths: '', upAmount: '', downAmount: '',
+      perfMin: '', perfMax: '', scoreThreshold: '',
+    },
+  };
+
+  function setSelectValue(sel, val) {
+    if (!sel) return;
+    if (!val) { sel.selectedIndex = 0; return; }
+    let found = false;
+    Array.from(sel.options).forEach((o, i) => {
+      if (o.value === val || o.textContent === val) { sel.selectedIndex = i; found = true; }
+    });
+    if (!found) sel.add(new Option(val, val, true, true));
+  }
+
+  function resetForm() {
+    document.querySelectorAll('#modalMask input.form-control:not([readonly])').forEach(el => { el.value = ''; });
+    document.getElementById('startMonth').placeholder = '请选择月份';
+    document.getElementById('endMonth').placeholder = '请选择月份';
+    document.getElementById('trialDuration').value = '';
+    document.querySelectorAll('#modalMask select.form-control').forEach(el => { el.selectedIndex = 0; });
+    document.querySelectorAll('input[name="dim"]').forEach(r => { r.checked = false; });
+    document.getElementById('fieldHubMulti').classList.remove('hidden');
+    document.getElementById('fieldHubSingle').classList.add('hidden');
+    document.getElementById('fieldPerson').classList.add('hidden');
+    document.getElementById('damageLink').value = 'yes';
+    document.getElementById('damageConfig').classList.remove('hidden');
+    document.querySelectorAll('.job-only').forEach(el => el.classList.remove('hidden'));
+  }
+
+  function fillForm(data) {
+    setDim(data.dim);
+    setSelectValue(document.getElementById('hubSelectMulti'), data.hub);
+    setSelectValue(document.getElementById('hubSelectSingle'), data.hub);
+    document.getElementById('personInput').value = data.person || '';
+    setSelectValue(document.getElementById('jobSelect'), data.job);
+    document.getElementById('startMonth').value = data.start;
+    document.getElementById('endMonth').value = data.end;
+    document.getElementById('trialDuration').value = data.trial;
+    document.getElementById('baseSalary').value = data.baseSalary;
+    document.getElementById('tonnage').value = data.tonnage;
+    document.getElementById('pallets').value = data.pallets;
+    document.getElementById('performanceSalary').value = data.performanceSalary;
+    document.getElementById('mobileMin').value = data.mobileMin;
+    document.getElementById('mobileMax').value = data.mobileMax;
+    setSelectValue(document.getElementById('commissionType'), data.commissionType);
+    document.getElementById('jobSelect').dispatchEvent(new Event('change'));
+    document.getElementById('damageLink').value = data.damageLink;
+    document.getElementById('damageConfig').classList.toggle('hidden', data.damageLink !== 'yes');
+    document.getElementById('evalMonths').value = data.evalMonths;
+    document.getElementById('upAmount').value = data.upAmount;
+    document.getElementById('downAmount').value = data.downAmount;
+    document.getElementById('perfMin').value = data.perfMin;
+    document.getElementById('perfMax').value = data.perfMax;
+    document.getElementById('scoreThreshold').value = data.scoreThreshold;
+  }
+
+  function openFormModal(mode, editKey) {
+    if (mode === 'add') {
+      modalTitle.textContent = '新增 — 机叉叉车组长绩效';
+      resetForm();
+    } else {
+      modalTitle.textContent = '编辑 — 机叉叉车组长绩效';
+      fillForm(editFormData[editKey] || editFormData.hub);
+    }
+    mask.classList.add('show');
+  }
+
+  document.getElementById('btnAdd').addEventListener('click', () => openFormModal('add'));
+  document.getElementById('btnEdit').addEventListener('click', () => {
+    const checked = document.querySelectorAll('.row-check:checked');
+    if (checked.length !== 1) {
+      alert(checked.length === 0 ? '请先勾选一条数据进行编辑' : '编辑时仅可选择一条数据');
+      return;
+    }
+    const key = checked[0].closest('tr').dataset.editKey;
+    openFormModal('edit', key);
+  });
+  ['modalClose', 'modalCancel'].forEach(id => document.getElementById(id).addEventListener('click', () => mask.classList.remove('show')));
+
+  function setDim(val) {
+    const isPerson = val === 'person';
+    document.getElementById('fieldHubMulti').classList.toggle('hidden', isPerson);
+    document.getElementById('fieldHubSingle').classList.toggle('hidden', !isPerson);
+    document.getElementById('fieldPerson').classList.toggle('hidden', !isPerson);
+    document.querySelector(`input[name="dim"][value="${val}"]`).checked = true;
+  }
+  document.getElementById('dimRadio').addEventListener('change', e => { if (e.target.name === 'dim') setDim(e.target.value); });
+
+  document.getElementById('jobSelect').addEventListener('change', function () {
+    const hide = this.value === '叉车组长';
+    document.querySelectorAll('.job-only').forEach(el => el.classList.toggle('hidden', hide));
+  });
+  document.getElementById('damageLink').addEventListener('change', function () {
+    document.getElementById('damageConfig').classList.toggle('hidden', this.value !== 'yes');
+  });
+
+  const previewMask = document.getElementById('previewMask');
+  const previewData = {
+    hub: {
+      stamp: '使用中',
+      basic: [
+        ['维度', '分拨'], ['有效期限', '2026.01~2026.12', 'tag'],
+        ['分拨中心', '温州分拨'], ['注', '试运行一个月，到期后如方案无修改则继续沿用该方案。', 'red'],
+        ['方案类型', '长期方案'], ['适用岗位', '机叉司机'],
+        ['基本工资', '1900'], ['责任吨位(吨)', '0'],
+        ['责任托数(托)', '0'], ['绩效薪资', '2000'],
+        ['移动提成上限', '999999'], ['移动提成下限', '600'],
+        ['提成类型', '移动提成'],
+      ],
+      damage: [
+        ['是否关联破损', '是'], ['连续评估月数', '2'],
+        ['升档金额', '600'], ['降档金额', '-600'],
+        ['绩效薪资下限', '2000'], ['绩效薪资上限', '4000'],
+        ['升档绩效分门槛', '90'],
+      ],
+      price: [
+        ['计价方式', '统一计价'], ['模式', '整体'],
+        ['方案类型', '按吨计算'], ['每吨单价(元/吨)', '1.20'],
+      ],
+      reason: '温州分拨机叉司机分拨维度方案，绩效薪资由1800调整至2000，配套破损关联升降档规则。',
+    },
+    person: {
+      stamp: '使用中',
+      basic: [
+        ['维度', '人员'], ['有效期限', '2026.01~2026.12', 'tag'],
+        ['分拨中心', '温州分拨'], ['注', '试运行一个月，到期后如方案无修改则继续沿用该方案。', 'red'],
+        ['人员', '张三(10001)'], ['方案类型', '长期方案'],
+        ['适用岗位', '机叉司机'], ['基本工资', '3000'],
+        ['责任吨位(吨)', '0'], ['责任托数(托)', '0'],
+        ['绩效薪资', '2500'], ['移动提成下限', '0'],
+        ['移动提成上限', '999999'], ['提成类型', '移动提成'],
+      ],
+      damage: [
+        ['是否关联破损', '是'], ['连续评估月数', '2'],
+        ['升档金额', '600'], ['降档金额', '-600'],
+        ['绩效薪资下限', '2000'], ['绩效薪资上限', '5000'],
+        ['升档绩效分门槛', '90'],
+      ],
+      price: [
+        ['计价方式', '统一计价'], ['模式', '整体'],
+        ['方案类型', '按吨计算'], ['每吨单价(元/吨)', '1.35'],
+      ],
+      reason: '资差人员张三独立人员维度方案，全套薪资与破损关联配置与分拨方案区分维护。',
+    },
+    leader: {
+      stamp: '试用中',
+      basic: [
+        ['维度', '分拨'], ['有效期限', '2026.01~2026.12', 'tag'],
+        ['分拨中心', '南通分拨'], ['注', '试运行一个月，到期后如方案无修改则继续沿用该方案。', 'red'],
+        ['方案类型', '总部方案'], ['适用岗位', '叉车组长'],
+        ['基本工资', '1900'], ['责任吨位(吨)', '0'],
+        ['责任托数(托)', '0'], ['绩效薪资', '1800'],
+      ],
+      damage: [
+        ['是否关联破损', '否'],
+      ],
+      price: [
+        ['计价方式', '统一计价'], ['模式', '整体'],
+        ['方案类型', '按吨计算'], ['每吨单价(元/吨)', '—'],
+      ],
+      reason: '南通分拨叉车组长总部方案申请，试用中待发起流程。',
+    },
+  };
+
+  function renderPreviewRows(container, rows) {
+    container.innerHTML = rows.map(([label, val, flag]) => {
+      const valCls = flag === 'red' ? ' red' : '';
+      const tag = flag === 'tag' ? '<span class="preview-tag">现行方案</span>' : '';
+      return `<div class="preview-row"><span class="p-label">${label}</span><span class="p-value${valCls}">${val}${tag}</span></div>`;
+    }).join('');
+  }
+
+  function openPreview(key) {
+    const d = previewData[key] || previewData.hub;
+    const stamp = document.getElementById('previewStamp');
+    stamp.textContent = d.stamp;
+    stamp.classList.toggle('stamp-trial', d.stamp === '试用中');
+    renderPreviewRows(document.getElementById('previewBasic'), d.basic);
+    renderPreviewRows(document.getElementById('previewDamage'), d.damage);
+    renderPreviewRows(document.getElementById('previewPrice'), d.price);
+    document.getElementById('previewReason').textContent = d.reason;
+    previewMask.classList.add('show');
+  }
+
+  document.querySelectorAll('.btn-preview').forEach(el => {
+    el.addEventListener('click', () => openPreview(el.dataset.preview));
+  });
+  ['previewClose', 'previewCancel'].forEach(id => {
+    document.getElementById(id).addEventListener('click', () => previewMask.classList.remove('show'));
+  });
+</script>
+</body>
+</html>
