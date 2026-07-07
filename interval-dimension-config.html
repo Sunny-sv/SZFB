@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>区间维度配置 — 动态交互原型</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --sidebar-bg: #001529;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --purple: #722ed1;
+      --purple-light: #f9f0ff;
+      --green: #52c41a;
+      --red: #ff4d4f;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+    }
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 40px;
+    }
+    .page-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.03);
+    }
+    .card + .card { margin-top: 16px; }
+
+    /* 维度选择区 */
+    .dim-section-title {
+      font-weight: 500;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .dim-groups { display: flex; flex-direction: column; gap: 14px; }
+    .dim-group {}
+    .dim-group-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--purple);
+      margin-bottom: 8px;
+    }
+    .dim-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 24px;
+    }
+    .dim-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      user-select: none;
+    }
+    .dim-option input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--purple);
+      cursor: pointer;
+    }
+
+    /* 配置表格区 */
+    .config-header {
+      display: grid;
+      grid-template-columns: 1fr 120px 150px 150px 72px;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 4px 4px 0 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .config-header .col-interval { color: #096dd9; }
+    .config-header .col-adj { color: #389e0d; text-align: center; }
+    .config-header .col-ops { text-align: center; }
+
+    .config-body {
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+      background: #fff;
+      min-height: 80px;
+    }
+    .config-empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .config-group {
+      border-bottom: 1px dashed #d9d9d9;
+    }
+    .config-group:last-child { border-bottom: none; }
+
+    .config-row {
+      display: grid;
+      grid-template-columns: 1fr 120px 150px 150px 72px;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      min-height: 48px;
+    }
+    .config-row + .config-row {
+      border-top: 1px solid #f5f5f5;
+    }
+
+    .row-interval {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .row-label {
+      font-size: 13px;
+      white-space: nowrap;
+      color: var(--text);
+      min-width: 0;
+    }
+    .interval-input {
+      width: 80px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      text-align: center;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .interval-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.1); }
+    .interval-input.error { border-color: var(--red); background: #fff2f0; }
+    .interval-sep { color: var(--text-secondary); font-size: 12px; }
+
+    .col-adj-cell { display: flex; justify-content: center; align-items: center; }
+    .col-adj-cell.empty { visibility: hidden; }
+
+    .adj-select {
+      width: 100%;
+      max-width: 110px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--text-secondary);
+    }
+    .adj-select.has-value { color: var(--text); }
+
+    .pct-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pct-dir {
+      width: 44px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 13px;
+      text-align: center;
+      background: #fff;
+    }
+    .pct-input {
+      width: 56px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 6px;
+      font-size: 13px;
+      text-align: center;
+    }
+    .pct-suffix { font-size: 13px; color: var(--text-secondary); }
+
+    .row-ops {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 500;
+      transition: opacity .2s;
+    }
+    .btn-circle:hover { opacity: .85; }
+    .btn-add { background: var(--green); color: #fff; }
+    .btn-del { background: var(--red); color: #fff; }
+
+    .footer-bar {
+      margin-top: 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+    }
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .hint-bar {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: #fffbe6;
+      border: 1px solid #ffe58f;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #ad6800;
+      line-height: 1.7;
+    }
+    .error-tip {
+      font-size: 11px;
+      color: var(--red);
+      width: 100%;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <h1 class="page-title">区间维度配置</h1>
+
+  <div class="card">
+    <div class="dim-section-title">区间纬度（可多选，至少 1 项）</div>
+    <div class="dim-groups" id="dimGroups"></div>
+  </div>
+
+  <div class="card">
+    <div class="config-header">
+      <div class="col-interval">维度区间</div>
+      <div class="col-adj">轻实重调整</div>
+      <div class="col-adj">自有调整</div>
+      <div class="col-adj">外包调整</div>
+      <div class="col-ops">操作</div>
+    </div>
+    <div class="config-body" id="configBody"></div>
+    <div class="hint-bar">
+      层级优先级（高→低）：票-操作结算重量段 &gt; 票-体积段 &gt; 票-件数段 &gt; 子托-操作结算重量段 &gt; 子托-体积段 &gt; 子托-件数段 &gt; 件-操作结算重量段 &gt; 件-体积段。<br>
+      匹配逻辑：同一叶子配置行内，从根到叶的各维度区间须<strong>同时满足（AND）</strong>，才套用该行调整比例。<br>
+      录入规则：下限、上限均必填；前闭后开（下限 &lt; 上限）；无上界时填最大值（重量/体积 99999.99，件数 999999）。
+    </div>
+    <div class="footer-bar">
+      <button class="btn" type="button" id="btnReset">重置</button>
+      <button class="btn btn-primary" type="button" id="btnValidate">校验并预览</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const MAX_WV = 99999.99;
+  const MAX_PC = 999999;
+
+  const GROUPS = [
+    { id: 'ticket', name: '票' },
+    { id: 'pallet', name: '子托' },
+    { id: 'piece', name: '件' },
+  ];
+
+  // 维度层级优先级（固定顺序，高 → 低）：数组顺序即嵌套层级顺序
+  const DIMS = [
+    { key: 'ticket_weight',  group: 'ticket', type: 'weight',  label: '票-操作结算重量段' },
+    { key: 'ticket_volume',  group: 'ticket', type: 'volume',  label: '票-体积段' },
+    { key: 'ticket_pieces',  group: 'ticket', type: 'pieces',  label: '票-件数段' },
+    { key: 'pallet_weight',  group: 'pallet', type: 'weight',  label: '子托-操作结算重量段' },
+    { key: 'pallet_volume',  group: 'pallet', type: 'volume',  label: '子托-体积段' },
+    { key: 'pallet_pieces',  group: 'pallet', type: 'pieces',  label: '子托-件数段' },
+    { key: 'piece_weight',   group: 'piece',  type: 'weight',  label: '件-操作结算重量段' },
+    { key: 'piece_volume',   group: 'piece',  type: 'volume',  label: '件-体积段' },
+  ];
+
+  let selectedKeys = new Set(['ticket_weight', 'ticket_pieces']);
+  let prevDimKeys = ['ticket_weight', 'ticket_pieces'];
+  let tree = [];
+  let uid = 1;
+
+  function nextId() { return 'r' + (uid++); }
+
+  function getSortedSelectedDims() {
+    // 按 DIMS 固定优先级顺序过滤，不做二次排序
+    return DIMS.filter(function (d) { return selectedKeys.has(d.key); });
+  }
+
+  function createRow(depth, dimKeys) {
+    const keys = dimKeys || getSortedSelectedDims().map(d => d.key);
+    const row = {
+      id: nextId(),
+      min: '',
+      max: '',
+      light: '',
+      ownDir: '+',
+      ownVal: '',
+      outDir: '+',
+      outVal: '',
+      children: [],
+    };
+    if (depth < keys.length - 1) {
+      row.children = [createRow(depth + 1, keys)];
+    }
+    return row;
+  }
+
+  function collectLeaves(nodes, dimKeys, depth, prefix) {
+    if (!dimKeys.length || !nodes.length) return [];
+    const results = [];
+    const key = dimKeys[depth];
+    for (const node of nodes) {
+      const current = Object.assign({}, prefix, {
+        [key]: { min: node.min, max: node.max },
+      });
+      if (depth === dimKeys.length - 1) {
+        results.push({
+          intervals: current,
+          adj: {
+            light: node.light, ownDir: node.ownDir, ownVal: node.ownVal,
+            outDir: node.outDir, outVal: node.outVal,
+          },
+        });
+      } else {
+        const subs = collectLeaves(node.children || [], dimKeys, depth + 1, current);
+        if (subs.length === 0) {
+          results.push({ intervals: current, adj: {} });
+        } else {
+          results.push.apply(results, subs);
+        }
+      }
+    }
+    return results;
+  }
+
+  function buildTreeFromLeaves(leaves, dimKeys) {
+    if (!dimKeys.length) return [];
+    if (dimKeys.length === 1) {
+      const key = dimKeys[0];
+      if (!leaves.length) return [createRow(0, dimKeys)];
+      return leaves.map(function (leaf) {
+        const iv = (leaf.intervals && leaf.intervals[key]) || { min: '', max: '' };
+        const adj = leaf.adj || {};
+        return {
+          id: nextId(),
+          min: iv.min, max: iv.max,
+          light: adj.light || '', ownDir: adj.ownDir || '+', ownVal: adj.ownVal || '',
+          outDir: adj.outDir || '+', outVal: adj.outVal || '',
+          children: [],
+        };
+      });
+    }
+    const key = dimKeys[0];
+    const rest = dimKeys.slice(1);
+    const groups = [];
+    const map = new Map();
+    leaves.forEach(function (leaf) {
+      const iv = (leaf.intervals && leaf.intervals[key]) || { min: '', max: '' };
+      const gk = iv.min + '\0' + iv.max;
+      if (!map.has(gk)) {
+        const g = { interval: iv, leaves: [] };
+        map.set(gk, g);
+        groups.push(g);
+      }
+      const subIntervals = {};
+      rest.forEach(function (k) {
+        if (leaf.intervals && leaf.intervals[k]) subIntervals[k] = leaf.intervals[k];
+      });
+      map.get(gk).leaves.push({ intervals: subIntervals, adj: leaf.adj || {} });
+    });
+    if (!groups.length) return [createRow(0, dimKeys)];
+    return groups.map(function (g) {
+      return {
+        id: nextId(),
+        min: g.interval.min, max: g.interval.max,
+        light: '', ownDir: '+', ownVal: '', outDir: '+', outVal: '',
+        children: buildTreeFromLeaves(g.leaves, rest),
+      };
+    });
+  }
+
+  function rebuildTree(preserve) {
+    const dimKeys = getSortedSelectedDims().map(function (d) { return d.key; });
+    if (dimKeys.length === 0) {
+      tree = [];
+      prevDimKeys = [];
+      return;
+    }
+    if (!preserve || tree.length === 0) {
+      tree = [createRow(0, dimKeys)];
+      prevDimKeys = dimKeys.slice();
+      return;
+    }
+    const keptKeys = dimKeys.filter(function (k) { return prevDimKeys.indexOf(k) >= 0; });
+    const leaves = collectLeaves(tree, prevDimKeys, 0, {});
+    const filtered = leaves.map(function (leaf) {
+      const intervals = {};
+      keptKeys.forEach(function (k) {
+        if (leaf.intervals[k]) intervals[k] = { min: leaf.intervals[k].min, max: leaf.intervals[k].max };
+      });
+      const isLeaf = dimKeys[dimKeys.length - 1];
+      const hadRemoved = prevDimKeys.some(function (k) { return dimKeys.indexOf(k) < 0; });
+      return {
+        intervals: intervals,
+        adj: hadRemoved && keptKeys.indexOf(isLeaf) < 0 ? {} : (leaf.adj || {}),
+      };
+    });
+    tree = buildTreeFromLeaves(filtered.length ? filtered : [], dimKeys);
+    if (!tree.length) tree = [createRow(0, dimKeys)];
+    prevDimKeys = dimKeys.slice();
+  }
+
+  function renderDimGroups() {
+    const container = document.getElementById('dimGroups');
+    container.innerHTML = GROUPS.map(g => {
+      const opts = DIMS.filter(d => d.group === g.id).map(d => {
+        const checked = selectedKeys.has(d.key) ? 'checked' : '';
+        return `<label class="dim-option">
+          <input type="checkbox" data-key="${d.key}" ${checked} />
+          <span>${d.label}</span>
+        </label>`;
+      }).join('');
+      return `<div class="dim-group">
+        <div class="dim-group-name">${g.name}</div>
+        <div class="dim-options">${opts}</div>
+      </div>`;
+    }).join('');
+
+    container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const key = cb.dataset.key;
+        if (cb.checked) {
+          selectedKeys.add(key);
+        } else {
+          if (selectedKeys.size <= 1) {
+            cb.checked = true;
+            alert('至少保留 1 个区间维度');
+            return;
+          }
+          selectedKeys.delete(key);
+        }
+        rebuildTree(true);
+        renderConfig();
+      });
+    });
+  }
+
+  function validateInterval(dim, minStr, maxStr) {
+    const errors = [];
+    const isPieces = dim.type === 'pieces';
+    const maxDefault = isPieces ? MAX_PC : MAX_WV;
+
+    if (minStr === '' || maxStr === '') {
+      errors.push('上下限均为必填');
+      return errors;
+    }
+
+    if (isPieces) {
+      const intRe = /^\d+$/;
+      if (!intRe.test(minStr) || !intRe.test(maxStr)) {
+        errors.push('件数段仅支持正整数');
+        return errors;
+      }
+      const min = parseInt(minStr, 10);
+      const max = parseInt(maxStr, 10);
+      if (min <= 0 || max <= 0) errors.push('件数须为正整数');
+      if (min >= max) errors.push('下限须小于上限（前闭后开）');
+    } else {
+      const decRe = /^\d{1,5}(\.\d{1,2})?$/;
+      if (!decRe.test(minStr) || !decRe.test(maxStr)) {
+        errors.push('最多 5 位整数 + 2 位小数');
+        return errors;
+      }
+      const min = parseFloat(minStr);
+      const max = parseFloat(maxStr);
+      if (min >= max) errors.push('下限须小于上限（前闭后开）');
+      if (max > maxDefault) errors.push('上限不超过 ' + maxDefault);
+    }
+    return errors;
+  }
+
+  function renderRow(node, depth, dim, siblings, sibIndex, parentPath) {
+    const dims = getSortedSelectedDims();
+    const isLeaf = depth === dims.length - 1;
+    const indent = depth * 28;
+    const seq = sibIndex + 1;
+    const path = parentPath + '/' + node.id;
+
+    const errors = validateInterval(dim, node.min, node.max);
+    const errHtml = errors.length ? `<div class="error-tip">${errors[0]}</div>` : '';
+
+    const intervalHtml = `
+      <div class="row-interval" style="padding-left:${indent}px">
+        <span class="row-label">${dim.label} ${seq}</span>
+        <input class="interval-input" type="text" data-path="${path}" data-field="min"
+          value="${esc(node.min)}" placeholder="下限" />
+        <span class="interval-sep">—</span>
+        <input class="interval-input" type="text" data-path="${path}" data-field="max"
+          value="${esc(node.max)}" placeholder="上限" />
+        ${errHtml}
+      </div>`;
+
+    let adjHtml;
+    if (isLeaf) {
+      adjHtml = `
+        <div class="col-adj-cell">
+          <select class="adj-select ${node.light ? 'has-value' : ''}" data-path="${path}" data-field="light">
+            <option value="" ${node.light === '' ? 'selected' : ''}>请选择</option>
+            <option value="是" ${node.light === '是' ? 'selected' : ''}>是</option>
+            <option value="否" ${node.light === '否' ? 'selected' : ''}>否</option>
+          </select>
+        </div>
+        <div class="col-adj-cell">
+          <div class="pct-group">
+            <select class="pct-dir" data-path="${path}" data-field="ownDir">
+              <option value="+" ${node.ownDir === '+' ? 'selected' : ''}>+</option>
+              <option value="-" ${node.ownDir === '-' ? 'selected' : ''}>-</option>
+            </select>
+            <input class="pct-input" type="text" data-path="${path}" data-field="ownVal" value="${esc(node.ownVal)}" placeholder="0" />
+            <span class="pct-suffix">%</span>
+          </div>
+        </div>
+        <div class="col-adj-cell">
+          <div class="pct-group">
+            <select class="pct-dir" data-path="${path}" data-field="outDir">
+              <option value="+" ${node.outDir === '+' ? 'selected' : ''}>+</option>
+              <option value="-" ${node.outDir === '-' ? 'selected' : ''}>-</option>
+            </select>
+            <input class="pct-input" type="text" data-path="${path}" data-field="outVal" value="${esc(node.outVal)}" placeholder="0" />
+            <span class="pct-suffix">%</span>
+          </div>
+        </div>`;
+    } else {
+      adjHtml = `
+        <div class="col-adj-cell empty"></div>
+        <div class="col-adj-cell empty"></div>
+        <div class="col-adj-cell empty"></div>`;
+    }
+
+    const showDel = siblings.length > 1;
+    const opsHtml = `
+      <div class="row-ops">
+        <button type="button" class="btn-circle btn-add" data-action="add" data-path="${path}" data-depth="${depth}" title="新增同层级行">+</button>
+        ${showDel ? `<button type="button" class="btn-circle btn-del" data-action="del" data-path="${path}" data-depth="${depth}" title="删除当前行">−</button>` : ''}
+      </div>`;
+
+    let html = `<div class="config-row" data-path="${path}">${intervalHtml}${adjHtml}${opsHtml}</div>`;
+
+    if (!isLeaf && node.children) {
+      const childDim = dims[depth + 1];
+      node.children.forEach((child, ci) => {
+        html += renderRow(child, depth + 1, childDim, node.children, ci, path);
+      });
+    }
+    return html;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  }
+
+  function renderConfig() {
+    const body = document.getElementById('configBody');
+    const dims = getSortedSelectedDims();
+
+    if (dims.length === 0) {
+      body.innerHTML = '<div class="config-empty">请先勾选至少 1 个区间维度</div>';
+      return;
+    }
+
+    body.innerHTML = tree.map((root, ri) => {
+      const groupHtml = renderRow(root, 0, dims[0], tree, ri, '');
+      return `<div class="config-group">${groupHtml}</div>`;
+    }).join('');
+
+    bindEvents();
+  }
+
+  function findNodeByPath(pathStr) {
+    const parts = pathStr.split('/').filter(Boolean);
+    let list = tree;
+    let node = null;
+    for (const id of parts) {
+      node = list.find(n => n.id === id);
+      if (!node) return null;
+      list = node.children || [];
+    }
+    return node;
+  }
+
+  function findParentList(pathStr) {
+    const parts = pathStr.split('/').filter(Boolean);
+    if (parts.length === 1) return { list: tree, index: tree.findIndex(n => n.id === parts[0]) };
+    const parentPath = '/' + parts.slice(0, -1).join('/');
+    const parent = findNodeByPath(parentPath);
+    const id = parts[parts.length - 1];
+    return { list: parent.children, index: parent.children.findIndex(n => n.id === id) };
+  }
+
+  function sanitizeInput(dim, field, raw) {
+    if (field !== 'min' && field !== 'max') return raw;
+    if (dim.type === 'pieces') {
+      return raw.replace(/\D/g, '').slice(0, 6);
+    }
+  const cleaned = raw.replace(/[^\d.]/g, '');
+    const parts = cleaned.split('.');
+    let intPart = parts[0].slice(0, 5);
+    let decPart = parts.length > 1 ? parts[1].slice(0, 2) : '';
+    return decPart ? intPart + '.' + decPart : intPart;
+  }
+
+  function bindEvents() {
+    document.querySelectorAll('[data-field]').forEach(el => {
+      const handler = () => {
+        const node = findNodeByPath(el.dataset.path);
+        if (!node) return;
+        const parts = el.dataset.path.split('/').filter(Boolean);
+        const depth = parts.length - 1;
+        const dims = getSortedSelectedDims();
+        const dim = dims[depth];
+        let val = el.value;
+        if (el.dataset.field === 'min' || el.dataset.field === 'max') {
+          val = sanitizeInput(dim, el.dataset.field, val);
+          el.value = val;
+        }
+        node[el.dataset.field] = val;
+        if (el.dataset.field === 'light') {
+          el.classList.toggle('has-value', el.value !== '');
+        }
+        if (el.dataset.field === 'min' || el.dataset.field === 'max') {
+          const errs = validateInterval(dim, node.min, node.max);
+          el.classList.toggle('error', errs.length > 0 && (node.min !== '' || node.max !== ''));
+        }
+      };
+      el.addEventListener('input', handler);
+      el.addEventListener('change', handler);
+      el.addEventListener('blur', handler);
+    });
+
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const depth = parseInt(btn.dataset.depth, 10);
+        const { list, index } = findParentList(btn.dataset.path);
+        if (btn.dataset.action === 'add') {
+          const newRow = createRow(depth, getSortedSelectedDims().map(function (d) { return d.key; }));
+          list.splice(index + 1, 0, newRow);
+        } else if (btn.dataset.action === 'del' && list.length > 1) {
+          list.splice(index, 1);
+        }
+        renderConfig();
+      });
+    });
+  }
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    selectedKeys = new Set(['ticket_weight', 'ticket_pieces']);
+    prevDimKeys = ['ticket_weight', 'ticket_pieces'];
+    uid = 1;
+    rebuildTree(false);
+    renderDimGroups();
+    renderConfig();
+  });
+
+  document.getElementById('btnValidate').addEventListener('click', () => {
+    const dims = getSortedSelectedDims();
+    let hasError = false;
+    const messages = [];
+
+    function walk(node, depth) {
+      const dim = dims[depth];
+      const errs = validateInterval(dim, node.min, node.max);
+      if (errs.length) {
+        hasError = true;
+        messages.push(dim.label + '：' + errs[0]);
+      }
+      if (depth < dims.length - 1) {
+        (node.children || []).forEach(c => walk(c, depth + 1));
+      } else {
+        if (!node.light) {
+          hasError = true;
+          messages.push('叶子行须选择轻实重调整');
+        }
+      }
+    }
+    tree.forEach(r => walk(r, 0));
+
+    renderConfig();
+
+    if (hasError) {
+      alert('校验未通过：\n' + messages.slice(0, 5).join('\n') + (messages.length > 5 ? '\n…' : ''));
+    } else {
+      alert('校验通过！共 ' + tree.length + ' 个顶层分组。');
+    }
+  });
+
+  rebuildTree(false);
+  renderDimGroups();
+  renderConfig();
+})();
+</script>
+</body>
+</html>

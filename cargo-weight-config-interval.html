@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>货量重量配置 — 调整比例原型（组合区间）</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --header-height: 40px;
+      --highlight: #fff7e6;
+      --highlight-border: #ffd591;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+    .layout { display: flex; height: 100vh; }
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: #fff;
+      font-weight: 600;
+    }
+    .sidebar-logo .logo-icon {
+      width: 28px; height: 28px;
+      background: var(--primary);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+    }
+    .sidebar-menu { flex: 1; padding: 8px 0; }
+    .menu-item {
+      display: flex; align-items: center;
+      padding: 0 16px; height: 40px;
+      color: var(--sidebar-text);
+      font-size: 14px;
+    }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .top-tabs {
+      height: var(--header-height);
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+    }
+    .page-tab {
+      padding: 0 12px; height: 32px;
+      display: flex; align-items: center;
+      border-radius: 4px;
+      color: var(--primary);
+      background: #e6f7ff;
+      font-size: 13px;
+    }
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: calc(100vh - var(--header-height) - 32px);
+    }
+
+    .demo-bar {
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 4px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .demo-bar .label { font-weight: 500; color: #096dd9; white-space: nowrap; }
+    .demo-bar .hint { font-size: 12px; color: var(--text-secondary); margin-left: auto; }
+
+    .btn {
+      height: 32px; padding: 0 14px;
+      border-radius: 4px; font-size: 13px;
+      cursor: pointer; border: 1px solid var(--border);
+      background: #fff; color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); color: #fff; }
+    .btn-scenario.active { background: #096dd9; border-color: #096dd9; color: #fff; }
+
+    .filter-area { display: flex; align-items: flex-end; gap: 16px; }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+    }
+    .filter-item label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+    .filter-control {
+      width: 100%; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px; padding: 0 11px;
+      font-size: 14px; background: #fff;
+    }
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .content-tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .content-tab {
+      padding: 8px 16px; cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .action-bar { display: flex; gap: 8px; }
+    .btn-action {
+      height: 32px; padding: 0 15px;
+      border-radius: 4px; border: 1px solid var(--border);
+      background: #fff; cursor: pointer;
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th, .data-table td {
+      border: 1px solid var(--border);
+      padding: 8px 10px; text-align: left;
+    }
+    .data-table th { background: #fafafa; font-weight: 500; }
+    .col-checkbox { width: 40px; text-align: center !important; }
+    .tag-dim {
+      display: inline-block;
+      padding: 0 6px;
+      background: #f0f5ff;
+      border: 1px solid #adc6ff;
+      border-radius: 2px;
+      font-size: 12px;
+      color: #2f54eb;
+      margin-right: 4px;
+    }
+    .pct-down { color: #bd3124; }
+    .pct-up { color: #81b337; }
+
+    .modal-mask {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1000;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+      overflow-y: auto;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 4px;
+      width: 960px;
+      max-width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,.15);
+      margin-bottom: 40px;
+    }
+    .modal-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 16px; font-weight: 500;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-close { cursor: pointer; font-size: 22px; color: var(--text-secondary); line-height: 1; }
+    .modal-body { padding: 16px 20px 20px; }
+    .modal-footer {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+
+    .section-title {
+      font-weight: 500;
+      margin: 16px 0 10px;
+      padding-left: 8px;
+      border-left: 3px solid var(--primary);
+    }
+    .section-title:first-child { margin-top: 0; }
+    .section-collapsed {
+      color: var(--text-secondary);
+      font-size: 13px;
+      padding: 8px 12px;
+      background: #fafafa;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+
+    .ratio-block {
+      border: 2px solid var(--highlight-border);
+      background: var(--highlight);
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .ratio-block .block-label {
+      font-weight: 600;
+      color: #d46b08;
+      margin-bottom: 12px;
+      font-size: 15px;
+    }
+    .mode-group { display: flex; gap: 24px; margin-bottom: 14px; }
+    .mode-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+    .dim-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px 16px;
+      margin-bottom: 14px;
+      padding: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    .dim-grid label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; cursor: pointer;
+    }
+    .dim-grid label.disabled { opacity: .4; cursor: not-allowed; }
+
+    .logic-hint {
+      font-size: 12px;
+      color: #d46b08;
+      background: #fff;
+      border: 1px dashed #ffa940;
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .config-table-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--border); border-radius: 4px; }
+    .config-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
+    .config-table th, .config-table td {
+      border: 1px solid var(--border);
+      padding: 8px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .config-table th { background: #fafafa; font-weight: 500; white-space: nowrap; }
+    .config-table th.dim-col { background: #e6f7ff; color: #096dd9; }
+    .config-table th.adj-col { background: #f6ffed; color: #389e0d; }
+    .interval-input {
+      width: 72px; height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 12px;
+    }
+    .interval-sep { color: var(--text-secondary); margin: 0 2px; font-size: 12px; }
+    .interval-hint { font-size: 11px; color: var(--text-secondary); display: block; margin-top: 2px; }
+    .mini-select {
+      height: 28px; border: 1px solid var(--border);
+      border-radius: 4px; font-size: 12px; padding: 0 4px;
+    }
+    .row-ops { white-space: nowrap; }
+    .btn-icon {
+      width: 24px; height: 24px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      margin: 0 2px;
+    }
+    .btn-icon.add { color: #52c41a; border-color: #b7eb8f; }
+    .btn-icon.del { color: #ff4d4f; border-color: #ffa39e; }
+
+    .flat-adj {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    .flat-adj .field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+
+    .compare-panel {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f9f9f9;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+    .compare-panel strong { color: var(--text); }
+    .hidden { display: none !important; }
+    .cell-merged { background: #fafafa; vertical-align: middle; }
+    .list-note { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+    .dim-grid .dim-group-label {
+      grid-column: 1 / -1;
+      font-size: 12px;
+      font-weight: 500;
+      color: #096dd9;
+      margin-top: 4px;
+    }
+    .dim-grid .dim-group-label:first-child { margin-top: 0; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">TVM</div>
+      <span>转运可视化</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item">操作标准</div>
+      <div class="menu-item active">货量重量配置</div>
+      <div class="menu-sub">
+        <div class="menu-item active">实时特殊维护</div>
+      </div>
+    </nav>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="top-tabs">
+      <div class="page-tab">货量重量配置</div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+
+        <div class="demo-bar">
+          <span class="label">演示场景（点击切换，自动打开新增弹框）</span>
+          <button class="btn btn-scenario" data-scenario="1">① 不区分</button>
+          <button class="btn btn-scenario active" data-scenario="2">② 票重量 + 票件数</button>
+          <button class="btn btn-scenario" data-scenario="3">③ 票重量 + 件重量（跨粒度）</button>
+          <button class="btn btn-scenario" data-scenario="4">④ 票重量 + 票体积（列表合并）</button>
+          <span class="hint">粒度顺序：票 &gt; 子托 &gt; 件；上下限均必填</span>
+        </div>
+
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <label>纬度</label>
+              <select class="filter-control"><option>全部</option></select>
+            </div>
+            <div class="filter-item">
+              <label>分拨中心</label>
+              <input class="filter-control" placeholder="数据权限组件" readonly />
+            </div>
+            <div class="filter-item">
+              <label>区间维度</label>
+              <select class="filter-control"><option>空（不过滤）</option><option>票重量+票件数</option></select>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn">重置</button>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs">
+          <div class="content-tab">实时统一维护</div>
+          <div class="content-tab active">实时特殊维护</div>
+          <div class="content-tab">流水线统一维护</div>
+          <div class="content-tab">流水线特殊维护</div>
+          <div class="content-tab">变更记录</div>
+        </nav>
+
+        <section class="action-bar">
+          <button class="btn-action primary" id="btnAdd">+ 新增</button>
+          <button class="btn-action">编辑</button>
+          <button class="btn-action">终止</button>
+          <button class="btn-action">导出</button>
+        </section>
+
+        <p class="list-note">列表说明：同一方案多配置行时，按固定维度顺序（票&gt;子托&gt;件）合并单元格；方案 TS002 为合并示例。</p>
+        <section>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="col-checkbox"><input type="checkbox" /></th>
+                <th>匹配维度</th>
+                <th>票-操作结算重量段</th>
+                <th>票-体积段</th>
+                <th>票-件数段</th>
+                <th>子托-操作结算重量段</th>
+                <th>子托-体积段</th>
+                <th>子托-件数段</th>
+                <th>件-操作结算重量段</th>
+                <th>件-体积段</th>
+                <th>轻实重调整</th>
+                <th>自有调整</th>
+                <th>外包调整</th>
+                <th>方案编号</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-checkbox"><input type="checkbox" /></td>
+                <td><span class="tag-dim">票重量</span><span class="tag-dim">票件数</span></td>
+                <td>800 ~ 99999.99</td>
+                <td>—</td>
+                <td>50 ~ 999999</td>
+                <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+                <td>否</td>
+                <td class="pct-down">-3%</td>
+                <td class="pct-down">-5%</td>
+                <td>TS001</td>
+                <td>生效中</td>
+              </tr>
+              <tr>
+                <td class="col-checkbox cell-merged" rowspan="2"><input type="checkbox" /></td>
+                <td class="cell-merged" rowspan="2"><span class="tag-dim">票重量</span><span class="tag-dim">票体积</span></td>
+                <td class="cell-merged" rowspan="2">0 ~ 800</td>
+                <td>0 ~ 5</td>
+                <td class="cell-merged" rowspan="2">—</td>
+                <td class="cell-merged" rowspan="2">—</td><td class="cell-merged" rowspan="2">—</td><td class="cell-merged" rowspan="2">—</td>
+                <td class="cell-merged" rowspan="2">—</td><td class="cell-merged" rowspan="2">—</td>
+                <td>否</td>
+                <td class="pct-down">-1%</td>
+                <td class="pct-down">-2%</td>
+                <td class="cell-merged" rowspan="2">TS002</td>
+                <td class="cell-merged" rowspan="2">生效中</td>
+              </tr>
+              <tr>
+                <td>5 ~ 99999.99</td>
+                <td>否</td>
+                <td class="pct-down">-2%</td>
+                <td class="pct-down">-3%</td>
+              </tr>
+              <tr>
+                <td class="col-checkbox"><input type="checkbox" /></td>
+                <td><span class="tag-dim">票重量</span><span class="tag-dim">件重量</span></td>
+                <td>500 ~ 99999.99</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td><td>—</td><td>—</td>
+                <td>0 ~ 50</td>
+                <td>—</td>
+                <td>否</td>
+                <td class="pct-down">-1%</td>
+                <td class="pct-down">-2%</td>
+                <td>TS003</td>
+                <td>生效中</td>
+              </tr>
+              <tr>
+                <td class="col-checkbox"><input type="checkbox" /></td>
+                <td>—</td>
+                <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+                <td>否</td>
+                <td class="pct-down">-2%</td>
+                <td class="pct-down">-3%</td>
+                <td>TS004</td>
+                <td>生效中</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="modal-mask show" id="modalMask">
+  <div class="modal">
+    <div class="modal-header">
+      <span>新增 — 实时特殊维护</span>
+      <span class="modal-close" id="modalClose">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="section-title">基础设定</div>
+      <div class="section-collapsed">纬度 / 分拨中心 / 操作类型 / 开始时间 / 结束时间（略，与现版一致）</div>
+
+      <div class="section-title">匹配条件配置</div>
+      <div class="section-collapsed">上一站 / 下一站 / 产品类型 / 寄件人 …（略，与现版一致；全部非必填）</div>
+
+      <div class="section-title">调整比例</div>
+      <div class="ratio-block">
+        <div class="block-label">★ 新版核心区域（替代原「计算类型」单选）</div>
+
+        <div class="mode-group">
+          <label><input type="radio" name="intervalMode" value="flat" /> 不区分（仅一组调整比例）</label>
+          <label><input type="radio" name="intervalMode" value="interval" checked /> 按区间配置</label>
+        </div>
+
+        <div id="intervalSection">
+          <div style="font-size:13px;margin-bottom:8px;font-weight:500;">区间维度（可多选，至少 1 项）</div>
+          <div class="dim-grid" id="dimGrid">
+            <div class="dim-group-label">票（优先级最高）</div>
+            <label><input type="checkbox" class="dim-cb" data-key="ticket_weight" /> 票-操作结算重量段</label>
+            <label><input type="checkbox" class="dim-cb" data-key="ticket_volume" /> 票-体积段</label>
+            <label><input type="checkbox" class="dim-cb" data-key="ticket_pieces" /> 票-件数段</label>
+            <div class="dim-group-label">子托</div>
+            <label class="disabled" title="操作类型=装车/卸车时不可选"><input type="checkbox" class="dim-cb" data-key="pallet_weight" disabled /> 子托-操作结算重量段</label>
+            <label class="disabled"><input type="checkbox" class="dim-cb" data-key="pallet_volume" disabled /> 子托-体积段</label>
+            <label class="disabled" title="操作类型=装车/卸车时不可选"><input type="checkbox" class="dim-cb" data-key="pallet_pieces" disabled /> 子托-件数段 <span style="color:#d46b08">（新增）</span></label>
+            <div class="dim-group-label">件</div>
+            <label><input type="checkbox" class="dim-cb" data-key="piece_weight" /> 件-操作结算重量段</label>
+            <label><input type="checkbox" class="dim-cb" data-key="piece_volume" /> 件-体积段</label>
+          </div>
+
+          <div class="logic-hint">
+            <strong>匹配逻辑：</strong>同一配置行内，所有已勾选维度的区间须<strong>同时满足（AND）</strong>，才套用该行调整比例。<br>
+            <strong>录入规则：</strong>下限、上限均必填；无上界时填最大值（重量/体积 99999.99，件数 999999）。允许间断区间，未覆盖不命中本方案。<br>
+            例：票重量 800～99999.99 且 票件数 50～999999 → 命中该行 -3% / -5%。
+          </div>
+
+          <div class="config-table-wrap">
+            <table class="config-table">
+              <thead id="configHead"></thead>
+              <tbody id="configBody"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:8px;">
+            <button class="btn" id="btnAddRow">+ 新增配置行</button>
+          </div>
+        </div>
+
+        <div id="flatSection" class="hidden">
+          <div class="flat-adj">
+            <div class="field"><label>轻实重调整</label><select class="mini-select"><option>否</option><option>是</option></select></div>
+            <div class="field"><label>自有调整</label><select class="mini-select" style="width:48px;display:inline"><option>-</option><option>+</option></select> <input class="interval-input" value="2" style="width:56px" /> %</div>
+            <div class="field"><label>外包调整</label><select class="mini-select" style="width:48px;display:inline"><option>-</option><option>+</option></select> <input class="interval-input" value="3" style="width:56px" /> %</div>
+          </div>
+        </div>
+
+        <div class="compare-panel" id="comparePanel"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="modalCancel">取消</button>
+      <button class="btn btn-primary">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const MAX_WV = '99999.99';
+  const MAX_PC = '999999';
+
+  const DIMS = [
+    { key: 'ticket_weight', label: '票-操作结算重量段', type: 'wv' },
+    { key: 'ticket_volume', label: '票-体积段', type: 'wv' },
+    { key: 'ticket_pieces', label: '票-件数段', type: 'pc' },
+    { key: 'pallet_weight', label: '子托-操作结算重量段', type: 'wv' },
+    { key: 'pallet_volume', label: '子托-体积段', type: 'wv' },
+    { key: 'pallet_pieces', label: '子托-件数段', type: 'pc' },
+    { key: 'piece_weight', label: '件-操作结算重量段', type: 'wv' },
+    { key: 'piece_volume', label: '件-体积段', type: 'wv' },
+  ];
+
+  const SCENARIOS = {
+    1: { mode: 'flat', dims: [], rows: [] },
+    2: {
+      mode: 'interval',
+      dims: ['ticket_weight', 'ticket_pieces'],
+      rows: [
+        { ticket_weight: ['800', MAX_WV], ticket_pieces: ['50', MAX_PC], light: '否', own: ['-', '3'], out: ['-', '5'] },
+      ],
+    },
+    3: {
+      mode: 'interval',
+      dims: ['ticket_weight', 'piece_weight'],
+      rows: [
+        { ticket_weight: ['500', '800'], piece_weight: ['0', '50'], light: '否', own: ['-', '1'], out: ['-', '2'] },
+        { ticket_weight: ['800', MAX_WV], piece_weight: ['50', MAX_WV], light: '是', own: ['+', '2'], out: ['+', '1'] },
+      ],
+    },
+    4: {
+      mode: 'interval',
+      dims: ['ticket_weight', 'ticket_volume'],
+      rows: [
+        { ticket_weight: ['0', '800'], ticket_volume: ['0', '5'], light: '否', own: ['-', '1'], out: ['-', '2'] },
+        { ticket_weight: ['0', '800'], ticket_volume: ['5', MAX_WV], light: '否', own: ['-', '2'], out: ['-', '3'] },
+        { ticket_weight: ['800', MAX_WV], ticket_volume: ['0', '10'], light: '否', own: ['-', '3'], out: ['-', '4'] },
+        { ticket_weight: ['800', MAX_WV], ticket_volume: ['10', MAX_WV], light: '否', own: ['-', '4'], out: ['-', '5'] },
+      ],
+    },
+  };
+
+  const COMPARE = {
+    1: '<strong>场景① 不区分：</strong>与现版「区间类型=不区分」一致，不展示计算类型，直接维护一组调整比例。',
+    2: '<strong>场景② 票重量+票件数：</strong>同一行 AND；上下限必填，无上界填 99999.99 / 999999。',
+    3: '<strong>场景③ 跨粒度：</strong>票重量与件重量同时勾选；粒度顺序票&gt;子托&gt;件，列序固定。',
+    4: '<strong>场景④ 票重量+票体积：</strong>多配置行示例；列表侧见 TS002 合并单元格（高优先级维度列合并）。',
+  };
+
+  let rows = [];
+
+  function getSelectedDims() {
+    return DIMS.filter(d => {
+      const cb = document.querySelector('.dim-cb[data-key="' + d.key + '"]');
+      return cb && cb.checked;
+    });
+  }
+
+  function renderTable() {
+    const dims = getSelectedDims();
+    const head = document.getElementById('configHead');
+    const body = document.getElementById('configBody');
+
+    if (dims.length === 0) {
+      head.innerHTML = '<tr><th colspan="6" style="color:#999;padding:20px">请先勾选至少 1 个区间维度</th></tr>';
+      body.innerHTML = '';
+      return;
+    }
+
+    let headHtml = '<tr>';
+    dims.forEach(d => { headHtml += '<th class="dim-col">' + d.label + '</th>'; });
+    headHtml += '<th class="adj-col">轻实重调整</th><th class="adj-col">自有调整</th><th class="adj-col">外包调整</th><th>操作</th></tr>';
+    head.innerHTML = headHtml;
+
+    if (rows.length === 0) rows = [{}];
+
+    body.innerHTML = rows.map((row, idx) => {
+      let tr = '<tr>';
+      dims.forEach(d => {
+        const v = row[d.key] || ['', ''];
+        const maxPh = d.type === 'pc' ? MAX_PC : MAX_WV;
+        tr += '<td><input class="interval-input" value="' + v[0] + '" placeholder="下限*" required /> <span class="interval-sep">~</span> <input class="interval-input" value="' + v[1] + '" placeholder="上限*" required /><span class="interval-hint">前闭后开；最大' + maxPh + '</span></td>';
+      });
+      const light = row.light || '否';
+      const own = row.own || ['-', ''];
+      const out = row.out || ['-', ''];
+      tr += '<td><select class="mini-select"><option' + (light === '否' ? ' selected' : '') + '>否</option><option' + (light === '是' ? ' selected' : '') + '>是</option></select></td>';
+      tr += '<td><select class="mini-select" style="width:40px"><option' + (own[0] === '-' ? ' selected' : '') + '>-</option><option' + (own[0] === '+' ? ' selected' : '') + '>+</option></select> <input class="interval-input" value="' + own[1] + '" style="width:48px" />%</td>';
+      tr += '<td><select class="mini-select" style="width:40px"><option' + (out[0] === '-' ? ' selected' : '') + '>-</option><option' + (out[0] === '+' ? ' selected' : '') + '>+</option></select> <input class="interval-input" value="' + out[1] + '" style="width:48px" />%</td>';
+      tr += '<td class="row-ops"><button class="btn-icon add" data-add="' + idx + '" title="复制行">+</button><button class="btn-icon del" data-del="' + idx + '" title="删除行"' + (rows.length <= 1 ? ' disabled style="opacity:.3"' : '') + '>−</button></td></tr>';
+      return tr;
+    }).join('');
+
+    body.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (rows.length <= 1) return;
+        rows.splice(+btn.dataset.del, 1);
+        renderTable();
+      });
+    });
+    body.querySelectorAll('[data-add]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        rows.splice(+btn.dataset.add + 1, 0, JSON.parse(JSON.stringify(rows[+btn.dataset.add])));
+        renderTable();
+      });
+    });
+  }
+
+  function applyScenario(id) {
+    const s = SCENARIOS[id];
+    document.querySelectorAll('.btn-scenario').forEach(b => b.classList.toggle('active', b.dataset.scenario === id));
+    document.getElementById('comparePanel').innerHTML = COMPARE[id];
+
+    document.querySelector('input[name="intervalMode"][value="' + s.mode + '"]').checked = true;
+    document.getElementById('intervalSection').classList.toggle('hidden', s.mode === 'flat');
+    document.getElementById('flatSection').classList.toggle('hidden', s.mode !== 'flat');
+
+    document.querySelectorAll('.dim-cb').forEach(cb => {
+      if (cb.disabled) return;
+      cb.checked = s.dims.includes(cb.dataset.key);
+    });
+
+    rows = s.rows.length ? JSON.parse(JSON.stringify(s.rows)) : [{}];
+    renderTable();
+    document.getElementById('modalMask').classList.add('show');
+  }
+
+  document.querySelectorAll('input[name="intervalMode"]').forEach(r => {
+    r.addEventListener('change', () => {
+      if (!r.checked) return;
+      const isFlat = r.value === 'flat';
+      document.getElementById('intervalSection').classList.toggle('hidden', isFlat);
+      document.getElementById('flatSection').classList.toggle('hidden', !isFlat);
+    });
+  });
+
+  document.querySelectorAll('.dim-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (getSelectedDims().length === 0) {
+        cb.checked = true;
+        alert('至少保留 1 个区间维度');
+        return;
+      }
+      renderTable();
+    });
+  });
+
+  document.getElementById('btnAddRow').addEventListener('click', () => {
+    rows.push({});
+    renderTable();
+  });
+
+  document.querySelectorAll('.btn-scenario').forEach(btn => {
+    btn.addEventListener('click', () => applyScenario(btn.dataset.scenario));
+  });
+
+  document.getElementById('btnAdd').addEventListener('click', () => {
+    document.getElementById('modalMask').classList.add('show');
+  });
+
+  ['modalClose', 'modalCancel'].forEach(id => {
+    document.getElementById(id).addEventListener('click', () => {
+      document.getElementById('modalMask').classList.remove('show');
+    });
+  });
+
+  applyScenario('2');
+</script>
+</body>
+</html>
