@@ -132,7 +132,12 @@
     .form-item > label:first-child .req { color: #ff4d4f; margin-right: 2px; }
     .form-item > .select-wrap,
     .form-item > .form-control,
-    .form-item > .radio-group { flex: 1; min-width: 0; }
+    .form-item > .radio-group,
+    .form-item > .form-control-col { flex: 1; min-width: 0; }
+    .form-control-col { display: flex; flex-direction: column; gap: 4px; }
+    .form-item.span-row.align-start { align-items: flex-start; }
+    .form-item.span-row.align-start > label:first-child { padding-top: 6px; }
+    .form-hint { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
     .form-control { width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px; padding: 0 11px; font-size: 14px; }
     .modal-body .select-wrap { position: relative; }
     .modal-body .select-wrap .form-control { appearance: none; padding-right: 28px; cursor: pointer; }
@@ -368,11 +373,21 @@
           <div class="form-item"><label><span class="req">*</span>绩效薪资下限</label><input class="form-control" id="perfMin" placeholder="请输入" /></div>
           <div class="form-item"><label><span class="req">*</span>绩效薪资上限</label><input class="form-control" id="perfMax" placeholder="请输入" /></div>
           <div class="form-item"><label><span class="req">*</span>升降档绩效分门槛</label><input class="form-control" id="scoreThreshold" placeholder="请输入" /></div>
-          <div class="form-item span-row">
+          <div class="form-item span-row align-start">
             <label><span class="req">*</span>升降档判定方式</label>
-            <div class="radio-group" id="judgeModeRadio">
-              <label><input type="radio" name="judgeMode" value="either" checked /> 满足其一</label>
-              <label><input type="radio" name="judgeMode" value="both" /> 同时满足</label>
+            <div class="form-control-col">
+              <div class="radio-group" id="judgeModeRadio">
+                <label><input type="radio" name="judgeMode" value="either" checked /> 满足其一</label>
+                <label><input type="radio" name="judgeMode" value="both" /> 同时满足</label>
+              </div>
+              <div class="form-hint">指「破损」与「绩效分门槛」满足其一，或同时满足。</div>
+            </div>
+          </div>
+          <div class="form-item span-row">
+            <label><span class="req">*</span>质量绩效累计方式</label>
+            <div class="radio-group" id="accumModeRadio">
+              <label><input type="radio" name="accumMode" value="reset" checked /> 重新计算</label>
+              <label><input type="radio" name="accumMode" value="reuse" /> 沿用上月</label>
             </div>
           </div>
         </div>
@@ -408,7 +423,7 @@
       baseSalary: '1900', tonnage: '0', pallets: '0', performanceSalary: '2000',
       mobileMin: '600', mobileMax: '999999', commissionType: '移动提成',
       damageLink: 'yes', evalMonths: '2', upAmount: '600', downAmount: '-600',
-      perfMin: '2000', perfMax: '4000', scoreThreshold: '90', judgeMode: 'either',
+      perfMin: '2000', perfMax: '4000', scoreThreshold: '90', judgeMode: 'either', accumMode: 'reset',
     },
     person: {
       dim: 'person', hub: '温州分拨', person: '张三(10001)', job: '机叉司机',
@@ -416,7 +431,7 @@
       baseSalary: '3000', tonnage: '0', pallets: '0', performanceSalary: '2500',
       mobileMin: '0', mobileMax: '999999', commissionType: '移动提成',
       damageLink: 'yes', evalMonths: '2', upAmount: '600', downAmount: '-600',
-      perfMin: '2000', perfMax: '5000', scoreThreshold: '90',
+      perfMin: '2000', perfMax: '5000', scoreThreshold: '90', judgeMode: 'either', accumMode: 'reuse',
     },
     leader: {
       dim: 'hub', hub: '南通分拨', person: '', job: '叉车组长',
@@ -424,7 +439,7 @@
       baseSalary: '1900', tonnage: '0', pallets: '0', performanceSalary: '1800',
       mobileMin: '', mobileMax: '', commissionType: '',
       damageLink: 'no', evalMonths: '', upAmount: '', downAmount: '',
-      perfMin: '', perfMax: '', scoreThreshold: '', judgeMode: '',
+      perfMin: '', perfMax: '', scoreThreshold: '', judgeMode: '', accumMode: '',
     },
   };
 
@@ -451,6 +466,7 @@
     document.getElementById('damageLink').value = 'yes';
     document.getElementById('damageConfig').classList.remove('hidden');
     document.querySelector('input[name="judgeMode"][value="either"]').checked = true;
+    document.querySelector('input[name="accumMode"][value="reset"]').checked = true;
     document.querySelectorAll('.job-only').forEach(el => el.classList.remove('hidden'));
   }
 
@@ -481,6 +497,8 @@
     document.getElementById('scoreThreshold').value = data.scoreThreshold;
     const judgeVal = data.judgeMode || 'either';
     document.querySelectorAll('input[name="judgeMode"]').forEach(r => { r.checked = r.value === judgeVal; });
+    const accumVal = data.accumMode || 'reset';
+    document.querySelectorAll('input[name="accumMode"]').forEach(r => { r.checked = r.value === accumVal; });
   }
 
   function openFormModal(mode, editKey) {
@@ -540,7 +558,8 @@
         ['是否关联破损', '是'], ['连续评估月数', '2'],
         ['升档金额', '600'], ['降档金额', '-600'],
         ['绩效薪资下限', '2000'], ['绩效薪资上限', '4000'],
-        ['升降档绩效分门槛', '90'], ['升降档判定方式', '满足其一'],
+        ['升降档绩效分门槛', '90'], ['升降档判定方式', '满足其一（破损与绩效分门槛满足其一）'],
+        ['质量绩效累计方式', '重新计算'],
       ],
       price: [
         ['计价方式', '统一计价'], ['模式', '整体'],
@@ -563,7 +582,8 @@
         ['是否关联破损', '是'], ['连续评估月数', '2'],
         ['升档金额', '600'], ['降档金额', '-600'],
         ['绩效薪资下限', '2000'], ['绩效薪资上限', '5000'],
-        ['升降档绩效分门槛', '90'], ['升降档判定方式', '满足其一'],
+        ['升降档绩效分门槛', '90'], ['升降档判定方式', '满足其一（破损与绩效分门槛满足其一）'],
+        ['质量绩效累计方式', '沿用上月'],
       ],
       price: [
         ['计价方式', '统一计价'], ['模式', '整体'],
