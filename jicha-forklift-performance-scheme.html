@@ -111,6 +111,7 @@
     .form-section { margin-bottom: 20px; }
     .form-section-title { font-weight: 500; margin-bottom: 12px; padding-left: 8px; border-left: 3px solid var(--primary); }
     .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; }
+    .form-grid .form-item.span-row { grid-column: 1 / -1; }
     .form-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px; }
     /* 弹窗表单项：名称 + 输入框左右排列 */
     .form-item {
@@ -361,12 +362,19 @@
           <div class="form-item"><label><span class="req">*</span>是否关联破损</label><div class="select-wrap"><select class="form-control" id="damageLink"><option value="">请选择</option><option value="yes">是</option><option value="no">否</option></select></div></div>
         </div>
         <div class="form-grid hidden" id="damageConfig">
-          <div class="form-item"><label>连续评估月数</label><input class="form-control" id="evalMonths" placeholder="请输入" /></div>
-          <div class="form-item"><label>升档金额</label><input class="form-control" id="upAmount" placeholder="正数，最多1位小数" /></div>
-          <div class="form-item"><label>降档金额</label><input class="form-control" id="downAmount" placeholder="降档幅度，如 600；可为 0" /></div>
-          <div class="form-item"><label>绩效薪资下限</label><input class="form-control" id="perfMin" placeholder="请输入" /></div>
-          <div class="form-item"><label>绩效薪资上限</label><input class="form-control" id="perfMax" placeholder="请输入" /></div>
-          <div class="form-item"><label>升档绩效分门槛</label><input class="form-control" id="scoreThreshold" placeholder="请输入" /></div>
+          <div class="form-item"><label><span class="req">*</span>连续评估月数</label><input class="form-control" id="evalMonths" placeholder="请输入" /></div>
+          <div class="form-item"><label><span class="req">*</span>升档金额</label><input class="form-control" id="upAmount" placeholder="0 或正数，最多 2 位小数" /></div>
+          <div class="form-item"><label><span class="req">*</span>降档金额</label><input class="form-control" id="downAmount" placeholder="降档幅度，如 600；可为 0" /></div>
+          <div class="form-item"><label><span class="req">*</span>绩效薪资下限</label><input class="form-control" id="perfMin" placeholder="请输入" /></div>
+          <div class="form-item"><label><span class="req">*</span>绩效薪资上限</label><input class="form-control" id="perfMax" placeholder="请输入" /></div>
+          <div class="form-item"><label><span class="req">*</span>升降档绩效分门槛</label><input class="form-control" id="scoreThreshold" placeholder="请输入" /></div>
+          <div class="form-item span-row">
+            <label><span class="req">*</span>升降档判定方式</label>
+            <div class="radio-group" id="judgeModeRadio">
+              <label><input type="radio" name="judgeMode" value="either" checked /> 满足其一</label>
+              <label><input type="radio" name="judgeMode" value="both" /> 同时满足</label>
+            </div>
+          </div>
         </div>
       </div>
       <div class="form-section">
@@ -400,7 +408,7 @@
       baseSalary: '1900', tonnage: '0', pallets: '0', performanceSalary: '2000',
       mobileMin: '600', mobileMax: '999999', commissionType: '移动提成',
       damageLink: 'yes', evalMonths: '2', upAmount: '600', downAmount: '-600',
-      perfMin: '2000', perfMax: '4000', scoreThreshold: '90',
+      perfMin: '2000', perfMax: '4000', scoreThreshold: '90', judgeMode: 'either',
     },
     person: {
       dim: 'person', hub: '温州分拨', person: '张三(10001)', job: '机叉司机',
@@ -416,7 +424,7 @@
       baseSalary: '1900', tonnage: '0', pallets: '0', performanceSalary: '1800',
       mobileMin: '', mobileMax: '', commissionType: '',
       damageLink: 'no', evalMonths: '', upAmount: '', downAmount: '',
-      perfMin: '', perfMax: '', scoreThreshold: '',
+      perfMin: '', perfMax: '', scoreThreshold: '', judgeMode: '',
     },
   };
 
@@ -442,6 +450,7 @@
     document.getElementById('fieldPerson').classList.add('hidden');
     document.getElementById('damageLink').value = 'yes';
     document.getElementById('damageConfig').classList.remove('hidden');
+    document.querySelector('input[name="judgeMode"][value="either"]').checked = true;
     document.querySelectorAll('.job-only').forEach(el => el.classList.remove('hidden'));
   }
 
@@ -470,6 +479,8 @@
     document.getElementById('perfMin').value = data.perfMin;
     document.getElementById('perfMax').value = data.perfMax;
     document.getElementById('scoreThreshold').value = data.scoreThreshold;
+    const judgeVal = data.judgeMode || 'either';
+    document.querySelectorAll('input[name="judgeMode"]').forEach(r => { r.checked = r.value === judgeVal; });
   }
 
   function openFormModal(mode, editKey) {
@@ -529,7 +540,7 @@
         ['是否关联破损', '是'], ['连续评估月数', '2'],
         ['升档金额', '600'], ['降档金额', '-600'],
         ['绩效薪资下限', '2000'], ['绩效薪资上限', '4000'],
-        ['升档绩效分门槛', '90'],
+        ['升降档绩效分门槛', '90'], ['升降档判定方式', '满足其一'],
       ],
       price: [
         ['计价方式', '统一计价'], ['模式', '整体'],
@@ -552,7 +563,7 @@
         ['是否关联破损', '是'], ['连续评估月数', '2'],
         ['升档金额', '600'], ['降档金额', '-600'],
         ['绩效薪资下限', '2000'], ['绩效薪资上限', '5000'],
-        ['升档绩效分门槛', '90'],
+        ['升降档绩效分门槛', '90'], ['升降档判定方式', '满足其一'],
       ],
       price: [
         ['计价方式', '统一计价'], ['模式', '整体'],

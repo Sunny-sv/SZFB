@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>机叉叉车组长绩效标准报表 — 原型</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1890ff; --primary-hover: #40a9ff;
+      --sidebar-bg: #001529; --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65); --sidebar-text-active: #fff;
+      --bg: #f0f2f5; --card: #fff; --border: #e8e8e8;
+      --text: rgba(0,0,0,.85); --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px; --sidebar-collapsed: 64px; --header-height: 40px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; color: var(--text); background: var(--bg); overflow: hidden; }
+    .layout { display: flex; height: 100vh; }
+    .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); display: flex; flex-direction: column; flex-shrink: 0; transition: width .2s; overflow: hidden; }
+    .sidebar.collapsed { width: var(--sidebar-collapsed); }
+    .sidebar-logo { height: 48px; display: flex; align-items: center; padding: 0 16px; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.08); color: #fff; font-weight: 600; white-space: nowrap; }
+    .sidebar-logo .logo-icon { width: 28px; height: 28px; background: var(--primary); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+    .sidebar.collapsed .logo-text { display: none; }
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .menu-item { display: flex; align-items: center; padding: 0 16px; height: 40px; color: var(--sidebar-text); cursor: pointer; white-space: nowrap; gap: 10px; font-size: 14px; }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .sidebar-toggle { height: 40px; display: flex; align-items: center; justify-content: center; color: var(--sidebar-text); cursor: pointer; border-top: 1px solid rgba(255,255,255,.08); }
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .top-tabs { height: var(--header-height); background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 8px; flex-shrink: 0; }
+    .page-tabs { display: flex; flex: 1; overflow-x: auto; gap: 2px; padding: 0 4px; }
+    .page-tab { display: flex; align-items: center; gap: 6px; padding: 0 12px; height: 32px; border-radius: 4px; color: var(--text-secondary); cursor: pointer; white-space: nowrap; font-size: 13px; }
+    .page-tab:hover { color: var(--text); background: #fafafa; }
+    .page-tab.active { color: var(--primary); background: #e6f7ff; }
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
+    .content-card { background: var(--card); border-radius: 4px; padding: 16px; min-height: calc(100vh - var(--header-height) - 32px); display: flex; flex-direction: column; gap: 16px; }
+    .filter-area { display: flex; align-items: flex-end; gap: 16px; }
+    .filter-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 24px; align-items: center; }
+    .filter-item { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+    .filter-item .filter-label { flex: 0 0 96px; text-align: right; font-size: 14px; color: var(--text); white-space: nowrap; }
+    .filter-item .filter-control-wrap { flex: 1; min-width: 0; }
+    .month-range { display: flex; align-items: center; gap: 6px; }
+    .month-range .filter-control { flex: 1; min-width: 0; }
+    .range-sep { color: var(--text-secondary); flex-shrink: 0; }
+    .filter-control { width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px; padding: 0 11px; font-size: 14px; background: #fff; outline: none; }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control { appearance: none; padding-right: 28px; cursor: pointer; }
+    .select-wrap::after { content: "▼"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--text-secondary); pointer-events: none; }
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn { height: 32px; padding: 0 16px; border-radius: 4px; font-size: 14px; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text); white-space: nowrap; }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .action-hint { font-size: 13px; color: var(--text-secondary); margin-left: auto; }
+    .btn-action { height: 32px; padding: 0 15px; border-radius: 4px; font-size: 14px; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text); }
+    .btn-action:hover { color: var(--primary); border-color: var(--primary); }
+    .table-area { flex: 1; display: flex; flex-direction: column; }
+    .table-wrap { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1400px; }
+    .data-table th, .data-table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; white-space: nowrap; }
+    .data-table th { background: #fafafa; font-weight: 500; }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 40px; text-align: center !important; }
+    .col-num { text-align: right !important; }
+    .col-month { text-align: center !important; }
+    .tag { display: inline-block; padding: 0 8px; border-radius: 2px; font-size: 12px; }
+    .tag-blue { background: #e6f7ff; color: var(--primary); border: 1px solid #91d5ff; }
+    .tag-orange { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+    .num-up { color: #52c41a; }
+    .num-down { color: #ff4d4f; }
+    .num-zero { color: var(--text-secondary); }
+    .mock-legend { font-size: 12px; color: var(--text-secondary); line-height: 1.6; padding: 10px 12px; background: #fafafa; border: 1px dashed var(--border); border-radius: 4px; }
+    .mock-legend strong { color: var(--text); font-weight: 500; }
+    .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 16px; font-size: 13px; color: var(--text-secondary); }
+    .page-btn { min-width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; font-size: 13px; color: var(--text); display: flex; align-items: center; justify-content: center; padding: 0 8px; }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="logo-icon">智</div><span class="logo-text">数智分拨</span></div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">📊</span><span class="menu-label">绩效提成</span></div>
+      <div class="menu-sub">
+        <div class="menu-item">转运人员薪资</div>
+        <div class="menu-item">交接单人员提成</div>
+        <div class="menu-item active">机叉叉车组长绩效标准报表</div>
+        <div class="menu-item">基础提成方案维护</div>
+      </div>
+    </nav>
+    <div class="sidebar-toggle" id="sidebarToggle">☰</div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="top-tabs">
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab">转运人员薪资</div>
+        <div class="page-tab active">机叉叉车组长绩效标准报表</div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option selected>顺义分拨中心</option>
+                    <option>温州分拨</option>
+                    <option>南通分拨</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">绩效月份</span>
+              <div class="filter-control-wrap month-range">
+                <input class="filter-control" type="text" placeholder="开始月份" value="2026-06" readonly />
+                <span class="range-sep">~</span>
+                <input class="filter-control" type="text" placeholder="结束月份" value="2026-06" readonly />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">人员姓名/工号</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="姓名或工号模糊查询" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">岗位</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>机叉司机</option>
+                    <option>叉车组长</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn">重置</button>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </section>
+
+        <section class="action-bar">
+          <button class="btn-action">导出</button>
+          <span class="action-hint">本页仅展示绩效标准，实发金额见「转运人员薪资」</span>
+        </section>
+
+        <div class="mock-legend">
+          <strong>Mock 说明（评审用，非页面字段）：</strong>
+          ① 方案周期累加再升档 +1000（上月已 +500）；② 降档累计 -600；③ 升降冲突当月应给=0、沿用上月则本例为 0；
+          ④ 关联破损=否；⑤ 未命中方案；⑥ 转分拨清零重算（质量绩效=0）。
+        </div>
+
+        <section class="table-area">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>
+                  <th>分拨中心</th>
+                  <th>人员姓名</th>
+                  <th>人事工号</th>
+                  <th>岗位名称</th>
+                  <th>入职日期</th>
+                  <th class="col-month">绩效月份</th>
+                  <th class="col-num">保底绩效</th>
+                  <th class="col-num">绩效下限</th>
+                  <th class="col-num">绩效上限</th>
+                  <th class="col-num">破损件数</th>
+                  <th class="col-num">质量绩效</th>
+                  <th class="col-num">合计绩效</th>
+                  <th>方案编号</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span id="totalCount">共 0 条</span>
+            <button class="page-btn active">1</button>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const mockRows = [
+    {
+      hub: '顺义分拨中心', name: '张明', empNo: '90190625', job: '机叉司机', jobTag: 'tag-blue',
+      joinDate: '2024-05-10', month: '2026-06',
+      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '0.00',
+      quality: '+1,000.00', qualityClass: 'num-up', total: '3,500.00', scheme: 'JC202600128',
+    },
+    {
+      hub: '南通分拨', name: '李四', empNo: '90188012', job: '叉车组长', jobTag: 'tag-orange',
+      joinDate: '2025-08-01', month: '2026-06',
+      base: '1,800.00', min: '1,200.00', max: '3,500.00', damage: '1.25',
+      quality: '-600.00', qualityClass: 'num-down', total: '1,200.00', scheme: 'JC202600056',
+    },
+    {
+      hub: '温州分拨', name: '王芳', empNo: '90191234', job: '机叉司机', jobTag: 'tag-blue',
+      joinDate: '2023-11-02', month: '2026-06',
+      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '2.00',
+      quality: '0.00', qualityClass: 'num-zero', total: '2,500.00', scheme: 'JC202600128',
+    },
+    {
+      hub: '顺义分拨中心', name: '赵强', empNo: '90190501', job: '机叉司机', jobTag: 'tag-blue',
+      joinDate: '2024-01-15', month: '2026-06',
+      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '0.80',
+      quality: '0.00', qualityClass: 'num-zero', total: '2,500.00', scheme: 'JC202600099',
+    },
+    {
+      hub: '南通分拨', name: '陈磊', empNo: '90187777', job: '叉车组长', jobTag: 'tag-orange',
+      joinDate: '2025-03-20', month: '2026-06',
+      base: '0.00', min: '0.00', max: '0.00', damage: '0.00',
+      quality: '0.00', qualityClass: 'num-zero', total: '0.00', scheme: '-',
+    },
+    {
+      hub: '温州分拨', name: '刘洋', empNo: '90192001', job: '机叉司机', jobTag: 'tag-blue',
+      joinDate: '2024-09-01', month: '2026-06',
+      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '0.00',
+      quality: '0.00', qualityClass: 'num-zero', total: '2,500.00', scheme: 'JC202600128',
+    },
+  ];
+
+  function formatQuality(val, cls) {
+    if (cls === 'num-up') return '+' + val.replace(/^\+/, '');
+    if (cls === 'num-down' && !val.startsWith('-')) return '-' + val;
+    return val;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = mockRows.map((r) => {
+      const q = formatQuality(r.quality, r.qualityClass);
+      return `<tr>
+        <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+        <td>${r.hub}</td>
+        <td>${r.name}</td>
+        <td>${r.empNo}</td>
+        <td><span class="tag ${r.jobTag}">${r.job}</span></td>
+        <td>${r.joinDate}</td>
+        <td class="col-month">${r.month}</td>
+        <td class="col-num">${r.base}</td>
+        <td class="col-num">${r.min}</td>
+        <td class="col-num">${r.max}</td>
+        <td class="col-num">${r.damage}</td>
+        <td class="col-num ${r.qualityClass}">${q}</td>
+        <td class="col-num">${r.total}</td>
+        <td>${r.scheme}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('totalCount').textContent = `共 ${mockRows.length} 条`;
+  }
+
+  renderTable();
+
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  });
+  document.getElementById('checkAll').addEventListener('change', function () {
+    document.querySelectorAll('.row-check').forEach(cb => { cb.checked = this.checked; });
+  });
+</script>
+</body>
+</html>
