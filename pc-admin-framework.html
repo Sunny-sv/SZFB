@@ -182,7 +182,7 @@
       gap: 16px;
     }
 
-    /* 1. 筛选条件区：3 列网格 + 右侧独立按钮（按钮列上方不放条件） */
+    /* 1. 筛选条件区：名称左+控件右；3 列网格；重置/查询与最后一行底对齐 */
     .filter-area {
       display: flex;
       align-items: flex-end;
@@ -195,11 +195,28 @@
       gap: 12px 24px;
       align-items: center;
     }
-    .filter-item label {
-      display: block;
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range {
+      width: 100%;
     }
     .filter-control {
       width: 100%;
@@ -226,15 +243,16 @@
       content: "▼";
       position: absolute;
       right: 10px;
-      bottom: 10px;
+      top: 50%;
+      transform: translateY(-50%);
       font-size: 10px;
       color: var(--text-secondary);
       pointer-events: none;
     }
 
     .date-range { display: flex; align-items: center; gap: 8px; }
-    .date-range .filter-control { flex: 1; }
-    .date-range .sep { color: var(--text-secondary); font-size: 13px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
 
     .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
     .btn {
@@ -284,7 +302,7 @@
     .table-area { flex: 1; display: flex; flex-direction: column; }
     .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
     .data-table th,
-    .data-table td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; }
+    .data-table td { border: 1px solid var(--border); padding: 10px 12px; text-align: center; }
     .data-table th { background: #fafafa; font-weight: 500; color: var(--text); }
     .data-table tbody tr:hover { background: #fafafa; }
     .col-checkbox { width: 48px; text-align: center !important; }
@@ -372,37 +390,49 @@
         <section class="filter-area">
           <div class="filter-grid">
             <div class="filter-item">
-              <label>筛选条件</label>
-              <div class="select-wrap">
-                <select class="filter-control"><option>下拉框</option></select>
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>下拉框</option></select>
+                </div>
               </div>
             </div>
             <div class="filter-item">
-              <label>筛选条件</label>
-              <input class="filter-control" type="text" placeholder="输入框" />
-            </div>
-            <div class="filter-item">
-              <label>筛选条件</label>
-              <div class="date-range">
-                <input class="filter-control" type="text" placeholder="开始日期" readonly />
-                <span class="sep">~</span>
-                <input class="filter-control" type="text" placeholder="结束日期" readonly />
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="输入框" />
               </div>
             </div>
             <div class="filter-item">
-              <label>筛选条件</label>
-              <div class="select-wrap">
-                <select class="filter-control"><option>下拉框</option></select>
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" placeholder="开始日期" readonly />
+                  <span class="sep">~</span>
+                  <input class="filter-control" type="text" placeholder="结束日期" readonly />
+                </div>
               </div>
             </div>
             <div class="filter-item">
-              <label>筛选条件</label>
-              <input class="filter-control" type="text" placeholder="输入框" />
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>下拉框</option></select>
+                </div>
+              </div>
             </div>
             <div class="filter-item">
-              <label>筛选条件</label>
-              <div class="select-wrap">
-                <select class="filter-control"><option>下拉框</option></select>
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="输入框" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>下拉框</option></select>
+                </div>
               </div>
             </div>
           </div>
