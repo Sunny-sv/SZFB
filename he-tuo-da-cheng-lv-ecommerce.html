@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>合托达成率 — 电商拆分原型</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 40px;
+      --group-total: #fafafa;
+      --group-ec: #e6f7ff;
+      --group-non: #f6ffed;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; height: 100vh; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .sidebar.collapsed { width: var(--sidebar-collapsed); }
+
+    .sidebar-logo {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: #fff;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .sidebar-logo .logo-icon {
+      width: 28px; height: 28px;
+      background: var(--primary);
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+    .sidebar.collapsed .logo-text { display: none; }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .sidebar.collapsed .menu-label,
+    .sidebar.collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .sidebar.collapsed .menu-sub { display: none; }
+
+    .sidebar-toggle {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      border-top: 1px solid rgba(255,255,255,.08);
+      font-size: 16px;
+    }
+    .sidebar-toggle:hover { color: #fff; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .top-tabs {
+      height: var(--header-height);
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+    .top-tabs .home-btn {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .top-tabs .home-btn:hover { color: var(--primary); }
+
+    .page-tabs {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      overflow-x: auto;
+      gap: 2px;
+      padding: 0 4px;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      height: 32px;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    .page-tab:hover { color: var(--text); background: #fafafa; }
+    .page-tab.active { color: var(--primary); background: #e6f7ff; }
+    .page-tab .tab-close { font-size: 12px; opacity: .4; margin-left: 2px; }
+    .page-tab .tab-close:hover { opacity: 1; color: #ff4d4f; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .top-right .icon-btn { cursor: pointer; font-size: 16px; }
+    .top-right .icon-btn:hover { color: var(--primary); }
+    .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #ccc;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #fff;
+      cursor: pointer;
+    }
+
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      min-height: calc(100vh - var(--header-height) - 32px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .proto-note {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: #fffbe6;
+      border: 1px solid #ffe58f;
+      border-radius: 4px;
+      padding: 8px 12px;
+      line-height: 1.6;
+    }
+    .proto-note strong { color: var(--text); }
+
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range,
+    .filter-item .filter-control-wrap > .filter-check,
+    .filter-item .filter-control-wrap > .filter-combo {
+      width: 100%;
+    }
+    .filter-combo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-combo .select-wrap { flex: 0 0 88px; }
+    .filter-combo .select-wrap.op { flex: 0 0 64px; }
+    .filter-combo .date-range,
+    .filter-combo .filter-control { flex: 1; min-width: 0; }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    .filter-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 32px;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .filter-check input { width: 16px; height: 16px; accent-color: var(--primary); flex-shrink: 0; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .action-bar {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+    }
+    .action-bar-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+    }
+    .action-bar-top .action-check {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+    .action-bar-top .action-check input { width: 14px; height: 14px; accent-color: var(--primary); }
+    .action-hint { margin-left: auto; font-size: 12px; color: var(--text-secondary); }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    .table-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th,
+    .data-table td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .data-table th { background: #fafafa; font-weight: 500; color: var(--text); }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .data-table .sticky-col {
+      position: sticky;
+      left: 0;
+      background: #fff;
+      z-index: 2;
+    }
+    .data-table thead .sticky-col { background: #fafafa; z-index: 3; }
+    .data-table .sticky-col-2 {
+      position: sticky;
+      left: 48px;
+      background: #fff;
+      z-index: 2;
+      box-shadow: 2px 0 4px rgba(0,0,0,.04);
+    }
+    .data-table thead .sticky-col-2 { background: #fafafa; z-index: 3; }
+    #panel-fenbo .sticky-col-2 { left: 0; }
+
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .cell-placeholder { color: var(--text-secondary); }
+    .col-num { text-align: center !important; }
+    .row-sum { background: #fafafa; font-weight: 500; }
+    .row-sum td { background: #fafafa; }
+
+    .th-group-total { background: var(--group-total) !important; text-align: center !important; }
+    .th-group-ec { background: var(--group-ec) !important; text-align: center !important; color: #096dd9; }
+    .th-group-non { background: var(--group-non) !important; text-align: center !important; color: #389e0d; }
+    .th-ec { background: var(--group-ec) !important; }
+    .th-non { background: var(--group-non) !important; }
+    .td-ec { background: #f0f9ff; }
+    .td-non { background: #f9fff5; }
+    .tag-yes {
+      display: inline-block;
+      padding: 0 8px;
+      border-radius: 2px;
+      background: #f6ffed;
+      color: #52c41a;
+      border: 1px solid #b7eb8f;
+      font-size: 12px;
+    }
+    .tag-no {
+      display: inline-block;
+      padding: 0 8px;
+      border-radius: 2px;
+      background: #fff1f0;
+      color: #ff4d4f;
+      border: 1px solid #ffa39e;
+      font-size: 12px;
+    }
+    .legend {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i {
+      width: 12px; height: 12px;
+      border: 1px solid var(--border);
+      display: inline-block;
+    }
+    .legend .l-total { background: var(--group-total); }
+    .legend .l-ec { background: var(--group-ec); }
+    .legend .l-non { background: var(--group-non); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .tab-panel.active:has(.fenbo-stack) {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      flex: 1;
+    }
+    .fenbo-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+      flex: 1;
+    }
+    .fenbo-block { min-width: 0; }
+    .fenbo-block .table-wrap { max-height: none; }
+    .fenbo-block-detail .table-wrap { max-height: 420px; overflow-y: auto; }
+    .fenbo-caption {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    /* 方案B：汇总 + 类型列（电商/非电商两行） */
+    .th-group-dual {
+      background: #f9f0ff;
+      border-bottom-color: #d3adf7 !important;
+      font-weight: 600;
+    }
+    .th-dual { background: #f9f0ff; }
+    .th-group-move {
+      background: #fff7e6;
+      border-bottom-color: #ffd591 !important;
+      font-weight: 600;
+    }
+    .th-move { background: #fff7e6; }
+    .td-type-ec {
+      background: #e6f7ff;
+      color: #1890ff;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .td-type-non {
+      background: #f6ffed;
+      color: #52c41a;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .row-pair-top td { border-bottom-color: #f0f0f0; }
+    .cell-merge { vertical-align: middle !important; }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding-top: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">智</div>
+      <span class="logo-text">数智分拨</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+      <div class="menu-item active">
+        <span class="menu-icon">☰</span><span class="menu-label">合托管理</span><span class="menu-arrow">▼</span>
+      </div>
+      <div class="menu-sub">
+        <div class="menu-item active">合托达成率</div>
+        <div class="menu-item">分拨合托维护 2.0</div>
+        <div class="menu-item">数据重刷</div>
+      </div>
+    </nav>
+    <div class="sidebar-toggle" id="sidebarToggle" title="折叠/展开">☰</div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="top-tabs">
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active">合托达成率 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔</span>
+        <div class="avatar" title="用户">U</div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area">
+          <div class="filter-grid" id="filterGrid">
+            <div class="filter-item" data-tabs="jiaojie,renyuan,jiaojie-ren,zidan">
+              <span class="filter-label">交接单号查询</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="支持输入多个" />
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="all">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>分拨中心组件（多选）</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="all">
+              <span class="filter-label">卸车完成时间</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" value="2026-07-01 15:00:00" readonly />
+                  <span class="sep">~</span>
+                  <input class="filter-control" type="text" value="2026-07-10 14:59:59" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="fenbo">
+              <span class="filter-label">是否达成</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="all">
+              <span class="filter-label">上一站类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option>分拨</option>
+                    <option>集配站</option>
+                    <option>网点</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="all">
+              <span class="filter-label">上一站</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>关联上一站类型（多选）</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="all">
+              <span class="filter-label">操作类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option>干线卸车</option>
+                    <option>网点卸车</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="fenbo">
+              <span class="filter-label">变化值</span>
+              <div class="filter-control-wrap">
+                <div class="filter-combo">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>同比</option>
+                      <option>环比</option>
+                      <option>自定义</option>
+                    </select>
+                  </div>
+                  <div class="date-range">
+                    <input class="filter-control" type="text" value="2025-07-01 15:00:00" readonly />
+                    <span class="sep">~</span>
+                    <input class="filter-control" type="text" value="2025-07-10 14:59:59" readonly />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="fenbo">
+              <span class="filter-label">达成差值</span>
+              <div class="filter-control-wrap">
+                <div class="filter-combo">
+                  <div class="select-wrap op">
+                    <select class="filter-control">
+                      <option>≥</option>
+                      <option>≤</option>
+                    </select>
+                  </div>
+                  <input class="filter-control" type="text" placeholder="请输入" />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="fenbo">
+              <span class="filter-label">汇总维度数据</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>按筛选条件</option>
+                    <option>固定查全国</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="jiaojie,jiaojie-ren,zidan">
+              <span class="filter-label">方案编号</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="支持输入多个" />
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="renyuan,jiaojie-ren,zidan">
+              <span class="filter-label">员工姓名</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>人员组件（多选）</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="renyuan,jiaojie-ren,zidan">
+              <span class="filter-label">是否外包</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="zidan">
+              <span class="filter-label">是否电商件</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" id="filterSplitToggle" data-tabs="fenbo,jiaojie,renyuan,jiaojie-ren">
+              <span class="filter-label">显示电商拆分</span>
+              <div class="filter-control-wrap">
+                <label class="filter-check">
+                  <input type="checkbox" id="toggleSplit" checked />
+                </label>
+              </div>
+            </div>
+            <div class="filter-item" data-tabs="all">
+              <span class="filter-label">子托归属电商类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option>电商</option>
+                    <option>非电商</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn">重置</button>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-ctab="fenbo">分拨汇总</div>
+          <div class="content-tab" data-ctab="jiaojie">交接单汇总</div>
+          <div class="content-tab" data-ctab="renyuan">人员汇总</div>
+          <div class="content-tab" data-ctab="jiaojie-ren">交接单人员明细</div>
+          <div class="content-tab" data-ctab="zidan">子单明细</div>
+        </nav>
+
+        <section class="action-bar">
+          <div class="action-bar-top">
+            <button class="btn-action primary">导出</button>
+            <label class="action-check" id="fenboSinglePallet">
+              <input type="checkbox" />
+              包含单托统计项
+            </label>
+          </div>
+
+          <!-- 分拨汇总：上=全国汇总表，下=分拨明细表（同现网） -->
+          <div class="tab-panel active" id="panel-fenbo">
+            <div class="fenbo-stack">
+              <div class="fenbo-block fenbo-block-nation">
+                <div class="table-wrap" data-fenbo-scroll="nation">
+                  <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="sticky-col-2" rowspan="2">汇总</th>
+                    <th class="th-group-total" colspan="7">仅汇总（考核）</th>
+                    <th class="th-group-total" colspan="14">汇总</th>
+                    <th class="th-group-dual split-col" colspan="11">区分电商</th>
+                    <th class="th-group-move" colspan="6">单托统计</th>
+                    <th class="th-group-dual split-col" colspan="6">单托统计（区分电商）</th>
+                  </tr>
+                  <tr>
+                    <th class="th-group-total">目标值</th>
+                    <th class="th-group-total">变化值</th>
+                    <th class="th-group-total">是否达成</th>
+                    <th class="th-group-total">达成差值</th>
+                    <th class="th-group-total">考核分拨数量</th>
+                    <th class="th-group-total">达成分拨数量</th>
+                    <th class="th-group-total">未达成分拨数量</th>
+                    <th>达成值</th>
+                    <th>变化值</th>
+                    <th>奖罚子托数</th>
+                    <th>变化值</th>
+                    <th>奖罚金额</th>
+                    <th>变化值</th>
+                    <th>卸车重量(t)</th>
+                    <th>变化值</th>
+                    <th>卸车规定子托数</th>
+                    <th>实际卸车子托数</th>
+                    <th>卸车件数</th>
+                    <th>每件均重(kg)</th>
+                    <th>变化值</th>
+                    <th>规定合托值</th>
+                    <th class="th-dual split-col">子托归属电商类型</th>
+                    <th class="th-dual split-col">达成值</th>
+                    <th class="th-dual split-col">奖罚子托数</th>
+                    <th class="th-dual split-col">奖罚金额</th>
+                    <th class="th-dual split-col">卸车重量(t)</th>
+                    <th class="th-dual split-col">卸车规定子托数</th>
+                    <th class="th-dual split-col">实际卸车子托数</th>
+                    <th class="th-dual split-col">卸车件数</th>
+                    <th class="th-dual split-col">每件均重(kg)</th>
+                    <th class="th-dual split-col">规定合托值</th>
+                    <th class="th-move">单托最大件数</th>
+                    <th class="th-move">单托最大重量(kg)</th>
+                    <th class="th-move">单托件数中位数</th>
+                    <th class="th-move">单托重量中位数</th>
+                    <th class="th-move">单托最小件数</th>
+                    <th class="th-move">单托最小重量(kg)</th>
+                    <th class="th-dual split-col">单托最大件数</th>
+                    <th class="th-dual split-col">单托最大重量(kg)</th>
+                    <th class="th-dual split-col">单托件数中位数</th>
+                    <th class="th-dual split-col">单托重量中位数</th>
+                    <th class="th-dual split-col">单托最小件数</th>
+                    <th class="th-dual split-col">单托最小重量(kg)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-sum row-pair-top">
+                    <td class="sticky-col-2 cell-merge cell-merge-person" rowspan="2">汇总</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.20</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↓0.02</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">-0.05</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">86</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">52</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">34</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.15</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↓0.03</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">120</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑8</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">3600.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑200.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">820.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑30.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">984</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">943</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">18600</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">44.08</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↓0.50</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.20</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">1.80</td>
+                    <td class="col-num split-col">80</td>
+                    <td class="col-num split-col">2400.00</td>
+                    <td class="col-num split-col">210.00</td>
+                    <td class="col-num split-col">378</td>
+                    <td class="col-num split-col">378</td>
+                    <td class="col-num split-col">9200</td>
+                    <td class="col-num split-col">22.82</td>
+                    <td class="col-num split-col">1.80</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">28</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">86.50</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">12</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">35.20</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">5.10</td>
+                    <td class="col-num split-col">18</td>
+                    <td class="col-num split-col">42.00</td>
+                    <td class="col-num split-col">8</td>
+                    <td class="col-num split-col">18.50</td>
+                    <td class="col-num split-col">1</td>
+                    <td class="col-num split-col">3.20</td>
+                  </tr>
+                  <tr class="row-sum row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">0.93</td>
+                    <td class="col-num split-col">40</td>
+                    <td class="col-num split-col">1200.00</td>
+                    <td class="col-num split-col">610.00</td>
+                    <td class="col-num split-col">606</td>
+                    <td class="col-num split-col">565</td>
+                    <td class="col-num split-col">9400</td>
+                    <td class="col-num split-col">64.89</td>
+                    <td class="col-num split-col">0.99</td>
+                    <td class="col-num split-col">22</td>
+                    <td class="col-num split-col">86.50</td>
+                    <td class="col-num split-col">14</td>
+                    <td class="col-num split-col">40.00</td>
+                    <td class="col-num split-col">2</td>
+                    <td class="col-num split-col">5.10</td>
+                  </tr>
+                </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="fenbo-block fenbo-block-detail">
+                <div class="table-wrap" data-fenbo-scroll="detail">
+                  <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="sticky-col-2" rowspan="2">分拨中心</th>
+                    <th class="th-group-total" colspan="7">仅汇总（考核）</th>
+                    <th class="th-group-total" colspan="14">汇总</th>
+                    <th class="th-group-dual split-col" colspan="11">区分电商</th>
+                    <th class="th-group-move" colspan="6">单托统计</th>
+                    <th class="th-group-dual split-col" colspan="6">单托统计（区分电商）</th>
+                  </tr>
+                  <tr>
+                    <th class="th-group-total">目标值</th>
+                    <th class="th-group-total">变化值</th>
+                    <th class="th-group-total">是否达成</th>
+                    <th class="th-group-total">达成差值</th>
+                    <th class="th-group-total">考核分拨数量</th>
+                    <th class="th-group-total">达成分拨数量</th>
+                    <th class="th-group-total">未达成分拨数量</th>
+                    <th>达成值</th>
+                    <th>变化值</th>
+                    <th>奖罚子托数</th>
+                    <th>变化值</th>
+                    <th>奖罚金额</th>
+                    <th>变化值</th>
+                    <th>卸车重量(t)</th>
+                    <th>变化值</th>
+                    <th>卸车规定子托数</th>
+                    <th>实际卸车子托数</th>
+                    <th>卸车件数</th>
+                    <th>每件均重(kg)</th>
+                    <th>变化值</th>
+                    <th>规定合托值</th>
+                    <th class="th-dual split-col">子托归属电商类型</th>
+                    <th class="th-dual split-col">达成值</th>
+                    <th class="th-dual split-col">奖罚子托数</th>
+                    <th class="th-dual split-col">奖罚金额</th>
+                    <th class="th-dual split-col">卸车重量(t)</th>
+                    <th class="th-dual split-col">卸车规定子托数</th>
+                    <th class="th-dual split-col">实际卸车子托数</th>
+                    <th class="th-dual split-col">卸车件数</th>
+                    <th class="th-dual split-col">每件均重(kg)</th>
+                    <th class="th-dual split-col">规定合托值</th>
+                    <th class="th-move">单托最大件数</th>
+                    <th class="th-move">单托最大重量(kg)</th>
+                    <th class="th-move">单托件数中位数</th>
+                    <th class="th-move">单托重量中位数</th>
+                    <th class="th-move">单托最小件数</th>
+                    <th class="th-move">单托最小重量(kg)</th>
+                    <th class="th-dual split-col">单托最大件数</th>
+                    <th class="th-dual split-col">单托最大重量(kg)</th>
+                    <th class="th-dual split-col">单托件数中位数</th>
+                    <th class="th-dual split-col">单托重量中位数</th>
+                    <th class="th-dual split-col">单托最小件数</th>
+                    <th class="th-dual split-col">单托最小重量(kg)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-pair-top">
+                    <td class="sticky-col-2 cell-merge cell-merge-person" rowspan="2">上海分拨</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.20</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2"><span class="tag-yes">是</span></td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">-0.08</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.12</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↓0.05</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">36</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑2</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1080.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑60.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">260.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑10.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">312</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">291</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">5200</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">50.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↓1.20</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.20</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">1.75</td>
+                    <td class="col-num split-col">24</td>
+                    <td class="col-num split-col">720.00</td>
+                    <td class="col-num split-col">80.00</td>
+                    <td class="col-num split-col">140</td>
+                    <td class="col-num split-col">140</td>
+                    <td class="col-num split-col">3100</td>
+                    <td class="col-num split-col">25.80</td>
+                    <td class="col-num split-col">1.75</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">20</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">68.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">10</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">28.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">4.50</td>
+                    <td class="col-num split-col">14</td>
+                    <td class="col-num split-col">35.00</td>
+                    <td class="col-num split-col">6</td>
+                    <td class="col-num split-col">15.00</td>
+                    <td class="col-num split-col">1</td>
+                    <td class="col-num split-col">2.80</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">0.84</td>
+                    <td class="col-num split-col">12</td>
+                    <td class="col-num split-col">360.00</td>
+                    <td class="col-num split-col">180.00</td>
+                    <td class="col-num split-col">172</td>
+                    <td class="col-num split-col">151</td>
+                    <td class="col-num split-col">2100</td>
+                    <td class="col-num split-col">85.71</td>
+                    <td class="col-num split-col">0.96</td>
+                    <td class="col-num split-col">16</td>
+                    <td class="col-num split-col">68.00</td>
+                    <td class="col-num split-col">12</td>
+                    <td class="col-num split-col">32.00</td>
+                    <td class="col-num split-col">2</td>
+                    <td class="col-num split-col">4.50</td>
+                  </tr>
+                  <tr class="row-pair-top">
+                    <td class="sticky-col-2 cell-merge cell-merge-person" rowspan="2">杭州分拨</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.15</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑0.05</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2"><span class="tag-no">否</span></td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">0.10</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.25</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑0.08</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">48</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑5</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1440.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑120.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">200.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑15.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">230</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">250</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">4100</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">48.78</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">↑0.80</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.15</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">1.90</td>
+                    <td class="col-num split-col">30</td>
+                    <td class="col-num split-col">900.00</td>
+                    <td class="col-num split-col">50.00</td>
+                    <td class="col-num split-col">95</td>
+                    <td class="col-num split-col">95</td>
+                    <td class="col-num split-col">2200</td>
+                    <td class="col-num split-col">22.72</td>
+                    <td class="col-num split-col">1.90</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">22</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">72.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">11</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">30.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">3</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">6.00</td>
+                    <td class="col-num split-col">15</td>
+                    <td class="col-num split-col">38.00</td>
+                    <td class="col-num split-col">7</td>
+                    <td class="col-num split-col">16.00</td>
+                    <td class="col-num split-col">2</td>
+                    <td class="col-num split-col">3.50</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">1.03</td>
+                    <td class="col-num split-col">18</td>
+                    <td class="col-num split-col">540.00</td>
+                    <td class="col-num split-col">150.00</td>
+                    <td class="col-num split-col">135</td>
+                    <td class="col-num split-col">155</td>
+                    <td class="col-num split-col">1900</td>
+                    <td class="col-num split-col">78.94</td>
+                    <td class="col-num split-col">0.90</td>
+                    <td class="col-num split-col">18</td>
+                    <td class="col-num split-col">72.00</td>
+                    <td class="col-num split-col">13</td>
+                    <td class="col-num split-col">35.00</td>
+                    <td class="col-num split-col">3</td>
+                    <td class="col-num split-col">6.00</td>
+                  </tr>
+                </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 交接单汇总：PRD全字段；卸车侧区分电商；移动相关不拆、放最后 -->
+          <div class="tab-panel" id="panel-jiaojie">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="col-checkbox sticky-col" rowspan="2"><input type="checkbox" class="check-all-local" /></th>
+                    <th class="sticky-col-2" rowspan="2">交接单号</th>
+                    <th rowspan="2">卸车完成时间</th>
+                    <th rowspan="2">上一站</th>
+                    <th rowspan="2">操作类型</th>
+                    <th rowspan="2">分拨中心</th>
+                    <th rowspan="2">方案编号</th>
+                    <th class="th-group-total" colspan="6">汇总</th>
+                    <th class="th-group-dual split-col" colspan="7">区分电商</th>
+                    <th class="th-group-move" colspan="9">移动相关（不区分电商）</th>
+                  </tr>
+                  <tr>
+                    <th>奖罚子托数</th>
+                    <th>奖罚金额</th>
+                    <th>卸车件数</th>
+                    <th>卸车重量(t)</th>
+                    <th>卸车规定子托数</th>
+                    <th>实际卸车子托数</th>
+                    <th class="th-dual split-col">子托归属电商类型</th>
+                    <th class="th-dual split-col">奖罚子托数</th>
+                    <th class="th-dual split-col">奖罚金额</th>
+                    <th class="th-dual split-col">卸车件数</th>
+                    <th class="th-dual split-col">卸车重量(t)</th>
+                    <th class="th-dual split-col">卸车规定子托数</th>
+                    <th class="th-dual split-col">实际卸车子托数</th>
+                    <th class="th-move">移动扫描合托子托数</th>
+                    <th class="th-move">同操作交接单</th>
+                    <th class="th-move">合托人</th>
+                    <th class="th-move">合托人工号</th>
+                    <th class="th-move">合托人岗位</th>
+                    <th class="th-move">移动件数</th>
+                    <th class="th-move">移动重量(t)</th>
+                    <th class="th-move">移动规定子托数</th>
+                    <th class="th-move">实际移动子托数</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-sum row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="sticky-col-2 cell-merge cell-merge-person" rowspan="2">汇总行</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">12</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">360.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">980</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">48.50</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">58</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">56</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">8</td>
+                    <td class="col-num split-col">240.00</td>
+                    <td class="col-num split-col">520</td>
+                    <td class="col-num split-col">12.20</td>
+                    <td class="col-num split-col">15</td>
+                    <td class="col-num split-col">22</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">3</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">120</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">6.80</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">8</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">7</td>
+                  </tr>
+                  <tr class="row-sum row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">4</td>
+                    <td class="col-num split-col">120.00</td>
+                    <td class="col-num split-col">460</td>
+                    <td class="col-num split-col">36.30</td>
+                    <td class="col-num split-col">43</td>
+                    <td class="col-num split-col">34</td>
+                  </tr>
+                  <!-- 同单两方案 -->
+                  <tr class="row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="sticky-col-2 cell-merge-order" rowspan="4" data-people="2">JJD20260708001</td>
+                    <td class="cell-merge-order" rowspan="4" data-people="2">2026-07-08 16:20:00</td>
+                    <td class="cell-merge-order" rowspan="4" data-people="2">苏州分拨</td>
+                    <td class="cell-merge-order" rowspan="4" data-people="2">干线卸车</td>
+                    <td class="cell-merge-order" rowspan="4" data-people="2">上海分拨</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">FA-001</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">3</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">90.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">240</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">12.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">14</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">14</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">2</td>
+                    <td class="col-num split-col">60.00</td>
+                    <td class="col-num split-col">150</td>
+                    <td class="col-num split-col">4.00</td>
+                    <td class="col-num split-col">5</td>
+                    <td class="col-num split-col">7</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">JJD20260707088</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">张三</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">10086</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">卸车工</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">40</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2.10</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">3</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">1</td>
+                    <td class="col-num split-col">30.00</td>
+                    <td class="col-num split-col">90</td>
+                    <td class="col-num split-col">8.00</td>
+                    <td class="col-num split-col">9</td>
+                    <td class="col-num split-col">7</td>
+                  </tr>
+                  <tr class="row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">FA-003</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">60.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">180</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">6.50</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">8</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">8</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">1</td>
+                    <td class="col-num split-col">30.00</td>
+                    <td class="col-num split-col">80</td>
+                    <td class="col-num split-col">2.50</td>
+                    <td class="col-num split-col">3</td>
+                    <td class="col-num split-col">3</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">0</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">王五</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">10088</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">分拨外包工</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">20</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.20</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">1</td>
+                    <td class="col-num split-col">30.00</td>
+                    <td class="col-num split-col">100</td>
+                    <td class="col-num split-col">4.00</td>
+                    <td class="col-num split-col">5</td>
+                    <td class="col-num split-col">5</td>
+                  </tr>
+                  <!-- 单方案 -->
+                  <tr class="row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="sticky-col-2 cell-merge cell-merge-person" rowspan="2">JJD20260708002</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">2026-07-08 18:05:00</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">萧山网点</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">网点卸车</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">杭州分拨</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">FA-002</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">5</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">150.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">360</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">18.50</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">21</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">20</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">3</td>
+                    <td class="col-num split-col">90.00</td>
+                    <td class="col-num split-col">180</td>
+                    <td class="col-num split-col">3.50</td>
+                    <td class="col-num split-col">4</td>
+                    <td class="col-num split-col">6</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">JJD20260707099</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">李四</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">10087</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">分拨外包工</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">60</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">3.50</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">4</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">4</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">2</td>
+                    <td class="col-num split-col">60.00</td>
+                    <td class="col-num split-col">180</td>
+                    <td class="col-num split-col">15.00</td>
+                    <td class="col-num split-col">17</td>
+                    <td class="col-num split-col">14</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 人员汇总：同分拨多人示意 + 区分电商 -->
+          <div class="tab-panel" id="panel-renyuan">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="col-checkbox sticky-col" rowspan="2"><input type="checkbox" class="check-all-local" /></th>
+                    <th class="sticky-col-2" rowspan="2">分拨中心</th>
+                    <th rowspan="2">员工姓名</th>
+                    <th rowspan="2">工号</th>
+                    <th rowspan="2">岗位</th>
+                    <th rowspan="2">外包公司</th>
+                    <th rowspan="2">入职时间</th>
+                    <th class="th-group-total" colspan="5">汇总</th>
+                    <th class="th-group-dual split-col" colspan="6">区分电商</th>
+                  </tr>
+                  <tr>
+                    <th>超标托数</th>
+                    <th>合托奖罚</th>
+                    <th>规定合托数</th>
+                    <th>实际合托数</th>
+                    <th>分配重量</th>
+                    <th class="th-dual split-col">子托归属电商类型</th>
+                    <th class="th-dual split-col">超标托数</th>
+                    <th class="th-dual split-col">合托奖罚</th>
+                    <th class="th-dual split-col">规定合托数</th>
+                    <th class="th-dual split-col">实际合托数</th>
+                    <th class="th-dual split-col">分配重量</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-sum row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="sticky-col-2 cell-merge cell-merge-person" rowspan="2">汇总行</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">8</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">240.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">120</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">128</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">18600.00</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">5</td>
+                    <td class="col-num split-col">150.00</td>
+                    <td class="col-num split-col">45</td>
+                    <td class="col-num split-col">52</td>
+                    <td class="col-num split-col">6200.00</td>
+                  </tr>
+                  <tr class="row-sum row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">3</td>
+                    <td class="col-num split-col">90.00</td>
+                    <td class="col-num split-col">75</td>
+                    <td class="col-num split-col">76</td>
+                    <td class="col-num split-col">12400.00</td>
+                  </tr>
+                  <!-- 上海分拨：2人，分拨中心跨 4 行合并 -->
+                  <tr class="row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="sticky-col-2 cell-merge-order" rowspan="4" data-people="2">上海分拨</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">张三</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">10086</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">卸车工</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">2023-03-01</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">60.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">30</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">32</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">4800.00</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">1.2</td>
+                    <td class="col-num split-col">36.00</td>
+                    <td class="col-num split-col">12</td>
+                    <td class="col-num split-col">14</td>
+                    <td class="col-num split-col">1600.00</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">0.8</td>
+                    <td class="col-num split-col">24.00</td>
+                    <td class="col-num split-col">18</td>
+                    <td class="col-num split-col">18</td>
+                    <td class="col-num split-col">3200.00</td>
+                  </tr>
+                  <tr class="row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">王五</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">10088</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">卸车工</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">2024-01-15</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">30.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">18</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">19</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2800.00</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">0.6</td>
+                    <td class="col-num split-col">18.00</td>
+                    <td class="col-num split-col">7</td>
+                    <td class="col-num split-col">8</td>
+                    <td class="col-num split-col">900.00</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">0.4</td>
+                    <td class="col-num split-col">12.00</td>
+                    <td class="col-num split-col">11</td>
+                    <td class="col-num split-col">11</td>
+                    <td class="col-num split-col">1900.00</td>
+                  </tr>
+                  <tr class="row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="sticky-col-2 cell-merge cell-merge-person" rowspan="2">杭州分拨</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">李四</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">10087</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">分拨外包工</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">某某劳务</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">2022-08-20</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">3</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">90.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">40</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">43</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">6100.00</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">1.8</td>
+                    <td class="col-num split-col">54.00</td>
+                    <td class="col-num split-col">15</td>
+                    <td class="col-num split-col">18</td>
+                    <td class="col-num split-col">2100.00</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">1.2</td>
+                    <td class="col-num split-col">36.00</td>
+                    <td class="col-num split-col">25</td>
+                    <td class="col-num split-col">25</td>
+                    <td class="col-num split-col">4000.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 交接单人员明细：一单多人示意 + 方案B区分电商 -->
+          <div class="tab-panel" id="panel-jiaojie-ren">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="col-checkbox sticky-col" rowspan="2"><input type="checkbox" class="check-all-local" /></th>
+                    <th class="sticky-col-2" rowspan="2">交接单号</th>
+                    <th rowspan="2">上一站</th>
+                    <th rowspan="2">操作类型</th>
+                    <th rowspan="2">分拨中心</th>
+                    <th rowspan="2">员工姓名</th>
+                    <th rowspan="2">工号</th>
+                    <th rowspan="2">岗位</th>
+                    <th rowspan="2">外包公司</th>
+                    <th class="th-group-total" colspan="5">汇总</th>
+                    <th class="th-group-dual split-col" colspan="6">区分电商</th>
+                  </tr>
+                  <tr>
+                    <th>超标托数</th>
+                    <th>合托奖罚</th>
+                    <th>规定合托数</th>
+                    <th>实际合托数</th>
+                    <th>分配重量</th>
+                    <th class="th-dual split-col">子托归属电商类型</th>
+                    <th class="th-dual split-col">超标托数</th>
+                    <th class="th-dual split-col">合托奖罚</th>
+                    <th class="th-dual split-col">规定合托数</th>
+                    <th class="th-dual split-col">实际合托数</th>
+                    <th class="th-dual split-col">分配重量</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- 汇总行 -->
+                  <tr class="row-sum row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="sticky-col-2 cell-merge cell-merge-person" rowspan="2">汇总行</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1.45</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">43.50</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">14.70</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">16.15</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2100.00</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">0.85</td>
+                    <td class="col-num split-col">25.50</td>
+                    <td class="col-num split-col">5.40</td>
+                    <td class="col-num split-col">6.50</td>
+                    <td class="col-num split-col">700.00</td>
+                  </tr>
+                  <tr class="row-sum row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">0.60</td>
+                    <td class="col-num split-col">18.00</td>
+                    <td class="col-num split-col">9.30</td>
+                    <td class="col-num split-col">9.65</td>
+                    <td class="col-num split-col">1400.00</td>
+                  </tr>
+
+                  <!-- 同一交接单 JJD20260708001：3人 × 电商/非电商两行；交接单维度跨 6 行合并 -->
+                  <tr class="row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="sticky-col-2 cell-merge-order" rowspan="6" data-people="3">JJD20260708001</td>
+                    <td class="cell-merge-order" rowspan="6" data-people="3">苏州分拨</td>
+                    <td class="cell-merge-order" rowspan="6" data-people="3">干线卸车</td>
+                    <td class="cell-merge-order" rowspan="6" data-people="3">上海分拨</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">张三</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">10086</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">卸车工</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">0.85</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">25.50</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">8.20</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">9.05</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">1200.00</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">0.50</td>
+                    <td class="col-num split-col">15.00</td>
+                    <td class="col-num split-col">3.10</td>
+                    <td class="col-num split-col">3.80</td>
+                    <td class="col-num split-col">400.00</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">0.35</td>
+                    <td class="col-num split-col">10.50</td>
+                    <td class="col-num split-col">5.10</td>
+                    <td class="col-num split-col">5.25</td>
+                    <td class="col-num split-col">800.00</td>
+                  </tr>
+                  <tr class="row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">王五</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">10088</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">分拨外包工</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">某某劳务</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">0.40</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">12.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">4.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">4.40</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">600.00</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">0.25</td>
+                    <td class="col-num split-col">7.50</td>
+                    <td class="col-num split-col">1.50</td>
+                    <td class="col-num split-col">1.80</td>
+                    <td class="col-num split-col">200.00</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">0.15</td>
+                    <td class="col-num split-col">4.50</td>
+                    <td class="col-num split-col">2.50</td>
+                    <td class="col-num split-col">2.60</td>
+                    <td class="col-num split-col">400.00</td>
+                  </tr>
+                  <tr class="row-pair-top">
+                    <td class="col-checkbox sticky-col cell-merge cell-merge-person" rowspan="2"><input type="checkbox" class="row-check" /></td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">赵六</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">10089</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">卸车工</td>
+                    <td class="cell-merge cell-merge-person" rowspan="2">—</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">0.20</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">6.00</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2.50</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">2.70</td>
+                    <td class="col-num cell-merge cell-merge-person" rowspan="2">300.00</td>
+                    <td class="td-type-ec split-col">电商</td>
+                    <td class="col-num split-col">0.10</td>
+                    <td class="col-num split-col">3.00</td>
+                    <td class="col-num split-col">0.80</td>
+                    <td class="col-num split-col">0.90</td>
+                    <td class="col-num split-col">100.00</td>
+                  </tr>
+                  <tr class="row-pair-bottom">
+                    <td class="td-type-non split-col">非电商</td>
+                    <td class="col-num split-col">0.10</td>
+                    <td class="col-num split-col">3.00</td>
+                    <td class="col-num split-col">1.70</td>
+                    <td class="col-num split-col">1.80</td>
+                    <td class="col-num split-col">200.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 子单明细：现网字段 + 是否电商件、子托归属电商类型 -->
+          <div class="tab-panel" id="panel-zidan">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="col-checkbox"><input type="checkbox" class="check-all-local" /></th>
+                    <th>分拨中心</th>
+                    <th>子单号</th>
+                    <th>交接单号</th>
+                    <th>操作类型</th>
+                    <th>子托号</th>
+                    <th>主托号</th>
+                    <th>合托时间</th>
+                    <th>卸车完成时间</th>
+                    <th>合托人</th>
+                    <th>合托人工号</th>
+                    <th>合托人岗位</th>
+                    <th>方案编号</th>
+                    <th>子单总重量(kg)</th>
+                    <th>操作重量(kg)</th>
+                    <th>上一站</th>
+                    <th>路由下一站</th>
+                    <th>交接单下一站库区</th>
+                    <th>开单网点</th>
+                    <th>物品名称</th>
+                    <th>产品类型</th>
+                    <th>物品类型</th>
+                    <th>订单来源</th>
+                    <th>是否电商件</th>
+                    <th>子托归属电商类型</th>
+                    <th>合托类型</th>
+                    <th>移动时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                    <td>上海分拨</td>
+                    <td>ZD10001</td>
+                    <td>JJD20260708001</td>
+                    <td>干线卸车</td>
+                    <td>ZT9001</td>
+                    <td>ZT9000</td>
+                    <td>2026-07-08 15:10:00</td>
+                    <td>2026-07-08 16:20:00</td>
+                    <td>张三</td>
+                    <td>10086</td>
+                    <td>卸车工</td>
+                    <td>FA-001</td>
+                    <td class="col-num">12.50</td>
+                    <td class="col-num">12.50</td>
+                    <td>苏州分拨</td>
+                    <td>浦东网点</td>
+                    <td>A区</td>
+                    <td>杭州网点</td>
+                    <td>日用品</td>
+                    <td>标准件</td>
+                    <td>普货</td>
+                    <td>EC-A</td>
+                    <td><span class="tag-yes">是</span></td>
+                    <td>电商</td>
+                    <td>正常合托</td>
+                    <td>-</td>
+                  </tr>
+                  <tr>
+                    <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                    <td>上海分拨</td>
+                    <td>ZD10002</td>
+                    <td>JJD20260708001</td>
+                    <td>干线卸车</td>
+                    <td>ZT9001</td>
+                    <td>ZT9000</td>
+                    <td>2026-07-08 15:12:00</td>
+                    <td>2026-07-08 16:20:00</td>
+                    <td>张三</td>
+                    <td>10086</td>
+                    <td>卸车工</td>
+                    <td>FA-001</td>
+                    <td class="col-num">10.00</td>
+                    <td class="col-num">10.00</td>
+                    <td>苏州分拨</td>
+                    <td>浦东网点</td>
+                    <td>A区</td>
+                    <td>杭州网点</td>
+                    <td>日用品</td>
+                    <td>标准件</td>
+                    <td>普货</td>
+                    <td>EC-A</td>
+                    <td><span class="tag-yes">是</span></td>
+                    <td>电商</td>
+                    <td>正常合托</td>
+                    <td>-</td>
+                  </tr>
+                  <tr>
+                    <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                    <td>上海分拨</td>
+                    <td>ZD10004</td>
+                    <td>JJD20260708001</td>
+                    <td>干线卸车</td>
+                    <td>ZT9001</td>
+                    <td>ZT9000</td>
+                    <td>2026-07-08 15:15:00</td>
+                    <td>2026-07-08 16:20:00</td>
+                    <td>张三</td>
+                    <td>10086</td>
+                    <td>卸车工</td>
+                    <td>FA-001</td>
+                    <td class="col-num">48.00</td>
+                    <td class="col-num">48.00</td>
+                    <td>苏州分拨</td>
+                    <td>浦东网点</td>
+                    <td>A区</td>
+                    <td>嘉兴网点</td>
+                    <td>家电</td>
+                    <td>大票</td>
+                    <td>普货</td>
+                    <td>线下</td>
+                    <td><span class="tag-no">否</span></td>
+                    <td>电商</td>
+                    <td>正常合托</td>
+                    <td>-</td>
+                  </tr>
+                  <tr>
+                    <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                    <td>杭州分拨</td>
+                    <td>ZD10003</td>
+                    <td>JJD20260708002</td>
+                    <td>网点卸车</td>
+                    <td>ZT9002</td>
+                    <td>ZT9002</td>
+                    <td>2026-07-08 17:40:00</td>
+                    <td>2026-07-08 18:05:00</td>
+                    <td>李四</td>
+                    <td>10087</td>
+                    <td>分拨外包工</td>
+                    <td>FA-002</td>
+                    <td class="col-num">8.20</td>
+                    <td class="col-num">8.20</td>
+                    <td>萧山网点</td>
+                    <td>宁波分拨</td>
+                    <td>-</td>
+                    <td>萧山网点</td>
+                    <td>配件</td>
+                    <td>标准件</td>
+                    <td>普货</td>
+                    <td>线下</td>
+                    <td><span class="tag-no">否</span></td>
+                    <td>非电商</td>
+                    <td>正常合托</td>
+                    <td>2026-07-08 17:55:00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="pagination">
+            <span class="total">共 100 条</span>
+            <button class="page-btn disabled">&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">…</button>
+            <button class="page-btn">10</button>
+            <button class="page-btn">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  });
+
+  function applyFiltersForTab(key) {
+    document.querySelectorAll('#filterGrid .filter-item').forEach(item => {
+      const tabs = (item.dataset.tabs || 'all').split(',');
+      const show = tabs.includes('all') || tabs.includes(key);
+      item.style.display = show ? '' : 'none';
+    });
+    const singlePallet = document.getElementById('fenboSinglePallet');
+    if (singlePallet) singlePallet.style.display = key === 'fenbo' ? '' : 'none';
+  }
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    const key = tab.dataset.ctab;
+    document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById('panel-' + key);
+    if (panel) panel.classList.add('active');
+    applyFiltersForTab(key);
+  });
+
+  applyFiltersForTab('fenbo');
+
+  function bindCheckAll(root) {
+    const all = root.querySelector('#checkAll, .check-all-local');
+    if (!all) return;
+    all.addEventListener('change', function () {
+      root.querySelectorAll('.row-check').forEach(cb => { cb.checked = this.checked; });
+    });
+  }
+  document.querySelectorAll('.tab-panel').forEach(bindCheckAll);
+
+
+  // 分拨汇总上下表横向滚动同步
+  (function syncFenboScroll() {
+    const a = document.querySelector('[data-fenbo-scroll="nation"]');
+    const b = document.querySelector('[data-fenbo-scroll="detail"]');
+    if (!a || !b) return;
+    let lock = false;
+    function bind(src, dst) {
+      src.addEventListener('scroll', () => {
+        if (lock) return;
+        lock = true;
+        dst.scrollLeft = src.scrollLeft;
+        lock = false;
+      });
+    }
+    bind(a, b);
+    bind(b, a);
+  })();
+
+  function applySplitVisibility(show) {
+    document.querySelectorAll('.split-col').forEach(el => {
+      el.style.display = show ? '' : 'none';
+    });
+    document.querySelectorAll('.row-pair-bottom').forEach(el => {
+      el.style.display = show ? '' : 'none';
+    });
+    document.querySelectorAll('.cell-merge-person, .cell-merge').forEach(el => {
+      if (el.classList.contains('cell-merge-order')) return;
+      if (show) el.setAttribute('rowspan', '2');
+      else el.removeAttribute('rowspan');
+    });
+    document.querySelectorAll('.cell-merge-order').forEach(el => {
+      const people = Number(el.dataset.people || 1);
+      el.setAttribute('rowspan', String(show ? people * 2 : people));
+    });
+  }
+  const toggle = document.getElementById('toggleSplit');
+  toggle.addEventListener('change', () => applySplitVisibility(toggle.checked));
+  applySplitVisibility(true);
+</script>
+
+</body>
+</html>

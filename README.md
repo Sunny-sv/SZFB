@@ -12,6 +12,7 @@
 | 原型名称 | 预览链接 | 文件名 | 说明 |
 |---|---|---|---|
 | PC 端通用框架 | [打开预览](https://sunny-sv.github.io/SZFB/pc-admin-framework.html) | `pc-admin-framework.html` | 企业后台母版，新页面原型可基于此扩展 |
+| 合托达成率（电商拆分） | [打开预览](https://sunny-sv.github.io/SZFB/he-tuo-da-cheng-lv-ecommerce.html) | `he-tuo-da-cheng-lv-ecommerce.html` | 合托达成率按电商/非电商拆分展示 |
 | 基础提成方案维护 | [打开预览](https://sunny-sv.github.io/SZFB/jicha-forklift-performance-scheme.html) | `jicha-forklift-performance-scheme.html` | 机叉叉车组长绩效方案维护 |
 | 机叉叉车组长绩效标准报表 | [打开预览](https://sunny-sv.github.io/SZFB/jicha-forklift-performance-standard-report.html) | `jicha-forklift-performance-standard-report.html` | 保底绩效、质量绩效等标准展示 |
 | 货量重量配置（组合区间） | [打开预览](https://sunny-sv.github.io/SZFB/cargo-weight-config-interval.html) | `cargo-weight-config-interval.html` | 调整比例，组合区间配置 |
