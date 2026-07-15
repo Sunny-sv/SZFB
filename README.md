@@ -18,6 +18,7 @@
 | 机叉叉车组长绩效标准报表 | [打开预览](https://sunny-sv.github.io/SZFB/jicha-forklift-performance-standard-report.html) | `jicha-forklift-performance-standard-report.html` | 保底绩效、质量绩效等标准展示 |
 | 货量重量配置（组合区间） | [打开预览](https://sunny-sv.github.io/SZFB/cargo-weight-config-interval.html) | `cargo-weight-config-interval.html` | 调整比例，组合区间配置 |
 | 区间维度配置 | [打开预览](https://sunny-sv.github.io/SZFB/interval-dimension-config.html) | `interval-dimension-config.html` | 区间维度动态交互配置 |
+| 奖罚信息查询（微信公众号） | [打开预览](https://sunny-sv.github.io/SZFB/%E5%A5%96%E7%BD%9A%E4%BF%A1%E6%81%AF%E6%9F%A5%E8%AF%A2-%E5%BE%AE%E4%BF%A1%E5%85%AC%E4%BC%97%E5%8F%B7.html) | `奖罚信息查询-微信公众号.html` | 现有微信公众号奖罚查询页还原（含时间选择） |
 
 ---
 
