@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>外包公司维护2.0 — 优化原型</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 40px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; height: 100vh; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .sidebar.collapsed { width: var(--sidebar-collapsed); }
+
+    .sidebar-logo {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: #fff;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .sidebar-logo .logo-icon {
+      width: 28px; height: 28px;
+      background: var(--primary);
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+    .sidebar.collapsed .logo-text { display: none; }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .sidebar.collapsed .menu-label,
+    .sidebar.collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .sidebar.collapsed .menu-sub { display: none; }
+
+    .sidebar-toggle {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      border-top: 1px solid rgba(255,255,255,.08);
+      font-size: 16px;
+    }
+    .sidebar-toggle:hover { color: #fff; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .top-tabs {
+      height: var(--header-height);
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+    .top-tabs .home-btn {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .top-tabs .home-btn:hover { color: var(--primary); }
+
+    .page-tabs {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      overflow-x: auto;
+      gap: 2px;
+      padding: 0 4px;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      height: 32px;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    .page-tab:hover { color: var(--text); background: #fafafa; }
+    .page-tab.active { color: var(--primary); background: #e6f7ff; }
+    .page-tab .tab-close { font-size: 12px; opacity: .4; margin-left: 2px; }
+    .page-tab .tab-close:hover { opacity: 1; color: #ff4d4f; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .top-right .icon-btn { cursor: pointer; font-size: 16px; }
+    .top-right .icon-btn:hover { color: var(--primary); }
+    .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #ccc;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #fff;
+      cursor: pointer;
+    }
+
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      min-height: calc(100vh - var(--header-height) - 32px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 108px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    /* 查询区多选下拉框（可点开展开枚举） */
+    .ms-select { position: relative; width: 100%; }
+    .ms-select .select-wrap { width: 100%; }
+    .filter-multi {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+      min-height: 32px;
+      padding: 2px 28px 2px 11px;
+      color: #bfbfbf;
+      cursor: pointer;
+      user-select: none;
+      overflow: hidden;
+    }
+    .filter-multi.has-value { color: var(--text); }
+    .filter-multi .tag {
+      display: inline-block;
+      padding: 0 6px;
+      height: 22px;
+      line-height: 22px;
+      font-size: 12px;
+      color: var(--text);
+      background: #f5f5f5;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      max-width: 72px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ms-dropdown {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      z-index: 40;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
+      padding: 4px 0;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .ms-dropdown.open { display: block; }
+    .ms-dropdown label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .ms-dropdown label:hover { background: #f5f5f5; }
+    .ms-dropdown input { margin: 0; }
+
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    /* 时间查询：类型下拉 + 日期区间（无左侧字段名，与线上一致） */
+    .filter-item.filter-item-time {
+      grid-column: span 1;
+    }
+    .filter-item.filter-item-time .filter-control-wrap.time-query {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+    .filter-item.filter-item-time .time-type {
+      flex: 0 0 118px;
+      width: 118px;
+    }
+    .filter-item.filter-item-time .time-type .filter-control {
+      color: var(--text);
+    }
+    .filter-item.filter-item-time .date-range {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      height: 32px;
+      background: #fff;
+    }
+    .filter-item.filter-item-time .date-range .filter-control {
+      border: none;
+      height: 30px;
+      padding: 0 4px;
+      box-shadow: none;
+    }
+    .filter-item.filter-item-time .date-range .filter-control:focus {
+      box-shadow: none;
+    }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    .table-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .table-scroll { overflow-x: auto; }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th,
+    .data-table td { border: 1px solid var(--border); padding: 8px 10px; text-align: center; white-space: nowrap; }
+    .data-table th { background: #fafafa; font-weight: 500; color: var(--text); }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .data-table tbody tr.selected { background: #e6f7ff; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .status-on { color: #52c41a; }
+    .status-off { color: var(--text-secondary); }
+    .status-wait { color: #faad14; }
+    .link { color: var(--primary); cursor: pointer; }
+    .link.disabled { color: #bfbfbf; cursor: not-allowed; }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding-top: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    /* Modal */
+    .modal-mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 4px;
+      width: min(1440px, calc(100vw - 32px));
+      max-width: calc(100vw - 32px);
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 24px rgba(0,0,0,.15);
+    }
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 16px;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-close { cursor: pointer; font-size: 20px; color: var(--text-secondary); line-height: 1; }
+    .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      padding: 12px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .form-section { margin-bottom: 20px; }
+    .form-section:last-child { margin-bottom: 0; }
+    .form-section-title {
+      font-weight: 500;
+      margin-bottom: 14px;
+      padding-left: 8px;
+      border-left: 3px solid var(--primary);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px 16px;
+    }
+    .form-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .form-item > label:first-child {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .form-item > label:first-child .req { color: #ff4d4f; margin-right: 2px; }
+    .form-item > .select-wrap,
+    .form-item > .form-control,
+    .form-item > .input-suffix { flex: 1; min-width: 0; }
+    .form-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .form-control:disabled,
+    .form-control.is-locked {
+      background: #f5f5f5;
+      color: rgba(0,0,0,.45);
+      cursor: not-allowed;
+    }
+    .modal-body .select-wrap { position: relative; }
+    .modal-body .select-wrap .form-control { appearance: none; padding-right: 28px; cursor: pointer; }
+    .modal-body .select-wrap .form-control:disabled { cursor: not-allowed; }
+    .modal-body .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .price-list { display: flex; flex-direction: column; gap: 12px; }
+    .price-block {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 14px;
+      background: #fafafa;
+    }
+    .price-block-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+    .price-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .price-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .price-field > .pf-label {
+      flex: 0 0 auto;
+      text-align: right;
+      font-size: 13px;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .price-field > .pf-label .req { color: #ff4d4f; margin-right: 2px; }
+    .price-field .pf-ctrl { min-width: 140px; }
+    .price-field.links-field {
+      flex: 0 0 auto;
+      align-items: flex-start;
+    }
+    .price-field.links-field > .pf-label { padding-top: 6px; }
+    .price-field.links-field .ms-wrap {
+      width: 200px;
+      flex: 0 0 200px;
+    }
+
+    .ms-wrap { position: relative; width: 100%; }
+    .ms-trigger {
+      min-height: 32px;
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      padding: 4px 28px 4px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      align-content: flex-start;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+    .ms-trigger::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .ms-trigger .placeholder { color: #bfbfbf; font-size: 13px; }
+    .ms-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f0f0f0;
+      border-radius: 2px;
+      padding: 0 6px;
+      height: 22px;
+      font-size: 12px;
+    }
+    .ms-tag .x { color: var(--text-secondary); cursor: pointer; }
+    .ms-drop {
+      display: none;
+      position: absolute;
+      left: 0; right: 0; top: calc(100% + 2px);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+      z-index: 20;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .ms-drop.open { display: block; }
+    .ms-opt {
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ms-opt:hover { background: #f5f5f5; }
+    .ms-opt.disabled { color: #bfbfbf; cursor: not-allowed; }
+    .ms-opt.disabled:hover { background: #fff; }
+    .ms-opt input { accent-color: var(--primary); }
+
+    .input-suffix {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-width: 120px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      overflow: hidden;
+      height: 32px;
+    }
+    .input-suffix input {
+      flex: 1;
+      border: none;
+      height: 100%;
+      padding: 0 11px;
+      outline: none;
+      font-size: 13px;
+      min-width: 0;
+      background: transparent;
+    }
+    .input-suffix input:disabled { background: #f5f5f5; color: rgba(0,0,0,.45); }
+    .input-suffix .suffix {
+      padding: 0 10px;
+      background: #fafafa;
+      border-left: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 12px;
+      white-space: nowrap;
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+    .circle-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .circle-btn.add { background: var(--primary); }
+    .circle-btn.remove { background: #ff4d4f; }
+    .circle-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .tier-list { display: flex; flex-direction: column; gap: 12px; }
+    .tier-row {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 12px 16px;
+      width: max-content;
+      min-width: 100%;
+    }
+    .tier-range {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+    }
+    .tier-range .rl {
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .tier-range .rl .req { color: #ff4d4f; margin-right: 2px; }
+    .tier-range .sep { color: var(--text-secondary); }
+    .tier-range .form-control {
+      width: 80px;
+      text-align: center;
+    }
+    .tier-range .form-control:disabled {
+      background: #f5f5f5;
+      color: rgba(0,0,0,.45);
+    }
+    .tier-prices {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 12px 16px;
+      align-items: center;
+      flex: 0 0 auto;
+    }
+    .tier-price-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .tier-price-item .plabel {
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .tier-price-item .plabel .req { color: #ff4d4f; margin-right: 2px; }
+    .tier-price-item .input-suffix { width: 128px; }
+    .price-block { overflow-x: auto; }
+
+    .toast {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-12px);
+      background: rgba(0,0,0,.75);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 13px;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+      max-width: 720px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 变更对比 */
+    .modal.change-modal { width: min(1280px, calc(100vw - 48px)); }
+    .change-meta {
+      display: flex;
+      gap: 32px;
+      padding: 0 0 16px;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .change-scroll {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+    }
+    .change-scroll-inner {
+      display: inline-block;
+      min-width: 100%;
+      vertical-align: top;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+    .change-block { margin-bottom: 20px; }
+    .change-block:last-child { margin-bottom: 0; }
+    .change-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+    .change-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .change-dot.before { background: #D9001B; }
+    .change-dot.after { background: #4B7902; }
+    .change-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .change-table th,
+    .change-table td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .change-table th { background: #fafafa; font-weight: 500; }
+    .change-table thead tr:first-child th { font-weight: 500; }
+    .change-table td { background: #fff; }
+    .diff-before { color: #D9001B; }
+    .diff-after { color: #4B7902; }
+
+    /* 表单预览 */
+    .modal.preview-modal { width: 860px; }
+    .preview-body { position: relative; }
+    .preview-stamp {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 72px;
+      height: 72px;
+      border: 2px solid #52c41a;
+      border-radius: 50%;
+      color: #52c41a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      transform: rotate(-18deg);
+      opacity: .9;
+      pointer-events: none;
+      background: rgba(255,255,255,.65);
+    }
+    .preview-stamp.wait { border-color: #faad14; color: #faad14; }
+    .preview-stamp.off { border-color: rgba(0,0,0,.35); color: rgba(0,0,0,.45); }
+    .preview-section { margin-bottom: 24px; }
+    .preview-section:last-child { margin-bottom: 0; }
+    .preview-section-title {
+      font-weight: 500;
+      margin-bottom: 14px;
+      padding-left: 8px;
+      border-left: 3px solid var(--primary);
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 48px;
+      padding-right: 88px;
+    }
+    .preview-row {
+      display: flex;
+      font-size: 14px;
+      line-height: 22px;
+      min-height: 22px;
+    }
+    .preview-row .p-label {
+      flex: 0 0 auto;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .preview-row .p-label::after { content: "："; }
+    .preview-row .p-value { color: var(--text); word-break: break-all; }
+    .preview-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 24px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .preview-price-box {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px 16px;
+      background: #fafafa;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 40px;
+      font-size: 14px;
+    }
+    .preview-price-box .item {
+      display: flex;
+      gap: 4px;
+    }
+    .preview-price-box .k { color: var(--text-secondary); }
+    .preview-price-box .k::after { content: "："; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">运</div>
+      <span class="logo-text">转运可视化平台</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">工作台</span></div>
+      <div class="menu-item active">
+        <span class="menu-icon">☰</span><span class="menu-label">外包管理</span><span class="menu-arrow">▼</span>
+      </div>
+      <div class="menu-sub">
+        <div class="menu-item active">外包公司维护2.0</div>
+      </div>
+      <div class="menu-item"><span class="menu-icon">⚙</span><span class="menu-label">基础配置</span><span class="menu-arrow">▶</span></div>
+    </nav>
+    <div class="sidebar-toggle" id="sidebarToggle" title="折叠/展开">☰</div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="top-tabs">
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active" data-tab="page1">外包公司维护2.0 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔</span>
+        <div class="avatar" title="用户">U</div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+
+        <!-- 1. 筛选条件区：标准 3 列网格 -->
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">外包公司</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="支持多个" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">合作分拨</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="分拨组件（多选）" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">合作省区</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="省区组件（多选）" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">外包公司类型</span>
+              <div class="filter-control-wrap">
+                <div class="ms-select" id="filterTypeMs">
+                  <div class="select-wrap">
+                    <div class="filter-control filter-multi" id="filterTypeTrigger" tabindex="0">请选择</div>
+                  </div>
+                  <div class="ms-dropdown" id="filterTypeDrop">
+                    <label><input type="checkbox" value="临时工" />临时工</label>
+                    <label><input type="checkbox" value="外请车" />外请车</label>
+                    <label><input type="checkbox" value="试工" />试工</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item filter-item-time">
+              <div class="filter-control-wrap time-query">
+                <div class="select-wrap time-type">
+                  <select class="filter-control" title="时间查询">
+                    <option selected>实际有效期限</option>
+                    <option>有效期限</option>
+                    <option>创建时间</option>
+                  </select>
+                </div>
+                <div class="date-range">
+                  <input class="filter-control" type="text" placeholder="开始日期" readonly />
+                  <span class="sep">-</span>
+                  <input class="filter-control" type="text" placeholder="结束日期" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">计价方式</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option>统一计价</option>
+                    <option>阶梯计价</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">状态</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>生效中</option>
+                    <option>待生效</option>
+                    <option>已失效</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">方案编号</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="支持多个，换行输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">工作流号</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="支持多个，换行输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">详细用途</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option value="">请选择</option>
+                    <option>装网点</option>
+                    <option>装干线</option>
+                    <option>卸网点</option>
+                    <option>卸干线</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn" type="button">重置</button>
+            <button class="btn btn-primary" type="button">查询</button>
+          </div>
+        </section>
+
+        <!-- 2. 标签切换区 -->
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-ctab="1">装卸</div>
+          <div class="content-tab" data-ctab="2">移动</div>
+          <div class="content-tab" data-ctab="3">流水线卸货</div>
+          <div class="content-tab" data-ctab="4">流水线码货</div>
+          <div class="content-tab" data-ctab="5">流水线移动</div>
+          <div class="content-tab" data-ctab="6">流水线直装</div>
+        </nav>
+
+        <!-- 3. 操作按钮区 -->
+        <section class="action-bar">
+          <button class="btn-action primary" type="button" id="btnAdd">新增</button>
+          <button class="btn-action" type="button" id="btnEdit">编辑</button>
+          <button class="btn-action" type="button" id="btnCopy">复制</button>
+          <button class="btn-action" type="button" id="btnDelete">删除</button>
+          <button class="btn-action" type="button">导出</button>
+        </section>
+
+        <!-- 4. 数据列表区 -->
+        <section class="table-area">
+          <div class="table-scroll">
+            <table class="data-table" id="mainTable">
+              <thead id="tableHead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 4 条</span>
+            <button class="page-btn disabled" type="button">&lt;</button>
+            <button class="page-btn active" type="button">1</button>
+            <button class="page-btn disabled" type="button">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 新增弹框 -->
+<div class="modal-mask" id="addMask">
+  <div class="modal">
+    <div class="modal-header">
+      <div>新增</div>
+      <span class="modal-close" data-close="addMask">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">
+        <div class="form-section-title">基础设定</div>
+        <div class="form-grid">
+          <div class="form-item">
+            <label><span class="req">*</span>外包公司</label>
+            <input class="form-control" type="text" placeholder="请输入" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>合作分拨</label>
+            <input class="form-control" type="text" placeholder="分拨组件" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>外包公司类型</label>
+            <div class="select-wrap">
+              <select class="form-control">
+                <option selected>临时工</option>
+                <option>外请车</option>
+                <option>试工</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>发票种类</label>
+            <div class="select-wrap">
+              <select class="form-control">
+                <option value="">请选择</option>
+                <option>普通发票</option>
+                <option>专用发票(税率3%)</option>
+                <option>专用发票(税率6%)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>联系人</label>
+            <input class="form-control" type="text" placeholder="请输入" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>联系方式</label>
+            <input class="form-control" type="text" placeholder="请输入" />
+          </div>
+          <div class="form-item">
+            <label>备注</label>
+            <input class="form-control" type="text" placeholder="请输入" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>有效开始日期</label>
+            <input class="form-control" type="text" placeholder="请选择" readonly />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>有效结束日期</label>
+            <input class="form-control" type="text" placeholder="请选择" readonly />
+          </div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">单价设定</div>
+        <div class="price-list" id="addPriceList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="addMask">取消</button>
+      <button class="btn btn-primary" type="button" id="btnAddSave">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑弹框（字段均可改，含已失效） -->
+<div class="modal-mask" id="editMask">
+  <div class="modal">
+    <div class="modal-header">
+      <div>编辑</div>
+      <span class="modal-close" data-close="editMask">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">
+        <div class="form-section-title">基础设定</div>
+        <div class="form-grid">
+          <div class="form-item">
+            <label><span class="req">*</span>外包公司</label>
+            <input class="form-control" id="editCompany" type="text" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>合作分拨</label>
+            <input class="form-control" id="editDepot" type="text" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>外包公司类型</label>
+            <div class="select-wrap">
+              <select class="form-control" id="editType">
+                <option>临时工</option>
+                <option>外请车</option>
+                <option>试工</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>发票种类</label>
+            <div class="select-wrap">
+              <select class="form-control" id="editInvoice">
+                <option>普通发票</option>
+                <option>专用发票(税率3%)</option>
+                <option>专用发票(税率6%)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>联系人</label>
+            <input class="form-control" id="editContact" type="text" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>联系方式</label>
+            <input class="form-control" id="editPhone" type="text" />
+          </div>
+          <div class="form-item">
+            <label>备注</label>
+            <input class="form-control" id="editRemark" type="text" placeholder="请输入" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>有效开始日期</label>
+            <input class="form-control" id="editStart" type="text" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>有效结束日期</label>
+            <input class="form-control" id="editEnd" type="text" />
+          </div>
+        </div>
+      </div>
+      <div class="form-section" id="editPriceSection">
+        <div class="form-section-title">单价设定</div>
+        <div class="price-list" id="editPriceList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="editMask">取消</button>
+      <button class="btn btn-primary" type="button" id="btnEditSave">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认 -->
+<div class="modal-mask" id="deleteMask">
+  <div class="modal" style="width: 480px;">
+    <div class="modal-header">
+      <div>删除</div>
+      <span class="modal-close" data-close="deleteMask">×</span>
+    </div>
+    <div class="modal-body" style="font-size: 14px; line-height: 1.6;">
+      删除后不可撤销，请确认是否删除？（共 <span id="deleteCount">0</span> 条）
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="deleteMask">取消</button>
+      <button class="btn btn-primary" type="button" id="btnDeleteOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 变更对比（字段按线上录屏：基础信息 + 各操作环节分组 + 发票联系状态） -->
+<div class="modal-mask" id="changeMask">
+  <div class="modal change-modal">
+    <div class="modal-header">
+      <div>变更对比</div>
+      <span class="modal-close" data-close="changeMask">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="change-meta">
+        <span>变更时间：2026-07-13 15:55:36</span>
+        <span>变更人：李康</span>
+      </div>
+
+      <div class="change-scroll">
+        <div class="change-scroll-inner">
+          <div class="change-block">
+            <div class="change-title"><span class="change-dot before"></span>变更前</div>
+            <table class="change-table">
+              <thead>
+                <tr>
+                  <th rowspan="2">外包公司</th>
+                  <th rowspan="2">合作分拨</th>
+                  <th rowspan="2">外包公司类型</th>
+                  <th rowspan="2">合作省区</th>
+                  <th rowspan="2">有效期限</th>
+                  <th rowspan="2">实际有效期限</th>
+                  <th rowspan="2">详细用途</th>
+                  <th rowspan="2">计价方式</th>
+                  <th colspan="3">网点装车</th>
+                  <th colspan="3">干线装车</th>
+                  <th colspan="3">网点卸车</th>
+                  <th colspan="3">干线卸车</th>
+                  <th rowspan="2">发票种类</th>
+                  <th rowspan="2">联系人</th>
+                  <th rowspan="2">联系方式</th>
+                  <th rowspan="2">状态</th>
+                </tr>
+                <tr>
+                  <th>模式</th><th>吨位计价区间</th><th>每吨单价</th>
+                  <th>模式</th><th>吨位计价区间</th><th>每吨单价</th>
+                  <th>模式</th><th>吨位计价区间</th><th>每吨单价</th>
+                  <th>模式</th><th>吨位计价区间</th><th>每吨单价</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>江苏永宁物流有限公司</td>
+                  <td>常州分拨中心</td>
+                  <td>临时工</td>
+                  <td></td>
+                  <td class="diff-before">2026-05-01 15:00:00~2027-04-30 14:59:59</td>
+                  <td class="diff-before">2026-05-01 15:00:00~2027-04-30 14:59:59</td>
+                  <td>网点装车,干线装车,网点卸车,干线卸车</td>
+                  <td>统一计价</td>
+                  <td>-</td><td>-</td><td>0.0</td>
+                  <td>-</td><td>-</td><td>0.0</td>
+                  <td>-</td><td>-</td><td>0.0</td>
+                  <td>-</td><td>-</td><td>0.0</td>
+                  <td>普通发票</td>
+                  <td>1</td>
+                  <td>15312345678</td>
+                  <td>生效中</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="change-block">
+            <div class="change-title"><span class="change-dot after"></span>变更后</div>
+            <table class="change-table">
+              <thead>
+                <tr>
+                  <th rowspan="2">外包公司</th>
+                  <th rowspan="2">合作分拨</th>
+                  <th rowspan="2">外包公司类型</th>
+                  <th rowspan="2">合作省区</th>
+                  <th rowspan="2">有效期限</th>
+                  <th rowspan="2">实际有效期限</th>
+                  <th rowspan="2">详细用途</th>
+                  <th rowspan="2">计价方式</th>
+                  <th colspan="3">网点装车</th>
+                  <th colspan="3">干线装车</th>
+                  <th colspan="3">网点卸车</th>
+                  <th colspan="3">干线卸车</th>
+                  <th rowspan="2">发票种类</th>
+                  <th rowspan="2">联系人</th>
+                  <th rowspan="2">联系方式</th>
+                  <th rowspan="2">状态</th>
+                </tr>
+                <tr>
+                  <th>模式</th><th>吨位计价区间</th><th>每吨单价</th>
+                  <th>模式</th><th>吨位计价区间</th><th>每吨单价</th>
+                  <th>模式</th><th>吨位计价区间</th><th>每吨单价</th>
+                  <th>模式</th><th>吨位计价区间</th><th>每吨单价</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>江苏永宁物流有限公司</td>
+                  <td>常州分拨中心</td>
+                  <td>临时工</td>
+                  <td></td>
+                  <td class="diff-after">2026-05-01 15:00:00~2027-05-01 14:59:59</td>
+                  <td class="diff-after">2026-05-01 15:00:00~2027-05-01 14:59:59</td>
+                  <td>网点装车,干线装车,网点卸车,干线卸车</td>
+                  <td>统一计价</td>
+                  <td>-</td><td>-</td><td>0.0</td>
+                  <td>-</td><td>-</td><td>0.0</td>
+                  <td>-</td><td>-</td><td>0.0</td>
+                  <td>-</td><td>-</td><td>0.0</td>
+                  <td>普通发票</td>
+                  <td>1</td>
+                  <td>15312345678</td>
+                  <td>生效中</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 表单预览 -->
+<div class="modal-mask" id="previewMask">
+  <div class="modal preview-modal">
+    <div class="modal-header">
+      <div>表单预览</div>
+      <span class="modal-close" data-close="previewMask">×</span>
+    </div>
+    <div class="modal-body preview-body">
+      <div class="preview-stamp" id="previewStamp">生效中</div>
+      <div class="preview-section">
+        <div class="preview-section-title">基础设定</div>
+        <div class="preview-grid">
+          <div class="preview-row"><span class="p-label">外包公司</span><span class="p-value">江苏永宁物流有限公司</span></div>
+          <div class="preview-row"><span class="p-label">分拨中心</span><span class="p-value">常州分拨中心</span></div>
+          <div class="preview-row"><span class="p-label">外包公司类型</span><span class="p-value">临时工</span></div>
+          <div class="preview-row"><span class="p-label">有效期限</span><span class="p-value">2026-05-01 15:00:00 ~ 2027-05-01 14:59:59</span></div>
+          <div class="preview-row"><span class="p-label">发票种类</span><span class="p-value">普通发票</span></div>
+          <div class="preview-row"><span class="p-label">联系方式</span><span class="p-value">15312345678</span></div>
+          <div class="preview-row"><span class="p-label">联系人</span><span class="p-value">1</span></div>
+          <div class="preview-row"><span class="p-label">备注</span><span class="p-value"></span></div>
+        </div>
+      </div>
+      <div class="preview-section">
+        <div class="preview-section-title">单价设定</div>
+        <div class="preview-links">
+          <span>网点装车</span>
+          <span>干线装车</span>
+          <span>网点卸车</span>
+          <span>干线卸车</span>
+        </div>
+        <div class="preview-price-box">
+          <div class="item"><span class="k">计价方式</span><span>统一计价</span></div>
+          <div class="item"><span class="k">每吨单价(元/吨)</span><span>0</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="previewMask">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const LINK_ZX = ['网点装车', '干线装车', '网点卸车', '干线卸车'];
+  const LINK_YD = ['网点卸车移动', '干线卸车移动'];
+  let LINK_OPTIONS = LINK_ZX.slice();
+  let currentTab = 'zx';
+  let editTypeBefore = '';
+  let editRowRef = null;
+
+  const COLS_ZX = ['合作分拨','外包公司','外包公司类型','有效期限','实际有效期限','详细用途','网点卸车','干线卸车','网点装车','干线装车','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
+  const COLS_YD = ['合作分拨','外包公司','外包公司类型','有效期限','实际有效期限','详细用途','网点卸车移动','干线卸车移动','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
+
+  const ROWS_ZX = [
+    { state:'expired', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', start:'2026-05-01', end:'2027-06-01', valid:'2026-05-01 15:00:00 ~ 2027-06-01 14:59:59', actual:'2026-05-01 15:00:00 ~ 2026-06-30 14:59:59', usage:'网点卸车，干线卸车，网点装车，干线装车', cells:['统一计价','统一计价','统一计价','统一计价'], invoice:'普通发票', contact:'1', phone:'15312345678', wf:'-', no:'WB20260501001', creator:'张三', ctime:'2026-05-01 10:20:00', remark:'-', editor:'李四', etime:'2026-06-02 09:00:00', change:true, status:'已失效' },
+    { state:'active', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', start:'2026-07-01', end:'2027-12-31', valid:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', usage:'网点卸车，干线卸车', cells:['统一计价','统一计价','-','-'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'WB20260701002', creator:'张三', ctime:'2026-07-01 11:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'active', depot:'义乌分拨中心', company:'义乌装卸A队', type:'外请车', start:'2026-03-01', end:'2026-12-31', valid:'2026-03-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'2026-03-01 15:00:00 ~ 2026-12-31 14:59:59', usage:'网点装车，干线装车', cells:['-','-','阶梯计价','阶梯计价'], invoice:'专用发票(税率3%)', contact:'赵六', phone:'13900002222', wf:'-', no:'WB20260301003', creator:'钱七', ctime:'2026-03-01 14:30:00', remark:'试算价', editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'wait', depot:'杭州转运中心', company:'杭州试工队', type:'试工', start:'2026-08-01', end:'2026-08-31', valid:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59', actual:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59', usage:'网点卸车', cells:['统一计价','-','-','-'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'-', no:'WB20260801004', creator:'周九', ctime:'2026-07-10 16:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'待生效' }
+  ];
+
+  const ROWS_YD = [
+    { state:'active', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', start:'2026-07-01', end:'2027-06-30', valid:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', usage:'网点卸车移动，干线卸车移动', cells:['统一计价','统一计价'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'YD20260701001', creator:'张三', ctime:'2026-07-01 11:20:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'expired', depot:'义乌分拨中心', company:'义乌装卸A队', type:'外请车', start:'2026-04-01', end:'2026-05-31', valid:'2026-04-01 15:00:00 ~ 2026-05-31 14:59:59', actual:'2026-04-01 15:00:00 ~ 2026-05-31 14:59:59', usage:'网点卸车移动', cells:['阶梯计价','-'], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'-', no:'YD20260401002', creator:'钱七', ctime:'2026-04-01 09:00:00', remark:'-', editor:'李四', etime:'2026-06-01 10:00:00', change:true, status:'已失效' },
+    { state:'wait', depot:'杭州转运中心', company:'杭州试工队', type:'试工', start:'2026-08-15', end:'2026-09-15', valid:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', actual:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', usage:'干线卸车移动', cells:['-','统一计价'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'-', no:'YD20260815003', creator:'周九', ctime:'2026-07-12 16:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'待生效' }
+  ];
+
+  function formatPeriod(startDate, endDate) {
+    return startDate + ' 15:00:00 ~ ' + endDate + ' 14:59:59';
+  }
+
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => el.classList.remove('show'), 4500);
+  }
+  function openModal(id) { document.getElementById(id).classList.add('show'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+  function bindRowSelect() {
+    document.querySelectorAll('#tableBody tr').forEach(tr => {
+      tr.addEventListener('click', (e) => {
+        if (e.target.closest('input, .link')) return;
+        document.querySelectorAll('#tableBody tr').forEach(r => r.classList.remove('selected'));
+        tr.classList.add('selected');
+        const cb = tr.querySelector('.row-check');
+        if (cb) cb.checked = true;
+      });
+    });
+    document.querySelectorAll('.js-change').forEach(el => {
+      el.addEventListener('click', (e) => { e.stopPropagation(); openModal('changeMask'); });
+    });
+    document.querySelectorAll('.js-preview').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const stamp = document.getElementById('previewStamp');
+        const status = el.getAttribute('data-status') || '生效中';
+        stamp.textContent = status;
+        stamp.classList.remove('wait', 'off');
+        if (status === '待生效') stamp.classList.add('wait');
+        if (status === '已失效') stamp.classList.add('off');
+        openModal('previewMask');
+      });
+    });
+  }
+
+  function renderTable(tab) {
+    currentTab = tab;
+    const cols = tab === 'yd' ? COLS_YD : COLS_ZX;
+    const rows = tab === 'yd' ? ROWS_YD : ROWS_ZX;
+    LINK_OPTIONS = tab === 'yd' ? LINK_YD.slice() : LINK_ZX.slice();
+
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = '<tr><th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>' +
+      cols.map(c => '<th>' + c + '</th>').join('') + '</tr>';
+
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = rows.map((r, idx) => {
+      const statusCls = r.status === '生效中' ? 'status-on' : (r.status === '待生效' ? 'status-wait' : 'status-off');
+      const changeCell = r.change ? '<span class="link js-change">查看</span>' : '<span class="link disabled">查看</span>';
+      return '<tr data-idx="' + idx + '" data-state="' + r.state + '">' +
+        '<td class="col-checkbox"><input type="checkbox" class="row-check" /></td>' +
+        '<td>' + r.depot + '</td><td>' + r.company + '</td><td class="col-type">' + r.type + '</td>' +
+        '<td title="' + r.valid + '">' + r.valid + '</td><td title="' + r.actual + '">' + r.actual + '</td><td>' + r.usage + '</td>' +
+        r.cells.map(c => '<td>' + c + '</td>').join('') +
+        '<td>' + r.invoice + '</td><td>' + r.contact + '</td><td>' + r.phone + '</td>' +
+        '<td>' + r.wf + '</td><td>' + r.no + '</td><td>' + r.creator + '</td><td>' + r.ctime + '</td>' +
+        '<td>' + r.remark + '</td><td>' + r.editor + '</td><td>' + r.etime + '</td>' +
+        '<td>' + changeCell + '</td><td class="' + statusCls + '">' + r.status + '</td>' +
+        '<td><span class="link js-preview" data-status="' + r.status + '">预览</span></td></tr>';
+    }).join('');
+
+    document.getElementById('checkAll').addEventListener('change', function () {
+      document.querySelectorAll('.row-check').forEach(cb => { cb.checked = this.checked; });
+    });
+    const total = document.querySelector('.pagination .total');
+    if (total) total.textContent = '共 ' + rows.length + ' 条';
+    bindRowSelect();
+  }
+
+  function getSelectedIndexes() {
+    return Array.from(document.querySelectorAll('#tableBody tr')).filter(tr => {
+      const cb = tr.querySelector('.row-check');
+      return cb && cb.checked;
+    }).map(tr => Number(tr.getAttribute('data-idx')));
+  }
+
+  function currentRows() { return currentTab === 'yd' ? ROWS_YD : ROWS_ZX; }
+
+  function setLocked(el, locked) {
+    if (!el) return;
+    if (el.tagName === 'SELECT' || el.tagName === 'INPUT') {
+      el.disabled = !!locked;
+      el.classList.toggle('is-locked', !!locked);
+    }
+  }
+
+  function unlockAllEditFields() {
+    ['editCompany', 'editDepot', 'editType', 'editInvoice', 'editContact', 'editPhone', 'editRemark', 'editStart', 'editEnd']
+      .forEach(id => setLocked(document.getElementById(id), false));
+    document.getElementById('editPriceSection').style.display = '';
+    if (editPanel) editPanel.setLocked(false);
+  }
+
+  function fillEditForm(row) {
+    editRowRef = row;
+    document.getElementById('editCompany').value = row.company;
+    document.getElementById('editDepot').value = row.depot;
+    document.getElementById('editType').value = row.type;
+    editTypeBefore = row.type;
+    document.getElementById('editInvoice').value = row.invoice;
+    document.getElementById('editContact').value = row.contact;
+    document.getElementById('editPhone').value = row.phone;
+    document.getElementById('editRemark').value = row.remark === '-' ? '' : row.remark;
+    document.getElementById('editStart').value = row.start;
+    document.getElementById('editEnd').value = row.end;
+  }
+
+  function resetAddFormDefaults() {
+    const addBody = document.querySelector('#addMask .form-grid');
+    addBody.querySelectorAll('.form-item').forEach(item => {
+      const ctrl = item.querySelector('input.form-control, select.form-control');
+      if (!ctrl) return;
+      const label = (item.querySelector('label') || {}).textContent || '';
+      if (label.indexOf('外包公司类型') >= 0) {
+        ctrl.value = '临时工';
+      } else if (ctrl.tagName === 'SELECT') {
+        ctrl.selectedIndex = 0;
+      } else {
+        ctrl.value = '';
+      }
+    });
+  }
+
+  function syncTypeToOthers(company, depot, type, currentRow) {
+    let syncN = 0;
+    function apply(list) {
+      list.forEach(r => {
+        if (r === currentRow) return;
+        if (r.company !== company || r.depot !== depot) return;
+        if (r.state === 'expired') return;
+        r.type = type;
+        syncN += 1;
+      });
+    }
+    apply(ROWS_ZX);
+    apply(ROWS_YD);
+    return syncN;
+  }
+
+  function createPricePanel(containerId, initialBlocks) {
+    const root = document.getElementById(containerId);
+    let locked = false;
+    let blocks = initialBlocks.map((b, i) => ({
+      id: i + 1,
+      links: b.links ? b.links.slice() : [],
+      pricing: b.pricing || '统一计价',
+      mode: b.mode || '整体',
+      unitPrice: b.unitPrice != null ? String(b.unitPrice) : '',
+      tiers: b.tiers ? b.tiers.map(t => ({ end: t.end, prices: Object.assign({}, t.prices) })) : [
+        { end: '', prices: {} }, { end: '∞', prices: {} }
+      ]
+    }));
+    let seq = blocks.length;
+
+    function usedLinksExcept(blockId) {
+      const set = new Set();
+      blocks.forEach(b => { if (b.id !== blockId) b.links.forEach(l => set.add(l)); });
+      return set;
+    }
+    function ensureTierPrices(block) {
+      const keys = block.links.length ? block.links : ['_default'];
+      block.tiers.forEach(tier => {
+        keys.forEach(k => { if (tier.prices[k] == null) tier.prices[k] = ''; });
+        Object.keys(tier.prices).forEach(k => {
+          if (k !== '_default' && !block.links.includes(k)) delete tier.prices[k];
+        });
+      });
+    }
+    function syncTierEnds(block) {
+      if (block.tiers.length < 2) {
+        block.tiers = [{ end: '', prices: {} }, { end: '∞', prices: {} }];
+      }
+      block.tiers[block.tiers.length - 1].end = '∞';
+      ensureTierPrices(block);
+    }
+
+    function render() {
+      root.innerHTML = '';
+      root.style.pointerEvents = locked ? 'none' : '';
+      root.style.opacity = locked ? '0.55' : '';
+      blocks.forEach((block, index) => {
+        ensureTierPrices(block);
+        const el = document.createElement('div');
+        el.className = 'price-block';
+
+        const head = document.createElement('div');
+        head.className = 'price-block-head';
+        head.innerHTML = '<span>详细用途 ' + (index + 1) + '</span>';
+        const headBtn = document.createElement('button');
+        headBtn.type = 'button';
+        headBtn.className = 'circle-btn ' + (index === 0 ? 'add' : 'remove');
+        headBtn.textContent = index === 0 ? '+' : '−';
+        headBtn.addEventListener('click', () => {
+          if (index === 0) {
+            seq += 1;
+            blocks.push({ id: seq, links: [], pricing: '统一计价', mode: '整体', unitPrice: '', tiers: [{ end: '', prices: {} }, { end: '∞', prices: {} }] });
+          } else {
+            blocks = blocks.filter(b => b.id !== block.id);
+          }
+          render();
+        });
+        head.appendChild(headBtn);
+        el.appendChild(head);
+
+        const top = document.createElement('div');
+        top.className = 'price-top';
+
+        const linkField = document.createElement('div');
+        linkField.className = 'price-field links-field';
+        linkField.innerHTML = '<span class="pf-label">操作环节</span>';
+        const ms = document.createElement('div');
+        ms.className = 'ms-wrap pf-ctrl';
+        const trigger = document.createElement('div');
+        trigger.className = 'ms-trigger';
+        const drop = document.createElement('div');
+        drop.className = 'ms-drop';
+
+        function paintMs() {
+          trigger.innerHTML = '';
+          if (!block.links.length) trigger.innerHTML = '<span class="placeholder">请选择</span>';
+          else {
+            block.links.forEach(name => {
+              const tag = document.createElement('span');
+              tag.className = 'ms-tag';
+              tag.innerHTML = name + ' <span class="x">×</span>';
+              tag.querySelector('.x').addEventListener('click', (e) => {
+                e.stopPropagation();
+                block.links = block.links.filter(x => x !== name);
+                ensureTierPrices(block);
+                render();
+              });
+              trigger.appendChild(tag);
+            });
+          }
+          drop.innerHTML = '';
+          const taken = usedLinksExcept(block.id);
+          LINK_OPTIONS.forEach(opt => {
+            const row = document.createElement('label');
+            row.className = 'ms-opt' + (taken.has(opt) ? ' disabled' : '');
+            const checked = block.links.includes(opt);
+            row.innerHTML = '<input type="checkbox" ' + (checked ? 'checked' : '') + (taken.has(opt) ? ' disabled' : '') + ' /> <span>' + opt + (taken.has(opt) ? '（已在其他详细用途选用）' : '') + '</span>';
+            if (!taken.has(opt)) {
+              row.querySelector('input').addEventListener('change', (e) => {
+                e.stopPropagation();
+                if (e.target.checked) block.links.push(opt);
+                else block.links = block.links.filter(x => x !== opt);
+                ensureTierPrices(block);
+                render();
+              });
+            }
+            drop.appendChild(row);
+          });
+        }
+        trigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.querySelectorAll('.ms-drop.open').forEach(d => { if (d !== drop) d.classList.remove('open'); });
+          drop.classList.toggle('open');
+        });
+        ms.appendChild(trigger);
+        ms.appendChild(drop);
+        linkField.appendChild(ms);
+        top.appendChild(linkField);
+
+        const pricingField = document.createElement('div');
+        pricingField.className = 'price-field';
+        pricingField.innerHTML = '<span class="pf-label"><span class="req">*</span>计价方式</span>';
+        const pricingWrap = document.createElement('div');
+        pricingWrap.className = 'select-wrap pf-ctrl';
+        const pricingSel = document.createElement('select');
+        pricingSel.className = 'form-control';
+        pricingSel.innerHTML = '<option value="统一计价">统一计价</option><option value="阶梯计价">阶梯计价</option>';
+        pricingSel.value = block.pricing;
+        pricingSel.addEventListener('change', () => {
+          block.pricing = pricingSel.value;
+          if (block.pricing === '阶梯计价') syncTierEnds(block);
+          paintBody();
+        });
+        pricingWrap.appendChild(pricingSel);
+        pricingField.appendChild(pricingWrap);
+        top.appendChild(pricingField);
+
+        const modeField = document.createElement('div');
+        modeField.className = 'price-field';
+        modeField.innerHTML = '<span class="pf-label"><span class="req">*</span>模式</span>';
+        const modeWrap = document.createElement('div');
+        modeWrap.className = 'select-wrap pf-ctrl';
+        const modeSel = document.createElement('select');
+        modeSel.className = 'form-control';
+        modeSel.innerHTML = '<option value="整体">整体</option><option value="区间">区间</option>';
+        modeSel.value = block.mode;
+        modeSel.addEventListener('change', () => { block.mode = modeSel.value; });
+        modeWrap.appendChild(modeSel);
+        modeField.appendChild(modeWrap);
+
+        const unitField = document.createElement('div');
+        unitField.className = 'price-field';
+        unitField.innerHTML = '<span class="pf-label"><span class="req">*</span>每吨单价</span>';
+        const unitSuffix = document.createElement('div');
+        unitSuffix.className = 'input-suffix pf-ctrl';
+        unitSuffix.innerHTML = '<input type="text" placeholder="请输入每吨单价" /><span class="suffix">元/吨</span>';
+        const unitInput = unitSuffix.querySelector('input');
+        unitInput.value = block.unitPrice;
+        unitInput.addEventListener('input', () => { block.unitPrice = unitInput.value; });
+        unitField.appendChild(unitSuffix);
+
+        el.appendChild(top);
+        const body = document.createElement('div');
+        el.appendChild(body);
+
+        function paintBody() {
+          body.innerHTML = '';
+          if (modeField.parentNode) modeField.parentNode.removeChild(modeField);
+          if (unitField.parentNode) unitField.parentNode.removeChild(unitField);
+          if (block.pricing === '阶梯计价') {
+            top.appendChild(modeField);
+            const tierList = document.createElement('div');
+            tierList.className = 'tier-list';
+            syncTierEnds(block);
+            const priceKeys = block.links.length ? block.links : ['_default'];
+            block.tiers.forEach((tier, ti) => {
+              const row = document.createElement('div');
+              row.className = 'tier-row';
+              const range = document.createElement('div');
+              range.className = 'tier-range';
+              const startVal = ti === 0 ? '0' : (block.tiers[ti - 1].end === '∞' ? '' : block.tiers[ti - 1].end);
+              const endIsInf = ti === block.tiers.length - 1;
+              range.innerHTML =
+                '<span class="rl"><span class="req">*</span>吨位计价区间</span>' +
+                '<input class="form-control" type="text" value="' + startVal + '" disabled />' +
+                '<span class="sep">~</span>' +
+                (endIsInf
+                  ? '<input class="form-control" type="text" value="正无穷" disabled />'
+                  : '<input class="form-control tier-end" type="text" value="' + (tier.end || '') + '" placeholder="请输入" />');
+              if (!endIsInf) {
+                range.querySelector('.tier-end').addEventListener('change', (e) => {
+                  tier.end = e.target.value;
+                  paintBody();
+                });
+              }
+              row.appendChild(range);
+              const prices = document.createElement('div');
+              prices.className = 'tier-prices';
+              priceKeys.forEach(key => {
+                const item = document.createElement('div');
+                item.className = 'tier-price-item';
+                const label = key === '_default' ? '每吨单价' : key;
+                item.innerHTML = '<span class="plabel"><span class="req">*</span>' + label + '</span>' +
+                  '<div class="input-suffix"><input type="text" placeholder="请输入每吨单价" /><span class="suffix">元/吨</span></div>';
+                const inp = item.querySelector('input');
+                inp.value = tier.prices[key] || '';
+                const isFirstCol = key === priceKeys[0];
+                inp.addEventListener('input', () => {
+                  tier.prices[key] = inp.value;
+                  if (isFirstCol && priceKeys.length > 1) {
+                    priceKeys.slice(1).forEach(k2 => { if (!tier.prices[k2]) tier.prices[k2] = inp.value; });
+                  }
+                });
+                prices.appendChild(item);
+              });
+              row.appendChild(prices);
+              const act = document.createElement('button');
+              act.type = 'button';
+              if (ti === 0) {
+                act.className = 'circle-btn add';
+                act.textContent = '+';
+                act.addEventListener('click', () => {
+                  const last = block.tiers[block.tiers.length - 1];
+                  block.tiers.splice(block.tiers.length - 1, 0, { end: '', prices: {} });
+                  last.end = '∞';
+                  ensureTierPrices(block);
+                  render();
+                });
+              } else {
+                act.className = 'circle-btn remove';
+                act.textContent = '−';
+                act.disabled = block.tiers.length <= 2;
+                act.addEventListener('click', () => {
+                  if (block.tiers.length <= 2) return;
+                  block.tiers.splice(ti, 1);
+                  syncTierEnds(block);
+                  render();
+                });
+              }
+              row.appendChild(act);
+              tierList.appendChild(row);
+            });
+            body.appendChild(tierList);
+          } else {
+            top.appendChild(unitField);
+          }
+          paintMs();
+        }
+        paintMs();
+        paintBody();
+        root.appendChild(el);
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.ms-wrap')) {
+        root.querySelectorAll('.ms-drop.open').forEach(d => d.classList.remove('open'));
+      }
+    });
+
+    render();
+    return {
+      reset(next) {
+        blocks = next.map((b, i) => ({
+          id: i + 1,
+          links: b.links ? b.links.slice() : [],
+          pricing: b.pricing || '统一计价',
+          mode: b.mode || '整体',
+          unitPrice: b.unitPrice != null ? String(b.unitPrice) : '',
+          tiers: b.tiers ? b.tiers.map(t => ({ end: t.end, prices: Object.assign({}, t.prices) })) : [
+            { end: '', prices: {} }, { end: '∞', prices: {} }
+          ]
+        }));
+        seq = blocks.length;
+        render();
+      },
+      setLocked(v) { locked = !!v; render(); }
+    };
+  }
+
+  const addPanel = createPricePanel('addPriceList', [
+    { links: [], pricing: '阶梯计价', mode: '整体', tiers: [{ end: '', prices: {} }, { end: '∞', prices: {} }] },
+    { links: [], pricing: '统一计价', unitPrice: '' }
+  ]);
+  const editPanel = createPricePanel('editPriceList', [
+    { links: LINK_ZX.slice(), pricing: '统一计价', unitPrice: '0' }
+  ]);
+
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  });
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.page-tab');
+    if (!tab || e.target.classList.contains('tab-close')) return;
+    document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const key = tab.getAttribute('data-ctab');
+    if (key === '2') renderTable('yd');
+    else renderTable('zx');
+  });
+
+  document.querySelectorAll('[data-close]').forEach(el => {
+    el.addEventListener('click', () => closeModal(el.getAttribute('data-close')));
+  });
+  document.querySelectorAll('.modal-mask').forEach(mask => {
+    mask.addEventListener('click', (e) => { if (e.target === mask) mask.classList.remove('show'); });
+  });
+
+  document.getElementById('btnAdd').addEventListener('click', () => {
+    LINK_OPTIONS = currentTab === 'yd' ? LINK_YD.slice() : LINK_ZX.slice();
+    resetAddFormDefaults();
+    addPanel.reset([
+      { links: [], pricing: '阶梯计价', mode: '整体', tiers: [{ end: '', prices: {} }, { end: '∞', prices: {} }] },
+      { links: [], pricing: '统一计价', unitPrice: '' }
+    ]);
+    openModal('addMask');
+  });
+
+  document.getElementById('btnEdit').addEventListener('click', () => {
+    const idxs = getSelectedIndexes();
+    if (idxs.length !== 1) { showToast('请选中单条数据后再编辑'); return; }
+    const row = currentRows()[idxs[0]];
+    LINK_OPTIONS = currentTab === 'yd' ? LINK_YD.slice() : LINK_ZX.slice();
+    fillEditForm(row);
+    editPanel.reset([{
+      links: LINK_OPTIONS.slice(),
+      pricing: '统一计价',
+      unitPrice: '0'
+    }]);
+    unlockAllEditFields();
+    openModal('editMask');
+  });
+
+  document.getElementById('btnCopy').addEventListener('click', () => {
+    const idxs = getSelectedIndexes();
+    if (idxs.length !== 1) { showToast('请选中单条数据后再复制'); return; }
+    const row = currentRows()[idxs[0]];
+    LINK_OPTIONS = currentTab === 'yd' ? LINK_YD.slice() : LINK_ZX.slice();
+    // 预填到新增弹框（不含有效时间）
+    const addBody = document.querySelector('#addMask .form-grid');
+    const inputs = addBody.querySelectorAll('input.form-control, select.form-control');
+    // 按顺序：公司、分拨、类型、发票、联系人、电话、备注、开始、结束
+    const vals = [row.company, row.depot, row.type, row.invoice, row.contact, row.phone, row.remark === '-' ? '' : row.remark, '', ''];
+    let i = 0;
+    addBody.querySelectorAll('.form-item').forEach(item => {
+      const ctrl = item.querySelector('input.form-control, select.form-control');
+      if (!ctrl) return;
+      if (i < vals.length) {
+        ctrl.value = vals[i];
+        i += 1;
+      }
+    });
+    addPanel.reset([{
+      links: currentTab === 'yd' ? LINK_YD.slice() : ['网点卸车'],
+      pricing: '统一计价',
+      unitPrice: '0'
+    }]);
+    openModal('addMask');
+  });
+
+  document.getElementById('btnDelete').addEventListener('click', () => {
+    const idxs = getSelectedIndexes();
+    if (!idxs.length) { showToast('请先勾选要删除的数据'); return; }
+    document.getElementById('deleteCount').textContent = String(idxs.length);
+    openModal('deleteMask');
+  });
+  document.getElementById('btnDeleteOk').addEventListener('click', () => {
+    closeModal('deleteMask');
+    showToast('删除成功');
+  });
+
+  document.getElementById('btnAddSave').addEventListener('click', () => {
+    closeModal('addMask');
+    showToast('保存成功');
+  });
+
+  document.getElementById('btnEditSave').addEventListener('click', () => {
+    const type = document.getElementById('editType').value;
+    const company = document.getElementById('editCompany').value;
+    const depot = document.getElementById('editDepot').value;
+    const start = document.getElementById('editStart').value;
+    const end = document.getElementById('editEnd').value;
+    const current = editRowRef;
+    if (current) {
+      current.company = company;
+      current.depot = depot;
+      current.type = type;
+      current.invoice = document.getElementById('editInvoice').value;
+      current.contact = document.getElementById('editContact').value;
+      current.phone = document.getElementById('editPhone').value;
+      current.remark = document.getElementById('editRemark').value || '-';
+      current.start = start;
+      current.end = end;
+      current.valid = formatPeriod(start, end);
+      // 实际有效期限：非已失效示意跟有效期限一致（截断场景原型不模拟）
+      if (current.state !== 'expired') current.actual = formatPeriod(start, end);
+    }
+    closeModal('editMask');
+    if (type !== editTypeBefore) {
+      const syncN = syncTypeToOthers(company, depot, type, current);
+      renderTable(currentTab);
+      if (syncN > 0) {
+        showToast('保存成功。已同步更新 ' + syncN + ' 条其他方案的外包公司类型（不含本条；范围：同合作分拨+同外包公司、六 Tab、仅生效中/待生效，已失效不同步）');
+      } else {
+        showToast('保存成功。无其他「生效中/待生效」方案需同步类型（已失效不同步；本条已保存）');
+      }
+    } else {
+      renderTable(currentTab);
+      showToast('保存成功');
+    }
+  });
+
+  renderTable('zx');
+
+  (function bindTypeMultiSelect() {
+    const root = document.getElementById('filterTypeMs');
+    const trigger = document.getElementById('filterTypeTrigger');
+    const drop = document.getElementById('filterTypeDrop');
+    if (!root || !trigger || !drop) return;
+
+    function selectedValues() {
+      return Array.from(drop.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+    }
+    function renderTrigger() {
+      const vals = selectedValues();
+      if (!vals.length) {
+        trigger.classList.remove('has-value');
+        trigger.textContent = '请选择';
+        return;
+      }
+      trigger.classList.add('has-value');
+      trigger.innerHTML = vals.map(v => '<span class="tag">' + v + '</span>').join('');
+    }
+    function openDrop() { drop.classList.add('open'); }
+    function closeDrop() { drop.classList.remove('open'); }
+    function toggleDrop() {
+      if (drop.classList.contains('open')) closeDrop();
+      else openDrop();
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleDrop();
+    });
+    drop.addEventListener('click', (e) => e.stopPropagation());
+    drop.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', renderTrigger);
+    });
+    document.addEventListener('click', () => closeDrop());
+    renderTrigger();
+  })();
+</script>
+
+</body>
+</html>
