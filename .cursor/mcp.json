@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "feishu-doc": {
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/feishu-mcp/node_modules/@larksuiteoapi/lark-mcp/dist/cli.js",
+        "mcp",
+        "--config",
+        "${workspaceFolder}/feishu-mcp/config.json"
+      ]
+    }
+  }
+}

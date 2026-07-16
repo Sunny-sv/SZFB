@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# 本地工具与临时目录（不入库）
+feishu-mcp/
+.tmp/
+dev-temp/
+data/
+
+# 编辑器 / 环境
+.env
+.env.*
+*.log
