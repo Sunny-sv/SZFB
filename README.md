@@ -31,11 +31,22 @@ docs/
 
 ---
 
-## 如何查看
+## 在线预览（GitHub Pages）
 
-用浏览器直接打开 `docs/{项目名}/` 下对应 `.html` 即可，无需构建、无后端。
+入口：https://sunny-sv.github.io/SZFB/
 
-新增 PC 原型：复制 `docs/_共用/PC端通用框架.html` → 放到对应项目目录 → 使用中文文件名。
+仓库根目录的 `index.html` 列出全部原型；也可直接打开例如：
+
+https://sunny-sv.github.io/SZFB/docs/合托/合托达成率-电商拆分.html
+
+> 仓库网页里点开 `.html` **不能**交互预览，必须走上面的 Pages 链接。  
+> 若打不开：Settings → Pages → Source = Deploy from branch，Branch = `main` / `/ (root)`，等 1～3 分钟。
+
+## 本地查看
+
+用浏览器直接打开 `docs/{项目名}/` 下对应 `.html` 即可。
+
+新增 PC 原型：复制 `docs/_共用/PC端通用框架.html` → 放到对应项目目录 → 使用中文文件名 → 同步在根目录 `index.html` 加一条预览链接。
 
 ---
 
@@ -43,4 +54,4 @@ docs/
 
 - 原型为交互线框，数据为页面内模拟
 - 原型确认后以 PRD 为准；冲突时以 PRD 为准
-- 历史 GitHub Pages 扁平预览索引已不再维护；正式内容以本仓库 `docs/` 为准
+- 源文件按项目在 `docs/`；在线预览靠根目录 Pages + `index.html` 索引

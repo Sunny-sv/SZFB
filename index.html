@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SZFB 原型预览索引</title>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --card: #fff;
+      --text: #262626;
+      --muted: #8c8c8c;
+      --link: #1677ff;
+      --border: #f0f0f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 32px 20px 48px;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 8px; font-weight: 600; }
+    .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+    .group {
+      background: var(--card);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .group h2 {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 0 0 10px;
+      font-weight: 500;
+    }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li { border-top: 1px solid var(--border); }
+    li:first-child { border-top: none; }
+    a {
+      display: block;
+      padding: 10px 0;
+      color: var(--link);
+      text-decoration: none;
+      font-size: 15px;
+    }
+    a:hover { text-decoration: underline; }
+    .note {
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>SZFB 原型预览索引</h1>
+    <p class="sub">点击下方链接在线打开 HTML 线框（GitHub Pages）。PRD 与源文件在仓库 <code>docs/</code> 目录。</p>
+
+    <div class="group">
+      <h2>共用</h2>
+      <ul>
+        <li><a href="docs/_共用/PC端通用框架.html">PC 端通用框架（母版）</a></li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <h2>合托</h2>
+      <ul>
+        <li><a href="docs/合托/合托达成率-电商拆分.html">合托达成率（电商拆分）</a></li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <h2>外包工相关</h2>
+      <ul>
+        <li><a href="docs/外包工相关/外包公司维护2.0-优化.html">外包公司维护 2.0（优化）</a></li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <h2>百分比重量</h2>
+      <ul>
+        <li><a href="docs/百分比重量/货量重量配置-组合区间.html">货量重量配置（组合区间）</a></li>
+        <li><a href="docs/百分比重量/区间维度配置.html">区间维度配置</a></li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <h2>薪资线上化</h2>
+      <ul>
+        <li><a href="docs/薪资线上化/基础提成方案维护.html">基础提成方案维护</a></li>
+        <li><a href="docs/薪资线上化/机叉叉车组长绩效标准报表.html">机叉叉车组长绩效标准报表</a></li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <h2>微信公众号奖罚查询</h2>
+      <ul>
+        <li><a href="docs/微信公众号奖罚查询/奖罚信息查询-微信公众号.html">奖罚信息查询（微信公众号）</a></li>
+      </ul>
+    </div>
+
+    <p class="note">若链接打不开：到仓库 Settings → Pages，确认 Source 为 Deploy from branch，Branch = <strong>main</strong> / <strong>/ (root)</strong>，等待 1～3 分钟后再试。</p>
+  </div>
+</body>
+</html>
