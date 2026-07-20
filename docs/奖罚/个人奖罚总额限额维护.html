@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>奖罚类型维护 · 个人奖罚总额限额原型</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 40px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; height: 100vh; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .sidebar.collapsed { width: var(--sidebar-collapsed); }
+
+    .sidebar-logo {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: #fff;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .sidebar-logo .logo-icon {
+      width: 28px; height: 28px;
+      background: var(--primary);
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+    .sidebar.collapsed .logo-text { display: none; }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .sidebar.collapsed .menu-label,
+    .sidebar.collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .sidebar.collapsed .menu-sub { display: none; }
+
+    .sidebar-toggle {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      border-top: 1px solid rgba(255,255,255,.08);
+      font-size: 16px;
+    }
+    .sidebar-toggle:hover { color: #fff; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .top-tabs {
+      height: var(--header-height);
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+    .top-tabs .home-btn {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .top-tabs .home-btn:hover { color: var(--primary); }
+
+    .page-tabs {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      overflow-x: auto;
+      gap: 2px;
+      padding: 0 4px;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      height: 32px;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    .page-tab:hover { color: var(--text); background: #fafafa; }
+    .page-tab.active { color: var(--primary); background: #e6f7ff; }
+    .page-tab .tab-close { font-size: 12px; opacity: .4; margin-left: 2px; }
+    .page-tab .tab-close:hover { opacity: 1; color: #ff4d4f; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .top-right .icon-btn { cursor: pointer; font-size: 16px; }
+    .top-right .icon-btn:hover { color: var(--primary); }
+    .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #ccc;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #fff;
+      cursor: pointer;
+    }
+
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      min-height: calc(100vh - var(--header-height) - 32px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control:disabled { background: #f5f5f5; color: #bfbfbf; cursor: not-allowed; }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .select-wrap .filter-control:disabled { cursor: not-allowed; }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover:not(:disabled) { opacity: .85; }
+    .btn-action:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-action.hidden { display: none; }
+
+    .table-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .table-scroll { overflow: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 1100px; }
+    .data-table th,
+    .data-table td { border: 1px solid var(--border); padding: 10px 12px; text-align: center; white-space: nowrap; }
+    .data-table th { background: #fafafa; font-weight: 500; color: var(--text); }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .data-table tbody tr.selected { background: #e6f7ff; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .cell-placeholder { color: var(--text-secondary); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding-top: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .modal-mask {
+      position: fixed; inset: 0; z-index: 10;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, .45);
+    }
+    .modal-mask.open { display: flex; }
+    .modal {
+      width: 560px; max-height: 90vh; background: #fff; border-radius: 4px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+      display: flex; flex-direction: column;
+    }
+    .modal.wide { width: 860px; }
+    .modal.xwide { width: 980px; }
+    .modal.confirm { width: 420px; }
+    .confirm-body {
+      padding: 28px 24px 12px;
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .modal-header {
+      height: 48px; padding: 0 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 16px; font-weight: 500; flex-shrink: 0;
+    }
+    .modal-close { border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 18px; }
+    .modal-body { padding: 18px 24px 8px; overflow-y: auto; }
+    .form-section-title {
+      font-weight: 500; margin: 4px 0 14px; padding-left: 8px;
+      border-left: 3px solid var(--primary);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px 16px;
+      margin-bottom: 8px;
+    }
+    .form-grid.two { grid-template-columns: 1fr 1fr; }
+    /* 弹框字段：名称左 + 控件右（与筛选区一致，禁止上下叠） */
+    .form-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .form-item .form-label {
+      flex: 0 0 132px;
+      width: 132px;
+      text-align: right;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .form-grid.two .form-item .form-label {
+      flex: 0 0 160px;
+      width: 160px;
+    }
+    .form-item .form-control,
+    .form-item .form-field {
+      flex: 1;
+      min-width: 0;
+      width: auto;
+    }
+    .form-row { display: flex; align-items: flex-start; margin-bottom: 18px; }
+    .form-label {
+      width: 180px; text-align: right; padding-right: 10px; padding-top: 6px; color: var(--text); flex-shrink: 0;
+    }
+    .form-label.required::before { content: "*"; color: #ff4d4f; margin-right: 4px; }
+    .form-control {
+      width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 11px; outline: none; font-size: 14px; background: #fff;
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .form-control[readonly],
+    .form-control:disabled { background: #f5f5f5; color: var(--text-secondary); }
+    .form-control.error { border-color: #ff4d4f; }
+    .form-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+    .form-help { color: var(--text-secondary); font-size: 12px; }
+    .form-error { color: #ff4d4f; font-size: 12px; display: none; }
+    .form-error.show { display: block; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+
+    .rule-row {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .rule-row .form-item {
+      align-items: flex-start;
+    }
+    .rule-row .form-item .form-label {
+      padding-top: 6px;
+      flex: 0 0 96px;
+      width: 96px;
+    }
+    .rule-row .form-item .form-field {
+      flex: 1;
+    }
+    .day-range, .deadline-wrap {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .day-range .form-control,
+    .deadline-wrap .form-control { width: 72px; }
+    .deadline-wrap select.form-control { width: 88px; }
+    .deadline-inline {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .deadline-inline .form-control { flex: 1; width: auto; }
+    .deadline-inline span { color: var(--text); flex-shrink: 0; }
+    .icon-btn-sm {
+      width: 28px; height: 28px; border-radius: 4px; border: 1px solid var(--border);
+      background: #fff; cursor: pointer; color: var(--primary); font-size: 16px; line-height: 1;
+    }
+    .icon-btn-sm.danger { color: #ff4d4f; }
+
+    .import-box {
+      width: 360px;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-secondary);
+      background: #fafafa;
+      cursor: pointer;
+    }
+    .import-box:hover { border-color: var(--primary); color: var(--primary); }
+    .import-actions { margin-top: 12px; display: flex; gap: 12px; }
+    .link-btn {
+      border: 0; background: transparent; color: var(--primary); cursor: pointer; font-size: 13px; padding: 0;
+    }
+
+    .toast {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+      z-index: 30; min-width: 280px; max-width: 560px;
+      padding: 10px 16px; border-radius: 4px; color: #fff; font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+      display: none; align-items: center; gap: 8px;
+    }
+    .toast.show { display: flex; }
+    .toast.success { background: #52c41a; }
+    .toast.error { background: #ff4d4f; }
+    .toast.info { background: #1890ff; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">L</div>
+      <span class="logo-text">数智分拨</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+      <div class="menu-item active">
+        <span class="menu-icon">☰</span><span class="menu-label">奖罚处理</span><span class="menu-arrow">▼</span>
+      </div>
+      <div class="menu-sub">
+        <div class="menu-item active">奖罚类型维护</div>
+      </div>
+      <div class="menu-item"><span class="menu-icon">⚙</span><span class="menu-label">系统设置</span><span class="menu-arrow">▶</span></div>
+    </nav>
+    <div class="sidebar-toggle" id="sidebarToggle" title="折叠/展开">☰</div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="top-tabs">
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active" data-tab="page1">奖罚类型维护 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔</span>
+        <div class="avatar" title="用户">U</div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area">
+          <div class="filter-grid" id="filterGrid"></div>
+          <div class="filter-actions">
+            <button class="btn" id="resetBtn" type="button">重置</button>
+            <button class="btn btn-primary" id="queryBtn" type="button">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab" data-ctab="type">类型维护</div>
+          <div class="content-tab" data-ctab="typeSpecial">特殊维护</div>
+          <div class="content-tab active" data-ctab="total">个人总额限额维护</div>
+        </nav>
+
+        <section class="action-bar">
+          <button class="btn-action primary" id="addBtn" type="button">新增</button>
+          <button class="btn-action" id="editBtn" type="button">编辑</button>
+          <button class="btn-action" id="deleteBtn" type="button">删除</button>
+          <button class="btn-action" id="exportBtn" type="button">导出</button>
+          <button class="btn-action hidden" id="importBtn" type="button">导入</button>
+        </section>
+
+        <section class="table-area">
+          <div class="table-scroll">
+            <table class="data-table" id="dataTable">
+              <thead><tr id="tableHead"></tr></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total" id="pageTotal">共 1 条</span>
+            <button class="page-btn disabled" type="button">&lt;</button>
+            <button class="page-btn active" type="button">1</button>
+            <button class="page-btn disabled" type="button">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 类型维护弹框（对照线上现有弹框） -->
+<div class="modal-mask" id="typeModalMask">
+  <section class="modal xwide" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <span id="typeModalTitle">新增</span>
+      <button class="modal-close" data-close="typeModalMask" type="button">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <!-- 第1行 -->
+        <div class="form-item">
+          <label class="form-label">奖罚类型</label>
+          <select class="form-control" id="typeCategory">
+            <option value="">请选择</option>
+            <option selected>发放转运质量奖金</option>
+            <option>扣除转运质量奖金</option>
+            <option>发放分拨内部质量奖金</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label class="form-label required">奖罚编码</label>
+          <input class="form-control" id="typeCode" type="text" placeholder="请输入内容" />
+        </div>
+        <div class="form-item">
+          <label class="form-label required">奖罚名称</label>
+          <input class="form-control" id="typeName" type="text" placeholder="请输入内容" />
+        </div>
+
+        <!-- 第2行 -->
+        <div class="form-item">
+          <label class="form-label required">负责人</label>
+          <input class="form-control" id="typeOwner" type="text" placeholder="请输入内容" />
+        </div>
+        <div class="form-item">
+          <label class="form-label">名称拼音</label>
+          <input class="form-control" id="typePinyin" type="text" disabled />
+        </div>
+        <div class="form-item">
+          <label class="form-label required">手动录入</label>
+          <select class="form-control" id="typeManual">
+            <option>是</option>
+            <option>否</option>
+          </select>
+        </div>
+
+        <!-- 第3行 -->
+        <div class="form-item">
+          <label class="form-label required">允许查询</label>
+          <select class="form-control" id="typeAllowRefresh">
+            <option>是</option>
+            <option>否</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label class="form-label">自动录入</label>
+          <select class="form-control" id="typeAutoEntry" disabled>
+            <option>否</option>
+            <option>是</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label class="form-label required">单人每月金额限制</label>
+          <input class="form-control" id="typeLimit" type="text" placeholder="请输入内容" />
+        </div>
+
+        <!-- 第4行 -->
+        <div class="form-item">
+          <label class="form-label">自动分配</label>
+          <select class="form-control" id="typeAutoAssign" disabled>
+            <option>否</option>
+            <option>是</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label class="form-label required">录入截止日期</label>
+          <div class="deadline-inline">
+            <input class="form-control" id="typeEntryDeadline" type="text" placeholder="请输入" />
+            <span>号</span>
+          </div>
+        </div>
+        <div class="form-item">
+          <label class="form-label">是否回刷</label>
+          <select class="form-control" id="typeRebrush">
+            <option>否</option>
+            <option>是</option>
+          </select>
+        </div>
+
+        <!-- 第5行 -->
+        <div class="form-item">
+          <label class="form-label required">处理截止日期</label>
+          <div class="deadline-inline">
+            <input class="form-control" id="typeHandleDeadline" type="text" placeholder="请输入" />
+            <span>号</span>
+          </div>
+        </div>
+        <div class="form-item">
+          <label class="form-label">是否推送</label>
+          <select class="form-control" id="typePush">
+            <option>否</option>
+            <option>是</option>
+          </select>
+        </div>
+        <div class="form-item"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close="typeModalMask" type="button">取消</button>
+      <button class="btn btn-primary" id="typeConfirmBtn" type="button">确定</button>
+    </div>
+  </section>
+</div>
+
+<!-- 特殊维护弹框 -->
+<div class="modal-mask" id="typeSpecialModalMask">
+  <section class="modal wide" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <span id="typeSpecialModalTitle">新增</span>
+      <button class="modal-close" data-close="typeSpecialModalMask" type="button">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section-title">基础信息</div>
+      <div class="form-grid two">
+        <div class="form-item">
+          <label class="form-label required">分拨中心</label>
+          <select class="form-control" id="spBranch">
+            <option value="">请选择</option>
+            <option>杭州分拨中心</option>
+            <option>上海分拨中心</option>
+            <option>白云分拨中心</option>
+            <option>银川分拨中心</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label class="form-label required">奖罚类型</label>
+          <select class="form-control" id="spCategory">
+            <option value="">请选择</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label class="form-label required">奖罚名称</label>
+          <select class="form-control" id="spName" disabled>
+            <option value="">请先选择奖罚类型</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label class="form-label required">分拨单人每月金额限制</label>
+          <input class="form-control" id="spLimit" type="text" placeholder="请输入" />
+        </div>
+        <div class="form-item">
+          <label class="form-label">统一单人每月金额限制</label>
+          <input class="form-control" id="spOriginLimit" type="text" readonly />
+        </div>
+      </div>
+
+      <div class="form-section-title">规则信息</div>
+      <div id="ruleList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close="typeSpecialModalMask" type="button">取消</button>
+      <button class="btn btn-primary" id="typeSpecialConfirmBtn" type="button">确认</button>
+    </div>
+  </section>
+</div>
+
+<!-- 个人总额限额弹框 -->
+<div class="modal-mask" id="totalModalMask">
+  <section class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <span id="totalModalTitle">新增个人总额限额</span>
+      <button class="modal-close" data-close="totalModalMask" type="button">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label required">限额范围</label>
+        <div class="form-field">
+          <select class="form-control" id="totalScope">
+            <option value="unified">全国统一</option>
+            <option value="special">分拨特殊</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" id="totalBranchRow">
+        <label class="form-label required">分拨中心</label>
+        <div class="form-field">
+          <select class="form-control" id="totalBranch">
+            <option value="">请选择分拨中心</option>
+            <option>杭州分拨中心</option>
+            <option>上海分拨中心</option>
+            <option>广州分拨中心</option>
+          </select>
+          <span class="form-error" id="totalBranchError">请选择分拨中心</span>
+        </div>
+      </div>
+      <div class="form-row" id="totalUnifiedRow">
+        <label class="form-label">全国统一个人每月奖励总额限额</label>
+        <div class="form-field">
+          <input class="form-control" id="totalUnifiedView" type="text" readonly />
+          <span class="form-help">取个人总额限额维护；未维护时为空</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label required" id="totalLimitLabel">个人每月奖励总额限额</label>
+        <div class="form-field">
+          <input class="form-control" id="totalLimitInput" type="text" placeholder="请输入金额" />
+          <span class="form-help">只能输入数字，最大 99999.99</span>
+          <span class="form-error" id="totalLimitError">请输入个人每月奖励总额限额</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close="totalModalMask" type="button">取消</button>
+      <button class="btn btn-primary" id="totalConfirmBtn" type="button">确定</button>
+    </div>
+  </section>
+</div>
+
+<!-- 导入弹框 -->
+<div class="modal-mask" id="importModalMask">
+  <section class="modal wide" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <span id="importModalTitle">导入</span>
+      <button class="modal-close" data-close="importModalMask" type="button">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label required">上传文件</label>
+        <div class="form-field">
+          <div class="import-box" id="importBox">点击选择 Excel 文件<br /><span style="font-size:12px;">演示：可点下方「模拟选择文件」</span></div>
+          <div class="import-actions">
+            <button class="link-btn" id="downloadTemplateBtn" type="button">下载导入模板</button>
+            <button class="link-btn" id="mockFileBtn" type="button">模拟选择文件</button>
+          </div>
+          <span class="form-help" id="importFileName">未选择文件</span>
+          <span class="form-error" id="importError">请先选择导入文件</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close="importModalMask" type="button">取消</button>
+      <button class="btn btn-primary" id="importConfirmBtn" type="button">确定</button>
+    </div>
+  </section>
+</div>
+
+<!-- 删除确认弹框 -->
+<div class="modal-mask" id="deleteModalMask">
+  <section class="modal confirm" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <span id="deleteModalTitle">删除确认</span>
+      <button class="modal-close" data-close="deleteModalMask" type="button">×</button>
+    </div>
+    <div class="confirm-body" id="deleteModalText">确认删除选中的数据吗？删除后不可恢复。</div>
+    <div class="modal-footer">
+      <button class="btn" data-close="deleteModalMask" type="button">取消</button>
+      <button class="btn btn-primary" id="deleteConfirmBtn" type="button">确定</button>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const YES_NO = ['是', '否'];
+  const CATEGORY_OPTIONS = ['发放转运质量奖金', '扣除转运质量奖金', '发放分拨内部质量奖金'];
+
+  const state = {
+    activeTab: 'total',
+    modalMode: 'add',
+    editingIndex: -1,
+    importFileName: '',
+    pendingDeleteIndexes: [],
+    typeRows: [
+      {
+        category: '发放转运质量奖金',
+        name: '执行力',
+        pinyin: 'ZXL',
+        code: 'ZXL',
+        limit: '500.00',
+        owner: '许丽媛',
+        entryDeadline: '5',
+        handleDeadline: '8',
+        manual: '是',
+        allowRefresh: '是',
+        autoEntry: '否',
+        autoAssign: '否',
+        rebrush: '否',
+        push: '否',
+        creator: '张三',
+        createTime: '2023-05-18 10:02:28',
+        modifier: '张三',
+        modifyTime: '2023-05-25 10:37:25'
+      },
+      {
+        category: '发放转运质量奖金',
+        name: '装载率',
+        pinyin: 'ZZL',
+        code: 'ZZL',
+        limit: '800.00',
+        owner: '兰玉容',
+        entryDeadline: '5',
+        handleDeadline: '8',
+        manual: '是',
+        allowRefresh: '否',
+        autoEntry: '否',
+        autoAssign: '否',
+        rebrush: '否',
+        push: '否',
+        creator: '张三',
+        createTime: '2023-05-18 10:05:10',
+        modifier: '',
+        modifyTime: ''
+      }
+    ],
+    typeSpecialRows: [
+      {
+        branch: '白云分拨中心',
+        category: '发放转运质量奖金',
+        name: '执行力',
+        limit: '1000.00',
+        originLimit: '500.00',
+        occurStart: '1',
+        occurEnd: '31',
+        entryMonth: '当月',
+        entryDay: '1',
+        handleMonth: '次月',
+        handleDay: '5',
+        creator: '许亚凝',
+        createTime: '2023-06-05 10:41:10',
+        modifier: '许亚凝',
+        modifyTime: '2023-06-05 11:15:32'
+      },
+      {
+        branch: '银川分拨中心',
+        category: '发放转运质量奖金',
+        name: '执行力',
+        limit: '1000.00',
+        originLimit: '500.00',
+        occurStart: '1',
+        occurEnd: '31',
+        entryMonth: '当月',
+        entryDay: '1',
+        handleMonth: '次月',
+        handleDay: '5',
+        creator: '许亚凝',
+        createTime: '2023-06-05 10:35:04',
+        modifier: '',
+        modifyTime: ''
+      }
+    ],
+    totalRows: [
+      {
+        limit: '2000.00',
+        creator: '张三',
+        createTime: '2026-07-17 10:00:00',
+        modifier: '张三',
+        modifyTime: '2026-07-17 10:00:00'
+      }
+    ],
+    totalSpecialRows: [
+      {
+        branch: '杭州分拨中心',
+        limit: '2500.00',
+        creator: '张三',
+        createTime: '2026-07-17 10:20:00',
+        modifier: '张三',
+        modifyTime: '2026-07-17 10:20:00'
+      }
+    ],
+    filters: {
+      branch: '',
+      scope: '',
+      category: '全部',
+      name: '',
+      owner: ''
+    }
+  };
+
+  function nowText() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  }
+
+  function showToast(message, type) {
+    const el = document.getElementById('toast');
+    el.className = `toast show ${type || 'info'}`;
+    el.textContent = message;
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  function openMask(id) { document.getElementById(id).classList.add('open'); }
+  function closeMask(id) { document.getElementById(id).classList.remove('open'); }
+
+  function getUnifiedLimit() {
+    return state.totalRows.length ? state.totalRows[0].limit : '';
+  }
+
+  function formatLimit(value) {
+    const num = Number(value);
+    return Number.isNaN(num) ? value : num.toFixed(2);
+  }
+
+  function namesByCategory(category) {
+    return state.typeRows.filter((row) => row.category === category).map((row) => row.name);
+  }
+
+  function findTypeLimit(category, name) {
+    const row = state.typeRows.find((item) => item.category === category && item.name === name);
+    return row ? row.limit : '';
+  }
+
+  function renderFilters() {
+    const grid = document.getElementById('filterGrid');
+    const tab = state.activeTab;
+    if (tab === 'type') {
+      grid.innerHTML = `
+        <div class="filter-item">
+          <span class="filter-label">奖罚类型</span>
+          <div class="filter-control-wrap"><div class="select-wrap">
+            <select class="filter-control" id="fCategory">
+              <option>全部</option>
+              ${CATEGORY_OPTIONS.map((item) => `<option>${item}</option>`).join('')}
+            </select>
+          </div></div>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">奖罚名称</span>
+          <div class="filter-control-wrap"><input class="filter-control" id="fName" type="text" placeholder="请输入" /></div>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">负责人</span>
+          <div class="filter-control-wrap"><input class="filter-control" id="fOwner" type="text" placeholder="请输入姓名" /></div>
+        </div>`;
+    } else if (tab === 'typeSpecial') {
+      grid.innerHTML = `
+        <div class="filter-item">
+          <span class="filter-label">分拨中心</span>
+          <div class="filter-control-wrap"><div class="select-wrap">
+            <select class="filter-control" id="fBranch">
+              <option value="">请选择分拨中心</option>
+              <option>杭州分拨中心</option>
+              <option>上海分拨中心</option>
+              <option>白云分拨中心</option>
+              <option>银川分拨中心</option>
+              <option>广州分拨中心</option>
+            </select>
+          </div></div>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">奖罚类型</span>
+          <div class="filter-control-wrap"><div class="select-wrap">
+            <select class="filter-control" id="fCategory">
+              <option>全部</option>
+              ${CATEGORY_OPTIONS.map((item) => `<option>${item}</option>`).join('')}
+            </select>
+          </div></div>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">奖罚名称</span>
+          <div class="filter-control-wrap">
+            <input class="filter-control" id="fName" type="text" placeholder="请输入" />
+          </div>
+        </div>`;
+    } else if (tab === 'total') {
+      grid.innerHTML = `
+        <div class="filter-item">
+          <span class="filter-label">限额范围</span>
+          <div class="filter-control-wrap"><div class="select-wrap">
+            <select class="filter-control" id="fScope">
+              <option value="">全部</option>
+              <option value="unified">全国统一</option>
+              <option value="special">分拨特殊</option>
+            </select>
+          </div></div>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">分拨中心</span>
+          <div class="filter-control-wrap"><div class="select-wrap">
+            <select class="filter-control" id="fBranch">
+              <option value="">请选择分拨中心</option>
+              <option>杭州分拨中心</option>
+              <option>上海分拨中心</option>
+              <option>白云分拨中心</option>
+              <option>银川分拨中心</option>
+              <option>广州分拨中心</option>
+            </select>
+          </div></div>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">筛选条件</span>
+          <div class="filter-control-wrap"><input class="filter-control" type="text" placeholder="输入框" disabled /></div>
+        </div>`;
+    } else {
+      grid.innerHTML = `
+        <div class="filter-item">
+          <span class="filter-label">分拨中心</span>
+          <div class="filter-control-wrap"><div class="select-wrap">
+            <select class="filter-control" disabled><option>请选择分拨中心</option></select>
+          </div></div>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">筛选条件</span>
+          <div class="filter-control-wrap"><input class="filter-control" type="text" placeholder="输入框" disabled /></div>
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">筛选条件</span>
+          <div class="filter-control-wrap"><div class="select-wrap">
+            <select class="filter-control" disabled><option>下拉框</option></select>
+          </div></div>
+        </div>`;
+    }
+
+    const fCategory = document.getElementById('fCategory');
+    const fName = document.getElementById('fName');
+    const fOwner = document.getElementById('fOwner');
+    const fBranch = document.getElementById('fBranch');
+    const fScope = document.getElementById('fScope');
+    if (fCategory) fCategory.value = state.filters.category || '全部';
+    if (fName) fName.value = state.filters.name || '';
+    if (fOwner) fOwner.value = state.filters.owner || '';
+    if (fBranch) fBranch.value = state.filters.branch || '';
+    if (fScope) fScope.value = state.filters.scope || '';
+  }
+
+  function bindCheckAll() {
+    const checkAll = document.getElementById('checkAll');
+    if (!checkAll) return;
+    checkAll.addEventListener('change', function () {
+      document.querySelectorAll('.row-check').forEach((cb) => {
+        cb.checked = this.checked;
+        cb.closest('tr').classList.toggle('selected', this.checked);
+      });
+    });
+    document.querySelectorAll('.row-check').forEach((cb) => {
+      cb.addEventListener('change', function () {
+        this.closest('tr').classList.toggle('selected', this.checked);
+      });
+    });
+  }
+
+  function getSelectedIndexes() {
+    return Array.from(document.querySelectorAll('.row-check:checked')).map((cb) => cb.dataset.index);
+  }
+
+  function renderTable() {
+    renderFilters();
+    const head = document.getElementById('tableHead');
+    const body = document.getElementById('tableBody');
+    const tab = state.activeTab;
+
+    document.getElementById('deleteBtn').classList.remove('hidden');
+    document.getElementById('importBtn').classList.toggle('hidden', tab !== 'total');
+    document.getElementById('deleteBtn').textContent = '删除';
+
+    if (tab === 'type') {
+      let rows = state.typeRows.slice();
+      if (state.filters.category && state.filters.category !== '全部') {
+        rows = rows.filter((row) => row.category === state.filters.category);
+      }
+      if (state.filters.name) rows = rows.filter((row) => row.name.includes(state.filters.name));
+      if (state.filters.owner) rows = rows.filter((row) => row.owner.includes(state.filters.owner));
+
+      head.innerHTML = `
+        <th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>
+        <th>奖罚类型</th><th>奖罚名称</th><th>名称拼音</th><th>单人每月金额限制</th>
+        <th>负责人</th><th>录入截止日期</th><th>处理截止日期</th><th>手动录入</th><th>允许查询</th>
+        <th>自动录入</th><th>自动分配</th><th>是否回刷</th><th>是否推送</th>
+        <th>创建人</th><th>创建时间</th><th>修改人</th><th>修改时间</th>`;
+      body.innerHTML = rows.map((row) => {
+        const index = state.typeRows.indexOf(row);
+        return `<tr data-index="${index}">
+          <td class="col-checkbox"><input type="checkbox" class="row-check" data-index="${index}" /></td>
+          <td>${row.category}</td><td>${row.name}</td><td>${row.pinyin}</td><td>${row.limit}</td>
+          <td>${row.owner}</td><td>${row.entryDeadline}号</td><td>${row.handleDeadline}号</td>
+          <td>${row.manual}</td><td>${row.allowRefresh}</td><td>${row.autoEntry}</td><td>${row.autoAssign}</td>
+          <td>${row.rebrush}</td><td>${row.push}</td>
+          <td>${row.creator}</td><td>${row.createTime}</td><td>${row.modifier || '—'}</td><td>${row.modifyTime || '—'}</td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="18" class="cell-placeholder">暂无数据</td></tr>`;
+      document.getElementById('pageTotal').textContent = `共 ${rows.length} 条`;
+      bindCheckAll();
+      bindTypeRowDblClick();
+      return;
+    }
+
+    if (tab === 'typeSpecial') {
+      let rows = state.typeSpecialRows.slice();
+      if (state.filters.branch) rows = rows.filter((row) => row.branch === state.filters.branch);
+      if (state.filters.category && state.filters.category !== '全部') {
+        rows = rows.filter((row) => row.category === state.filters.category);
+      }
+      if (state.filters.name) rows = rows.filter((row) => row.name.includes(state.filters.name));
+
+      head.innerHTML = `
+        <th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>
+        <th>分拨中心</th><th>奖罚类型</th><th>奖罚名称</th>
+        <th>分拨单人每月金额限制</th><th>原始单人每月金额限制</th>
+        <th>发生时间</th><th>录入截止时间</th><th>处理截止时间</th>
+        <th>创建人</th><th>创建时间</th><th>修改人</th><th>修改时间</th>`;
+      body.innerHTML = rows.map((row) => {
+        const index = state.typeSpecialRows.indexOf(row);
+        return `<tr data-index="${index}">
+          <td class="col-checkbox"><input type="checkbox" class="row-check" data-index="${index}" /></td>
+          <td>${row.branch}</td><td>${row.category}</td><td>${row.name}</td>
+          <td>${row.limit}</td><td>${row.originLimit}</td>
+          <td>${row.occurStart}号-${row.occurEnd}号</td>
+          <td>${row.entryMonth}${row.entryDay}号</td>
+          <td>${row.handleMonth}${row.handleDay}号</td>
+          <td>${row.creator}</td><td>${row.createTime}</td>
+          <td>${row.modifier || '—'}</td><td>${row.modifyTime || '—'}</td>
+        </tr>`;
+      }).join('') || `<tr><td colspan="13" class="cell-placeholder">暂无数据</td></tr>`;
+      document.getElementById('pageTotal').textContent = `共 ${rows.length} 条`;
+      bindCheckAll();
+      return;
+    }
+
+    if (tab === 'total') {
+      const rows = [];
+      if (state.totalRows.length && (!state.filters.scope || state.filters.scope === 'unified')) {
+        state.totalRows.forEach((row, index) => rows.push({ ...row, scope: '全国统一', branch: '—', sourceIndex: index, source: 'unified' }));
+      }
+      if (!state.filters.scope || state.filters.scope === 'special') {
+        state.totalSpecialRows
+          .filter((row) => !state.filters.branch || row.branch === state.filters.branch)
+          .forEach((row, index) => rows.push({ ...row, scope: '分拨特殊', sourceIndex: index, source: 'special' }));
+      }
+      head.innerHTML = `
+        <th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>
+        <th>限额范围</th><th>分拨中心</th><th>个人每月奖励总额限额</th>
+        <th>创建人</th><th>创建时间</th><th>修改人</th><th>修改时间</th>`;
+      body.innerHTML = rows.length
+        ? rows.map((row) => `
+          <tr data-index="${row.source === 'unified' ? `u-${row.sourceIndex}` : `s-${row.sourceIndex}`}">
+            <td class="col-checkbox"><input type="checkbox" class="row-check" data-index="${row.source === 'unified' ? `u-${row.sourceIndex}` : `s-${row.sourceIndex}`}" /></td>
+            <td>${row.scope}</td><td>${row.branch || '—'}</td><td>${row.limit}</td>
+            <td>${row.creator}</td><td>${row.createTime}</td>
+            <td>${row.modifier || '—'}</td><td>${row.modifyTime || '—'}</td>
+          </tr>`).join('')
+        : `<tr><td colspan="8" class="cell-placeholder">暂无数据</td></tr>`;
+      document.getElementById('pageTotal').textContent = `共 ${rows.length} 条`;
+      bindCheckAll();
+      return;
+    }
+  }
+
+  function bindTypeRowDblClick() {
+    document.querySelectorAll('#tableBody tr[data-index]').forEach((tr) => {
+      tr.addEventListener('dblclick', () => {
+        const index = Number(tr.dataset.index);
+        const row = state.typeRows[index];
+        state.filters.category = row.category;
+        state.filters.name = row.name;
+        state.filters.branch = '';
+        switchTab('typeSpecial');
+        showToast(`已跳转特殊维护，并按【${row.category}-${row.name}】过滤`, 'info');
+      });
+    });
+  }
+
+  function switchTab(tab) {
+    state.activeTab = tab;
+    document.querySelectorAll('.content-tab').forEach((el) => {
+      el.classList.toggle('active', el.dataset.ctab === tab);
+    });
+    renderTable();
+  }
+
+  function fillTypeModal(row) {
+    document.getElementById('typeCategory').value = row ? row.category : '发放转运质量奖金';
+    document.getElementById('typeCode').value = row ? row.code : '';
+    document.getElementById('typeName').value = row ? row.name : '';
+    document.getElementById('typeOwner').value = row ? row.owner : '';
+    document.getElementById('typePinyin').value = row ? row.pinyin : '';
+    document.getElementById('typeManual').value = row ? row.manual : '是';
+    document.getElementById('typeAllowRefresh').value = row ? row.allowRefresh : '是';
+    document.getElementById('typeAutoEntry').value = row ? row.autoEntry : '否';
+    document.getElementById('typeLimit').value = row ? row.limit : '';
+    document.getElementById('typeAutoAssign').value = row ? row.autoAssign : '否';
+    document.getElementById('typeEntryDeadline').value = row ? row.entryDeadline : '';
+    document.getElementById('typeRebrush').value = row ? row.rebrush : '否';
+    document.getElementById('typeHandleDeadline').value = row ? row.handleDeadline : '';
+    document.getElementById('typePush').value = row ? row.push : '否';
+  }
+
+  function openTypeModal(mode, index) {
+    state.modalMode = mode;
+    state.editingIndex = index;
+    document.getElementById('typeModalTitle').textContent = mode === 'edit' ? '编辑' : '新增';
+    fillTypeModal(mode === 'edit' ? state.typeRows[index] : null);
+    openMask('typeModalMask');
+  }
+
+  function confirmTypeModal() {
+    const category = document.getElementById('typeCategory').value;
+    const code = document.getElementById('typeCode').value.trim();
+    const name = document.getElementById('typeName').value.trim();
+    const owner = document.getElementById('typeOwner').value.trim();
+    const limit = document.getElementById('typeLimit').value.trim();
+    const entryDeadline = document.getElementById('typeEntryDeadline').value.trim();
+    const handleDeadline = document.getElementById('typeHandleDeadline').value.trim();
+
+    if (!category || !code || !name || !owner || !limit || !entryDeadline || !handleDeadline) {
+      showToast('请完善必填项', 'error');
+      return;
+    }
+    if (!/^\d+(\.\d{1,2})?$/.test(limit) || Number(limit) <= 0 || Number(limit) > 99999.99) {
+      showToast('单人每月金额限制格式不正确', 'error');
+      return;
+    }
+
+    const payload = {
+      category,
+      code,
+      name,
+      pinyin: document.getElementById('typePinyin').value.trim() || code,
+      limit: formatLimit(limit),
+      owner,
+      entryDeadline,
+      handleDeadline,
+      manual: document.getElementById('typeManual').value,
+      allowRefresh: document.getElementById('typeAllowRefresh').value,
+      autoEntry: document.getElementById('typeAutoEntry').value,
+      autoAssign: document.getElementById('typeAutoAssign').value,
+      rebrush: document.getElementById('typeRebrush').value,
+      push: document.getElementById('typePush').value
+    };
+
+    if (state.modalMode === 'add') {
+      const exists = state.typeRows.some((row) => row.category === category && row.name === name);
+      if (exists) {
+        showToast('数据已维护，无法重复维护', 'error');
+        return;
+      }
+      state.typeRows.push({
+        ...payload,
+        creator: '当前登录人',
+        createTime: nowText(),
+        modifier: '',
+        modifyTime: ''
+      });
+      showToast('保存成功', 'success');
+    } else {
+      const row = state.typeRows[state.editingIndex];
+      Object.assign(row, payload, {
+        modifier: '当前登录人',
+        modifyTime: nowText()
+      });
+      showToast('修改成功', 'success');
+    }
+    closeMask('typeModalMask');
+    renderTable();
+  }
+
+  function renderRuleRows(rules) {
+    const list = document.getElementById('ruleList');
+    list.innerHTML = rules.map((rule, index) => `
+      <div class="rule-row" data-rule-index="${index}">
+        <div class="form-item">
+          <label class="form-label required">发生时间</label>
+          <div class="form-field">
+            <div class="day-range">
+              <input class="form-control rule-start" type="text" value="${rule.occurStart}" />
+              <span>号</span><span>-</span>
+              <input class="form-control rule-end" type="text" value="${rule.occurEnd}" />
+              <span>号</span>
+            </div>
+            <span class="form-error ${Number(rule.occurStart) > Number(rule.occurEnd) ? 'show' : ''}">开始日期不可大于结束日期</span>
+          </div>
+        </div>
+        <div class="form-item">
+          <label class="form-label required">录入截止日期</label>
+          <div class="form-field">
+            <div class="deadline-wrap">
+              <select class="form-control rule-entry-month">
+                <option ${rule.entryMonth === '当月' ? 'selected' : ''}>当月</option>
+                <option ${rule.entryMonth === '次月' ? 'selected' : ''}>次月</option>
+              </select>
+              <input class="form-control rule-entry-day" type="text" value="${rule.entryDay}" />
+              <span>号</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <label class="form-label required">处理截止日期</label>
+          <div class="form-field">
+            <div class="deadline-wrap">
+              <select class="form-control rule-handle-month">
+                <option ${rule.handleMonth === '当月' ? 'selected' : ''}>当月</option>
+                <option ${rule.handleMonth === '次月' ? 'selected' : ''}>次月</option>
+              </select>
+              <input class="form-control rule-handle-day" type="text" value="${rule.handleDay}" />
+              <span>号</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button class="icon-btn-sm" type="button" data-rule-add>+</button>
+          <button class="icon-btn-sm danger" type="button" data-rule-remove>-</button>
+        </div>
+      </div>`).join('');
+
+    list.querySelectorAll('[data-rule-add]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const current = collectRules();
+        current.push({
+          occurStart: '1', occurEnd: '31',
+          entryMonth: '当月', entryDay: '1',
+          handleMonth: '次月', handleDay: '5'
+        });
+        renderRuleRows(current);
+      });
+    });
+    list.querySelectorAll('[data-rule-remove]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const current = collectRules();
+        if (current.length <= 1) {
+          showToast('至少保留一条规则信息', 'info');
+          return;
+        }
+        const index = Number(btn.closest('.rule-row').dataset.ruleIndex);
+        current.splice(index, 1);
+        renderRuleRows(current);
+      });
+    });
+  }
+
+  function collectRules() {
+    return Array.from(document.querySelectorAll('#ruleList .rule-row')).map((row) => ({
+      occurStart: row.querySelector('.rule-start').value.trim(),
+      occurEnd: row.querySelector('.rule-end').value.trim(),
+      entryMonth: row.querySelector('.rule-entry-month').value,
+      entryDay: row.querySelector('.rule-entry-day').value.trim(),
+      handleMonth: row.querySelector('.rule-handle-month').value,
+      handleDay: row.querySelector('.rule-handle-day').value.trim()
+    }));
+  }
+
+  function refreshSpecialNameOptions() {
+    const category = document.getElementById('spCategory').value;
+    const nameSelect = document.getElementById('spName');
+    const names = namesByCategory(category);
+    nameSelect.disabled = !category;
+    nameSelect.innerHTML = category
+      ? `<option value="">请选择</option>${names.map((name) => `<option>${name}</option>`).join('')}`
+      : '<option value="">请先选择奖罚类型</option>';
+    document.getElementById('spOriginLimit').value = '';
+  }
+
+  function openTypeSpecialModal(mode, index) {
+    state.modalMode = mode;
+    state.editingIndex = index;
+    document.getElementById('typeSpecialModalTitle').textContent = mode === 'edit' ? '编辑' : '新增';
+
+    const categorySelect = document.getElementById('spCategory');
+    categorySelect.innerHTML = `<option value="">请选择</option>${CATEGORY_OPTIONS.map((item) => `<option>${item}</option>`).join('')}`;
+
+    if (mode === 'edit') {
+      const row = state.typeSpecialRows[index];
+      document.getElementById('spBranch').value = row.branch;
+      document.getElementById('spBranch').disabled = true;
+      categorySelect.value = row.category;
+      refreshSpecialNameOptions();
+      document.getElementById('spName').value = row.name;
+      document.getElementById('spName').disabled = true;
+      categorySelect.disabled = true;
+      document.getElementById('spLimit').value = row.limit;
+      document.getElementById('spOriginLimit').value = row.originLimit;
+      renderRuleRows([{
+        occurStart: row.occurStart,
+        occurEnd: row.occurEnd,
+        entryMonth: row.entryMonth,
+        entryDay: row.entryDay,
+        handleMonth: row.handleMonth,
+        handleDay: row.handleDay
+      }]);
+    } else {
+      document.getElementById('spBranch').value = '';
+      document.getElementById('spBranch').disabled = false;
+      categorySelect.value = '';
+      categorySelect.disabled = false;
+      refreshSpecialNameOptions();
+      document.getElementById('spLimit').value = '';
+      document.getElementById('spOriginLimit').value = '';
+      renderRuleRows([{
+        occurStart: '1', occurEnd: '31',
+        entryMonth: '当月', entryDay: '1',
+        handleMonth: '次月', handleDay: '5'
+      }]);
+    }
+    openMask('typeSpecialModalMask');
+  }
+
+  function confirmTypeSpecialModal() {
+    const branch = document.getElementById('spBranch').value;
+    const category = document.getElementById('spCategory').value;
+    const name = document.getElementById('spName').value;
+    const limit = document.getElementById('spLimit').value.trim();
+    const rules = collectRules();
+
+    if (!branch || !category || !name || !limit) {
+      showToast('请完善基础信息必填项', 'error');
+      return;
+    }
+    if (!/^\d+(\.\d{1,2})?$/.test(limit) || Number(limit) <= 0 || Number(limit) > 99999.99) {
+      showToast('分拨单人每月金额限制格式不正确', 'error');
+      return;
+    }
+    for (const rule of rules) {
+      if (!rule.occurStart || !rule.occurEnd || !rule.entryDay || !rule.handleDay) {
+        showToast('请完善规则信息', 'error');
+        return;
+      }
+      if (Number(rule.occurStart) > Number(rule.occurEnd)) {
+        showToast('开始日期不可大于结束日期', 'error');
+        renderRuleRows(rules);
+        return;
+      }
+    }
+
+    const existsIndex = state.typeSpecialRows.findIndex(
+      (row) => row.branch === branch && row.category === category && row.name === name
+    );
+    if (state.modalMode === 'add' && existsIndex > -1) {
+      showToast('数据已维护，无法重复维护', 'error');
+      return;
+    }
+
+    const firstRule = rules[0];
+    const payload = {
+      branch,
+      category,
+      name,
+      limit: formatLimit(limit),
+      originLimit: findTypeLimit(category, name) || document.getElementById('spOriginLimit').value || '0.00',
+      occurStart: firstRule.occurStart,
+      occurEnd: firstRule.occurEnd,
+      entryMonth: firstRule.entryMonth,
+      entryDay: firstRule.entryDay,
+      handleMonth: firstRule.handleMonth,
+      handleDay: firstRule.handleDay
+    };
+
+    if (state.modalMode === 'add') {
+      state.typeSpecialRows.push({
+        ...payload,
+        creator: '当前登录人',
+        createTime: nowText(),
+        modifier: '',
+        modifyTime: ''
+      });
+      showToast('保存成功', 'success');
+    } else {
+      const row = state.typeSpecialRows[state.editingIndex];
+      Object.assign(row, payload, {
+        modifier: '当前登录人',
+        modifyTime: nowText()
+      });
+      showToast('修改成功', 'success');
+    }
+    closeMask('typeSpecialModalMask');
+    renderTable();
+  }
+
+  function openTotalModal(mode, index) {
+    state.modalMode = mode;
+    state.editingIndex = index;
+    const isSpecial = mode === 'edit' && typeof index === 'string' && index.startsWith('s-');
+    document.getElementById('totalModalTitle').textContent = mode === 'edit' ? '编辑个人总额限额' : '新增个人总额限额';
+    document.getElementById('totalScope').value = isSpecial ? 'special' : 'unified';
+    document.getElementById('totalScope').disabled = mode === 'edit';
+    document.getElementById('totalBranchRow').style.display = isSpecial ? 'flex' : 'none';
+    document.getElementById('totalUnifiedRow').style.display = isSpecial ? 'flex' : 'none';
+    document.getElementById('totalLimitLabel').textContent = isSpecial ? '个人每月奖励总额限额' : '个人每月奖励总额限额';
+    document.getElementById('totalUnifiedView').value = getUnifiedLimit() || '';
+    document.getElementById('totalBranchError').classList.remove('show');
+    document.getElementById('totalLimitError').classList.remove('show');
+    document.getElementById('totalLimitInput').classList.remove('error');
+    document.getElementById('totalBranch').classList.remove('error');
+
+    if (mode === 'edit') {
+      if (isSpecial) {
+        const row = state.totalSpecialRows[Number(index.replace('s-', ''))];
+        document.getElementById('totalBranch').value = row.branch;
+        document.getElementById('totalBranch').disabled = true;
+        document.getElementById('totalLimitInput').value = row.limit;
+      } else {
+        document.getElementById('totalBranch').disabled = false;
+        document.getElementById('totalLimitInput').value = state.totalRows[Number(String(index).replace('u-', ''))].limit;
+      }
+    } else {
+      document.getElementById('totalBranch').value = '';
+      document.getElementById('totalBranch').disabled = false;
+      document.getElementById('totalLimitInput').value = '';
+    }
+    openMask('totalModalMask');
+  }
+
+  function confirmTotalModal() {
+    const isSpecial = document.getElementById('totalScope').value === 'special';
+    const limitValue = document.getElementById('totalLimitInput').value.trim();
+    document.getElementById('totalLimitError').classList.remove('show');
+    document.getElementById('totalBranchError').classList.remove('show');
+    document.getElementById('totalLimitInput').classList.remove('error');
+    document.getElementById('totalBranch').classList.remove('error');
+
+    if (!limitValue || !/^\d+(\.\d{1,2})?$/.test(limitValue) || Number(limitValue) <= 0 || Number(limitValue) > 99999.99) {
+      document.getElementById('totalLimitError').textContent = '请输入正确的金额，最大 99999.99';
+      document.getElementById('totalLimitError').classList.add('show');
+      document.getElementById('totalLimitInput').classList.add('error');
+      return;
+    }
+
+    if (!isSpecial) {
+      if (state.modalMode === 'add' && state.totalRows.length > 0) {
+        showToast('数据已维护，无法重复维护', 'error');
+        return;
+      }
+      const formatted = formatLimit(limitValue);
+      if (state.modalMode === 'add') {
+        state.totalRows = [{
+          limit: formatted,
+          creator: '当前登录人',
+          createTime: nowText(),
+          modifier: '',
+          modifyTime: ''
+        }];
+        showToast('保存成功', 'success');
+      } else {
+        const row = state.totalRows[Number(String(state.editingIndex).replace('u-', ''))];
+        row.limit = formatted;
+        row.modifier = '当前登录人';
+        row.modifyTime = nowText();
+        showToast('修改成功', 'success');
+      }
+      closeMask('totalModalMask');
+      renderTable();
+      return;
+    }
+
+    const branch = document.getElementById('totalBranch').value;
+    if (!branch) {
+      document.getElementById('totalBranchError').classList.add('show');
+      document.getElementById('totalBranch').classList.add('error');
+      return;
+    }
+    const existsIndex = state.totalSpecialRows.findIndex((row) => row.branch === branch);
+    if (state.modalMode === 'add' && existsIndex > -1) {
+      showToast('数据已维护，无法重复维护', 'error');
+      return;
+    }
+
+    const formatted = formatLimit(limitValue);
+    if (state.modalMode === 'add') {
+      state.totalSpecialRows.push({
+        branch,
+        limit: formatted,
+        creator: '当前登录人',
+        createTime: nowText(),
+        modifier: '',
+        modifyTime: ''
+      });
+      showToast('保存成功', 'success');
+    } else {
+      const row = state.totalSpecialRows[Number(String(state.editingIndex).replace('s-', ''))];
+      row.limit = formatted;
+      row.modifier = '当前登录人';
+      row.modifyTime = nowText();
+      showToast('修改成功', 'success');
+    }
+    closeMask('totalModalMask');
+    renderTable();
+  }
+
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  });
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    state.filters = { branch: '', scope: '', category: '全部', name: '', owner: '' };
+    switchTab(tab.dataset.ctab);
+  });
+
+  document.getElementById('queryBtn').addEventListener('click', () => {
+    const fCategory = document.getElementById('fCategory');
+    const fName = document.getElementById('fName');
+    const fOwner = document.getElementById('fOwner');
+    const fBranch = document.getElementById('fBranch');
+    const fScope = document.getElementById('fScope');
+    state.filters.category = fCategory ? fCategory.value : '全部';
+    state.filters.name = fName ? fName.value.trim() : '';
+    state.filters.owner = fOwner ? fOwner.value.trim() : '';
+    state.filters.branch = fBranch ? fBranch.value : '';
+    state.filters.scope = fScope ? fScope.value : '';
+    renderTable();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.filters = { branch: '', scope: '', category: '全部', name: '', owner: '' };
+    renderTable();
+  });
+
+  document.getElementById('addBtn').addEventListener('click', () => {
+    if (state.activeTab === 'type') return openTypeModal('add');
+    if (state.activeTab === 'typeSpecial') return openTypeSpecialModal('add');
+    if (state.activeTab === 'total') return openTotalModal('add');
+  });
+
+  document.getElementById('editBtn').addEventListener('click', () => {
+    const selected = getSelectedIndexes();
+    if (!selected.length) return showToast('请先勾选一条数据', 'info');
+    if (selected.length > 1) return showToast('编辑仅支持勾选一条数据', 'info');
+    if (state.activeTab === 'type') return openTypeModal('edit', selected[0]);
+    if (state.activeTab === 'typeSpecial') return openTypeSpecialModal('edit', selected[0]);
+    if (state.activeTab === 'total') {
+      return openTotalModal('edit', selected[0]);
+    }
+  });
+
+  document.getElementById('deleteBtn').addEventListener('click', () => {
+    const selected = getSelectedIndexes();
+    if (!selected.length) return showToast('请先勾选要删除的数据', 'info');
+
+    state.pendingDeleteIndexes = selected;
+    const count = selected.length;
+    const tabName = {
+      type: '类型维护',
+      typeSpecial: '特殊维护',
+      total: '个人总额限额维护'
+    }[state.activeTab];
+
+    if (state.activeTab === 'total') {
+      document.getElementById('deleteModalTitle').textContent = '删除确认';
+      const hasUnified = selected.some((key) => key.startsWith('u-'));
+      const hasSpecial = selected.some((key) => key.startsWith('s-'));
+      if (hasUnified && hasSpecial) {
+        document.getElementById('deleteModalText').textContent =
+          '确认删除选中的全国统一和分拨特殊限额吗？删除全国统一限额后，未维护分拨特殊限额的分拨将不再校验个人总额限额。';
+      } else if (hasUnified) {
+        document.getElementById('deleteModalText').textContent =
+          '确认删除全国统一的个人每月奖励总额限额吗？删除后，未维护分拨特殊限额的分拨将不再校验个人总额限额。';
+      } else {
+        document.getElementById('deleteModalText').textContent =
+          `确认删除选中的 ${count} 条分拨特殊限额吗？删除后，该分拨将使用全国统一限额；未维护全国统一限额时不校验个人总额限额。`;
+      }
+    } else if (state.activeTab === 'typeSpecial') {
+      document.getElementById('deleteModalTitle').textContent = '删除确认';
+      document.getElementById('deleteModalText').textContent =
+        `确认删除选中的 ${count} 条特殊维护数据吗？删除后不可恢复。`;
+    } else {
+      document.getElementById('deleteModalTitle').textContent = '删除确认';
+      document.getElementById('deleteModalText').textContent =
+        `确认删除选中的 ${count} 条${tabName}数据吗？删除后不可恢复。`;
+    }
+    openMask('deleteModalMask');
+  });
+
+  document.getElementById('deleteConfirmBtn').addEventListener('click', () => {
+    const selected = state.pendingDeleteIndexes || [];
+    if (!selected.length) {
+      closeMask('deleteModalMask');
+      return;
+    }
+
+    if (state.activeTab === 'type') {
+      state.typeRows = state.typeRows.filter((_, index) => !selected.includes(String(index)));
+      showToast('删除成功', 'success');
+    } else if (state.activeTab === 'typeSpecial') {
+      state.typeSpecialRows = state.typeSpecialRows.filter((_, index) => !selected.includes(String(index)));
+      showToast('删除成功', 'success');
+    } else if (state.activeTab === 'total') {
+      const unifiedIndexes = selected.filter((key) => key.startsWith('u-')).map((key) => Number(key.replace('u-', '')));
+      const specialIndexes = selected.filter((key) => key.startsWith('s-')).map((key) => Number(key.replace('s-', '')));
+      state.totalRows = state.totalRows.filter((_, index) => !unifiedIndexes.includes(index));
+      state.totalSpecialRows = state.totalSpecialRows.filter((_, index) => !specialIndexes.includes(index));
+      showToast('删除成功', 'success');
+    }
+
+    state.pendingDeleteIndexes = [];
+    closeMask('deleteModalMask');
+    renderTable();
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const map = {
+      type: '类型维护',
+      typeSpecial: '特殊维护',
+      total: '个人总额限额维护'
+    };
+    showToast(`已导出${map[state.activeTab]}数据（演示）`, 'info');
+  });
+
+  document.getElementById('importBtn').addEventListener('click', () => {
+    state.importFileName = '';
+    document.getElementById('importModalTitle').textContent = '导入分拨特殊限额';
+    document.getElementById('importFileName').textContent = '未选择文件';
+    document.getElementById('importError').classList.remove('show');
+    openMask('importModalMask');
+  });
+
+  document.getElementById('typeConfirmBtn').addEventListener('click', confirmTypeModal);
+  document.getElementById('typeSpecialConfirmBtn').addEventListener('click', confirmTypeSpecialModal);
+  document.getElementById('totalConfirmBtn').addEventListener('click', confirmTotalModal);
+
+  document.getElementById('spCategory').addEventListener('change', () => {
+    refreshSpecialNameOptions();
+  });
+  document.getElementById('spName').addEventListener('change', () => {
+    const category = document.getElementById('spCategory').value;
+    const name = document.getElementById('spName').value;
+    document.getElementById('spOriginLimit').value = findTypeLimit(category, name);
+  });
+  document.getElementById('totalScope').addEventListener('change', () => {
+    const isSpecial = document.getElementById('totalScope').value === 'special';
+    document.getElementById('totalBranchRow').style.display = isSpecial ? 'flex' : 'none';
+    document.getElementById('totalUnifiedRow').style.display = isSpecial ? 'flex' : 'none';
+    document.getElementById('totalBranch').value = '';
+    document.getElementById('totalBranch').disabled = false;
+    document.getElementById('totalUnifiedView').value = getUnifiedLimit() || '';
+  });
+
+  document.getElementById('downloadTemplateBtn').addEventListener('click', () => {
+    showToast('已下载导入模板（演示）', 'info');
+  });
+  document.getElementById('mockFileBtn').addEventListener('click', () => {
+    state.importFileName = '分拨特殊限额导入.xlsx';
+    document.getElementById('importFileName').textContent = state.importFileName;
+    document.getElementById('importError').classList.remove('show');
+  });
+  document.getElementById('importBox').addEventListener('click', () => {
+    document.getElementById('mockFileBtn').click();
+  });
+  document.getElementById('importConfirmBtn').addEventListener('click', () => {
+    if (!state.importFileName) {
+      document.getElementById('importError').classList.add('show');
+      return;
+    }
+    const exists = state.totalSpecialRows.some((row) => row.branch === '广州分拨中心');
+    if (!exists) {
+      state.totalSpecialRows.push({
+        branch: '广州分拨中心',
+        limit: '1800.00',
+        creator: '当前登录人',
+        createTime: nowText(),
+        modifier: '',
+        modifyTime: ''
+      });
+    }
+    closeMask('importModalMask');
+    renderTable();
+    showToast('导入成功（演示）', 'success');
+  });
+
+  document.querySelectorAll('[data-close]').forEach((btn) => {
+    btn.addEventListener('click', () => closeMask(btn.dataset.close));
+  });
+  document.querySelectorAll('.modal-mask').forEach((mask) => {
+    mask.addEventListener('click', (e) => {
+      if (e.target === mask) closeMask(mask.id);
+    });
+  });
+
+  renderTable();
+</script>
+
+</body>
+</html>

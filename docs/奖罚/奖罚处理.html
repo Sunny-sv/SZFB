@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>奖罚处理 · 个人总额限额原型</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --danger: #ff4d4f;
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 40px;
+      --drawer-width: 520px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; height: 100vh; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .sidebar.collapsed { width: var(--sidebar-collapsed); }
+
+    .sidebar-logo {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: #fff;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .sidebar-logo .logo-icon {
+      width: 28px; height: 28px;
+      background: var(--primary);
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+    .sidebar.collapsed .logo-text { display: none; }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .sidebar.collapsed .menu-label,
+    .sidebar.collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .sidebar.collapsed .menu-sub { display: none; }
+
+    .sidebar-toggle {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      border-top: 1px solid rgba(255,255,255,.08);
+      font-size: 16px;
+    }
+    .sidebar-toggle:hover { color: #fff; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .top-tabs {
+      height: var(--header-height);
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+    .top-tabs .home-btn {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .top-tabs .home-btn:hover { color: var(--primary); }
+
+    .page-tabs {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      overflow-x: auto;
+      gap: 2px;
+      padding: 0 4px;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      height: 32px;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    .page-tab:hover { color: var(--text); background: #fafafa; }
+    .page-tab.active { color: var(--primary); background: #e6f7ff; }
+    .page-tab .tab-close { font-size: 12px; opacity: .4; margin-left: 2px; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #ccc;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #fff;
+    }
+
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      min-height: calc(100vh - var(--header-height) - 32px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 100px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range,
+    .filter-item .filter-control-wrap > .voucher-input,
+    .filter-item .filter-control-wrap > .dc-combo,
+    .filter-item .filter-control-wrap > .cascade-wrap {
+      width: 100%;
+    }
+
+    .cascade-wrap { position: relative; z-index: 20; }
+    .cascade-trigger {
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 28px 0 11px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      background: #fff;
+      position: relative;
+    }
+    .cascade-trigger:focus,
+    .cascade-wrap.open .cascade-trigger {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(24,144,255,.2);
+    }
+    .cascade-placeholder { color: #bfbfbf; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cascade-placeholder.has-value { color: var(--text); }
+    .cascade-arrow {
+      position: absolute;
+      right: 10px;
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    .cascade-panel {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      width: 520px;
+      height: 300px;
+    }
+    .cascade-panel.open { display: flex; }
+    .cascade-left,
+    .cascade-right {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .cascade-left { border-right: 1px solid var(--border); width: 240px; flex: 0 0 240px; }
+    .cascade-right { flex: 1; min-width: 0; }
+    .cascade-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      user-select: none;
+    }
+    .cascade-option:hover { background: #f5f5f5; }
+    .cascade-option.active {
+      color: var(--primary);
+      background: #e6f7ff;
+    }
+    .cascade-option input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--primary);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .cascade-option .opt-label { flex: 1; min-width: 0; }
+    .cascade-option .opt-arrow {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-left: auto;
+    }
+    .voucher-input {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .voucher-input .filter-control { padding-right: 56px; }
+    .voucher-input .char-count {
+      position: absolute;
+      right: 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .dc-combo {
+      display: flex;
+      gap: 0;
+      align-items: stretch;
+    }
+    .dc-combo .dc-type {
+      flex: 0 0 96px;
+    }
+    .dc-combo .dc-type .filter-control {
+      border-radius: 4px 0 0 4px;
+      border-right: none;
+    }
+    .dc-combo > .filter-control {
+      border-radius: 0 4px 4px 0;
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    .table-area { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .table-scroll {
+      overflow: auto;
+      border: 1px solid var(--border);
+      max-height: calc(100vh - 360px);
+    }
+    .data-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .data-table th,
+    .data-table td {
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      text-align: center;
+      white-space: nowrap;
+      font-size: 12px;
+      height: 36px;
+    }
+    .data-table th { background: #fafafa; font-weight: 500; color: var(--text); position: sticky; top: 0; z-index: 2; }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .data-table tbody tr.clickable { cursor: pointer; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .cell-placeholder { color: var(--text-secondary); }
+    .cell-link { color: var(--primary); cursor: pointer; }
+    .tag {
+      display: inline-block;
+      padding: 0 8px;
+      height: 22px;
+      line-height: 22px;
+      border-radius: 2px;
+      font-size: 12px;
+      background: #f5f5f5;
+      color: var(--text-secondary);
+    }
+    .tag-warn { background: #fff7e6; color: #d46b08; }
+    .tag-ok { background: #f6ffed; color: #389e0d; }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding-top: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    /* 分配明细抽屉 */
+    .drawer-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1000;
+      display: none;
+    }
+    .drawer-mask.open { display: block; }
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: var(--drawer-width);
+      height: 100vh;
+      background: #fff;
+      z-index: 1001;
+      box-shadow: -2px 0 8px rgba(0,0,0,.15);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform .2s;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer-header {
+      height: 56px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .drawer-title { font-size: 16px; font-weight: 500; }
+    .drawer-close { cursor: pointer; font-size: 18px; color: var(--text-secondary); padding: 4px 8px; }
+    .drawer-close:hover { color: var(--text); }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 16px; }
+    .drawer-alert {
+      color: var(--danger);
+      font-size: 13px;
+      margin-bottom: 12px;
+      line-height: 1.5;
+      min-height: 20px;
+    }
+    .drawer-alert.hide { display: none; }
+    .drawer-toolbar {
+      margin-bottom: 12px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 16px;
+      margin-bottom: 12px;
+    }
+    .form-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .form-item.full { grid-column: 1 / -1; }
+    .form-label {
+      flex: 0 0 72px;
+      text-align: right;
+      color: var(--text);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .form-control {
+      flex: 1;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--text);
+      min-width: 0;
+    }
+    .form-control[readonly] { background: #fafafa; }
+    .alloc-summary {
+      margin: 8px 0;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .alloc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .alloc-table th,
+    .alloc-table td { border: 1px solid var(--border); padding: 6px 8px; text-align: center; white-space: nowrap; }
+    .alloc-table th { background: #fafafa; font-weight: 500; }
+    .alloc-table th.col-seq,
+    .alloc-table td.col-seq { width: 72px; min-width: 72px; }
+    .alloc-table input {
+      width: 100%;
+      height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 0 6px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .drawer-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* 重刷弹框 */
+    .modal-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-mask.open { display: flex; }
+    .modal {
+      width: 920px;
+      max-width: calc(100vw - 48px);
+      max-height: calc(100vh - 48px);
+      background: #fff;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
+    .modal-header {
+      height: 48px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-title { font-size: 16px; font-weight: 500; }
+    .modal-close { cursor: pointer; font-size: 18px; color: var(--text-secondary); padding: 4px 8px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+    .rebrush-toolbar {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .rebrush-fields {
+      display: flex;
+      flex: 1;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .rebrush-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .rebrush-item .filter-label { flex: 0 0 72px; }
+    .rebrush-item .filter-control-wrap { width: 160px; }
+    .rebrush-item.date-item .filter-control-wrap { width: 260px; }
+    .rebrush-btns { display: flex; gap: 8px; flex-shrink: 0; }
+    .rebrush-table-wrap {
+      border: 1px solid var(--border);
+      min-height: 200px;
+      margin-bottom: 16px;
+    }
+    .rebrush-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .rebrush-table th,
+    .rebrush-table td { border: 1px solid var(--border); padding: 10px 12px; text-align: center; }
+    .rebrush-table th { background: #fafafa; font-weight: 500; }
+    .rebrush-empty {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 64px 0;
+    }
+    .rebrush-tips {
+      color: var(--danger);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+    .rebrush-tips .tips-title {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">奖</div>
+      <span class="logo-text">转运可视化</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+      <div class="menu-item active">
+        <span class="menu-icon">☰</span><span class="menu-label">奖罚管理</span><span class="menu-arrow">▼</span>
+      </div>
+      <div class="menu-sub">
+        <div class="menu-item active">奖罚处理</div>
+        <div class="menu-item">奖罚类型维护</div>
+      </div>
+    </nav>
+    <div class="sidebar-toggle" id="sidebarToggle" title="折叠/展开">☰</div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="top-tabs">
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active">奖罚处理 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <div class="avatar" title="用户">U</div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">奖罚凭证</span>
+              <div class="filter-control-wrap">
+                <div class="voucher-input">
+                  <input class="filter-control" type="text" placeholder="请输入奖罚凭证" />
+                  <span class="char-count">0/5000</span>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">奖罚发生时间</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" value="2026-07-15 00:00:00" readonly />
+                  <span class="sep">至</span>
+                  <input class="filter-control" type="text" value="2026-07-17 23:59:59" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="dc-combo">
+                  <div class="select-wrap dc-type">
+                    <select class="filter-control"><option>直营分拨</option><option>全部</option></select>
+                  </div>
+                  <input class="filter-control" type="text" placeholder="请输入分拨中心" />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">处理状态</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option>未处理</option>
+                    <option>分拨已处理</option>
+                    <option>总部已处理</option>
+                    <option>分拨二次处理</option>
+                    <option>系统已处理</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">数据来源</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>全部</option><option>系统录入</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">奖罚类型</span>
+              <div class="filter-control-wrap">
+                <div class="cascade-wrap" id="awardTypeCascade">
+                  <div class="cascade-trigger" id="awardTypeTrigger" tabindex="0">
+                    <span class="cascade-placeholder" id="awardTypeText">请选择</span>
+                    <span class="cascade-arrow">▼</span>
+                  </div>
+                  <div class="cascade-panel" id="awardTypePanel">
+                    <div class="cascade-left" id="awardTypeLeft"></div>
+                    <div class="cascade-right" id="awardTypeRight"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">处理人</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入人员" />
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn" type="button">重置</button>
+            <button class="btn btn-primary" type="button">查询</button>
+          </div>
+        </section>
+
+        <section class="action-bar">
+          <button class="btn-action" type="button" id="btnEdit">编辑</button>
+          <button class="btn-action" type="button">删除</button>
+          <button class="btn-action primary" type="button">导出</button>
+          <button class="btn-action primary" type="button" id="btnRefresh">重刷</button>
+        </section>
+
+        <section class="table-area">
+          <div class="table-scroll">
+            <table class="data-table" id="mainTable">
+              <thead>
+                <tr id="theadRow"></tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 128 条</span>
+            <button class="page-btn disabled" type="button">&lt;</button>
+            <button class="page-btn active" type="button">1</button>
+            <button class="page-btn" type="button">2</button>
+            <button class="page-btn" type="button">3</button>
+            <button class="page-btn" type="button">…</button>
+            <button class="page-btn" type="button">13</button>
+            <button class="page-btn" type="button">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="drawer-mask" id="drawerMask"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-header">
+    <span class="drawer-title">详细信息</span>
+    <span class="drawer-close" id="drawerClose">×</span>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-alert" id="drawerAlert">奖罚金额不等于分配金额</div>
+    <div class="drawer-toolbar">
+      <button class="btn btn-primary" type="button" id="drawerSave">保存</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-item">
+        <span class="form-label">奖罚凭证</span>
+        <input class="form-control" id="drawerVoucher" type="text" value="30633082226071403" />
+      </div>
+      <div class="form-item">
+        <span class="form-label">奖罚类型</span>
+        <div class="select-wrap" style="flex:1;min-width:0">
+          <select class="form-control" id="drawerType" style="width:100%">
+            <option>扣除转运质量奖金-合托罚款</option>
+            <option>发放转运质量奖金-装载率</option>
+            <option>扣除转运质量奖金-差错</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-item">
+        <span class="form-label">责任分拨</span>
+        <input class="form-control" id="drawerSite" type="text" placeholder="请输入内容" value="天津分拨中心" />
+      </div>
+      <div class="form-item">
+        <span class="form-label">扣除金额</span>
+        <input class="form-control" id="drawerAmount" type="text" value="3.72" />
+      </div>
+      <div class="form-item">
+        <span class="form-label">分配人数</span>
+        <div class="select-wrap" style="flex:1;min-width:0">
+          <select class="form-control" id="drawerPersonCount" style="width:100%">
+            <option>1个人</option>
+            <option>2个人</option>
+            <option selected>20个人</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-item">
+        <span class="form-label">发生日期</span>
+        <input class="form-control" id="drawerOccur" type="text" value="2026-07-15" />
+      </div>
+      <div class="form-item full">
+        <span class="form-label">备注</span>
+        <input class="form-control" id="drawerRemark" type="text" value="合托超标罚款" />
+      </div>
+    </div>
+    <div class="alloc-summary">共计:20人</div>
+    <table class="alloc-table">
+      <thead>
+        <tr>
+          <th class="col-seq">序号</th>
+          <th>责任人</th>
+          <th>责任人工号</th>
+          <th>扣除金额</th>
+        </tr>
+      </thead>
+      <tbody id="allocBody"></tbody>
+    </table>
+  </div>
+</aside>
+
+<div class="modal-mask" id="rebrushMask">
+  <div class="modal" role="dialog" aria-label="重刷提示">
+    <div class="modal-header">
+      <span class="modal-title">重刷提示</span>
+      <span class="modal-close" id="rebrushClose">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="rebrush-toolbar">
+        <div class="rebrush-fields">
+          <div class="rebrush-item">
+            <span class="filter-label">奖罚类型</span>
+            <div class="filter-control-wrap">
+              <div class="select-wrap">
+                <select class="filter-control"><option>请选择</option><option>分批配载</option><option>漏扫罚款</option><option>合托</option></select>
+              </div>
+            </div>
+          </div>
+          <div class="rebrush-item date-item">
+            <span class="filter-label">发生日期</span>
+            <div class="filter-control-wrap">
+              <div class="date-range">
+                <input class="filter-control" type="text" placeholder="开始日期" readonly />
+                <span class="sep">~</span>
+                <input class="filter-control" type="text" placeholder="结束日期" readonly />
+              </div>
+            </div>
+          </div>
+          <div class="rebrush-item">
+            <span class="filter-label">责任分拨</span>
+            <div class="filter-control-wrap">
+              <input class="filter-control" type="text" placeholder="请输入内容" />
+            </div>
+          </div>
+        </div>
+        <div class="rebrush-btns">
+          <button class="btn btn-primary" type="button">重刷</button>
+          <button class="btn btn-primary" type="button">自动处理</button>
+          <button class="btn btn-primary" type="button">查询</button>
+        </div>
+      </div>
+      <div class="rebrush-table-wrap">
+        <table class="rebrush-table">
+          <thead>
+            <tr>
+              <th>奖罚类型</th>
+              <th>发生时间</th>
+              <th>责任分拨</th>
+              <th>执行人</th>
+              <th>执行时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="5" class="rebrush-empty">暂无数据</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rebrush-tips">
+        <div class="tips-title">重刷使用提示ⓘ</div>
+        <div>1. 日期对应奖罚处理奖罚数据的发生日期</div>
+        <div>2. 重刷可能会引起数据错误，请谨慎使用。</div>
+        <div>3. 如点击重刷后，出现超时现象，请联系对应开发处理，不要再次进行重刷！！！</div>
+        <div>4. 特别提示：分批配载、漏扫罚款只能按天重刷，如：【2022-09-07】至【2022-09-07】不可跨多天！！更不可跨月！！！</div>
+        <div>5. 特别提示：合托奖罚重刷、自动处理必须选择分拨中心！！！</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  });
+
+  const AWARD_TYPE_TREE = [
+    {
+      name: '发放转运质量奖金',
+      children: ['差错', '装载率', '破损修复', '无头件操作补贴', 'VIP操作补贴', '派送部改单自提补贴', '合托', '双库倒货补贴', '查重查方', '移动错分归位', '转退件按规定转出', '严重破损上报', '执行力']
+    },
+    {
+      name: '扣除转运质量奖金',
+      children: ['VIP与48小时留仓', '分批配载', '装载率', '卸车合托超标', '合托罚款', '破损', '遗失', '执行力']
+    },
+    {
+      name: '发放分拨内部质量奖金',
+      children: ['差错', '装载率', '破损', '执行力']
+    },
+    {
+      name: '扣除分拨内部质量奖金',
+      children: ['差错', '装载率', '破损', '执行力']
+    }
+  ];
+
+  const awardSelected = new Set();
+  let awardActiveParent = 1;
+
+  function updateAwardTriggerText() {
+    const textEl = document.getElementById('awardTypeText');
+    if (awardSelected.size === 0) {
+      textEl.textContent = '请选择';
+      textEl.classList.remove('has-value');
+      return;
+    }
+    const list = [...awardSelected];
+    textEl.textContent = list.slice(0, 2).join('、') + (list.length > 2 ? ` 等${list.length}项` : '');
+    textEl.classList.add('has-value');
+  }
+
+  function renderAwardLeft() {
+    const left = document.getElementById('awardTypeLeft');
+    left.innerHTML = AWARD_TYPE_TREE.map((p, idx) => {
+      const childKeys = p.children.map(c => `${p.name}-${c}`);
+      const checkedCount = childKeys.filter(k => awardSelected.has(k)).length;
+      const allChecked = checkedCount === childKeys.length && childKeys.length > 0;
+      const someChecked = checkedCount > 0 && !allChecked;
+      return `<div class="cascade-option ${idx === awardActiveParent ? 'active' : ''}" data-parent="${idx}">
+        <input type="checkbox" data-role="parent" ${allChecked ? 'checked' : ''} ${someChecked ? 'data-indeterminate="1"' : ''} />
+        <span class="opt-label">${p.name}</span>
+        <span class="opt-arrow">›</span>
+      </div>`;
+    }).join('');
+    left.querySelectorAll('input[data-indeterminate="1"]').forEach(el => { el.indeterminate = true; });
+  }
+
+  function renderAwardRight() {
+    const right = document.getElementById('awardTypeRight');
+    const parent = AWARD_TYPE_TREE[awardActiveParent];
+    right.innerHTML = parent.children.map(c => {
+      const key = `${parent.name}-${c}`;
+      return `<div class="cascade-option" data-child-key="${key}">
+        <input type="checkbox" data-role="child" ${awardSelected.has(key) ? 'checked' : ''} />
+        <span class="opt-label">${c}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function renderAwardType() {
+    renderAwardLeft();
+    renderAwardRight();
+    updateAwardTriggerText();
+  }
+
+  function positionAwardPanel() {
+    const trigger = document.getElementById('awardTypeTrigger');
+    const panel = document.getElementById('awardTypePanel');
+    const rect = trigger.getBoundingClientRect();
+    panel.style.left = `${Math.max(8, rect.left)}px`;
+    panel.style.top = `${rect.bottom + 4}px`;
+  }
+
+  function openAwardPanel() {
+    const wrap = document.getElementById('awardTypeCascade');
+    const panel = document.getElementById('awardTypePanel');
+    wrap.classList.add('open');
+    panel.classList.add('open');
+    positionAwardPanel();
+    renderAwardType();
+  }
+
+  function closeAwardPanel() {
+    document.getElementById('awardTypeCascade').classList.remove('open');
+    document.getElementById('awardTypePanel').classList.remove('open');
+  }
+
+  function bindAwardType() {
+    const wrap = document.getElementById('awardTypeCascade');
+    const trigger = document.getElementById('awardTypeTrigger');
+    const panel = document.getElementById('awardTypePanel');
+    const left = document.getElementById('awardTypeLeft');
+    const right = document.getElementById('awardTypeRight');
+
+    // 面板挂到 body，避免被内容区 overflow 裁切
+    if (panel.parentElement !== document.body) {
+      document.body.appendChild(panel);
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (panel.classList.contains('open')) closeAwardPanel();
+      else openAwardPanel();
+    });
+
+    left.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opt = e.target.closest('.cascade-option');
+      if (!opt) return;
+      const idx = Number(opt.dataset.parent);
+      const isCheckbox = e.target.matches('input[type="checkbox"]');
+
+      // 点一级：先切换右侧二级列表
+      awardActiveParent = idx;
+
+      if (isCheckbox) {
+        const parent = AWARD_TYPE_TREE[idx];
+        parent.children.forEach(c => {
+          const key = `${parent.name}-${c}`;
+          if (e.target.checked) awardSelected.add(key);
+          else awardSelected.delete(key);
+        });
+      }
+
+      renderAwardType();
+    });
+
+    right.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opt = e.target.closest('.cascade-option');
+      if (!opt) return;
+      const key = opt.dataset.childKey;
+      const checkbox = opt.querySelector('input[type="checkbox"]');
+      if (!checkbox) return;
+
+      if (!e.target.matches('input[type="checkbox"]')) {
+        checkbox.checked = !checkbox.checked;
+      }
+      if (checkbox.checked) awardSelected.add(key);
+      else awardSelected.delete(key);
+      renderAwardLeft();
+      updateAwardTriggerText();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!wrap.contains(e.target) && !panel.contains(e.target)) closeAwardPanel();
+    });
+
+    window.addEventListener('resize', () => {
+      if (panel.classList.contains('open')) positionAwardPanel();
+    });
+    window.addEventListener('scroll', () => {
+      if (panel.classList.contains('open')) positionAwardPanel();
+    }, true);
+
+    renderAwardType();
+  }
+
+  const BASE_HEADERS = [
+    '奖罚凭证', '奖罚类型', '结算网点', '扣除金额', '发放金额', '发生时间', '备注',
+    '创建时间', '处理状态', '数据来源', '处理人', '处理时间'
+  ];
+
+  function buildHeader() {
+    const tr = document.getElementById('theadRow');
+    let html = '<th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>';
+    BASE_HEADERS.forEach(h => { html += `<th>${h}</th>`; });
+    for (let i = 1; i <= 20; i++) {
+      html += `<th>责任人${i}</th>`;
+      html += `<th>责任人${i}工号</th>`;
+      html += `<th>扣除金额</th>`;
+      html += `<th>发放金额</th>`;
+    }
+    tr.innerHTML = html;
+    document.getElementById('checkAll').addEventListener('change', function () {
+      document.querySelectorAll('.row-check').forEach(cb => { cb.checked = this.checked; });
+    });
+  }
+
+  function emptyRespCells() {
+    let html = '';
+    for (let i = 1; i <= 20; i++) {
+      html += '<td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td>';
+    }
+    return html;
+  }
+
+  function respCells(people) {
+    let html = '';
+    for (let i = 1; i <= 20; i++) {
+      const p = people[i - 1];
+      if (p) {
+        html += `<td>${p.name}</td><td>${p.id}</td><td>${p.deduct ?? '—'}</td><td>${p.grant ?? '—'}</td>`;
+      } else {
+        html += '<td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td>';
+      }
+    }
+    return html;
+  }
+
+  const rows = [
+    {
+      voucher: '200330382220071403',
+      type: '发放转运质量奖金-装载率',
+      site: '天津分拨中心',
+      deduct: '/',
+      grant: '200.00',
+      occur: '2026-07-15',
+      remark: '自动回刷',
+      create: '2026-07-15 10:21:03',
+      status: '<span class="tag tag-ok">系统已处理</span>',
+      source: '系统录入',
+      handler: '系统处理',
+      handleTime: '2026-07-15 10:22:11',
+      people: [
+        { name: '胡丽', id: '80045171', deduct: '/', grant: '100.00' },
+        { name: '王迎水', id: '80165887', deduct: '/', grant: '100.00' }
+      ]
+    },
+    {
+      voucher: '200330382220071588',
+      type: '发放转运质量奖金-装载率',
+      site: '重庆分拨中心',
+      deduct: '/',
+      grant: '300.00',
+      occur: '2026-07-16',
+      remark: '自动分配',
+      create: '2026-07-16 09:01:00',
+      status: '<span class="tag tag-warn">未处理</span>',
+      source: '系统录入',
+      handler: '系统处理',
+      handleTime: '—',
+      people: [],
+      demo: 'limit'
+    },
+    {
+      voucher: '200330382220071601',
+      type: '扣除转运质量奖金-差错',
+      site: '天津分拨中心',
+      deduct: '3.72',
+      grant: '/',
+      occur: '2026-07-15',
+      remark: '自动回刷',
+      create: '2026-07-15 11:00:00',
+      status: '<span class="tag">分拨已处理</span>',
+      source: '系统录入',
+      handler: '张经理',
+      handleTime: '2026-07-15 11:05:22',
+      people: [
+        { name: '胡丽', id: '80045171', deduct: '1.87', grant: '/' },
+        { name: '王迎水', id: '80165887', deduct: '1.85', grant: '/' }
+      ],
+      demo: 'unequal'
+    },
+    {
+      voucher: '200330382220071710',
+      type: '发放转运质量奖金-合托',
+      site: '金华分拨中心',
+      deduct: '/',
+      grant: '150.00',
+      occur: '2026-07-16',
+      remark: '—',
+      create: '2026-07-16 14:20:00',
+      status: '<span class="tag">总部已处理</span>',
+      source: '系统录入',
+      handler: '李主管',
+      handleTime: '2026-07-16 15:01:08',
+      people: [
+        { name: '张三', id: '90132802', deduct: '/', grant: '150.00' }
+      ]
+    },
+    {
+      voucher: '200330382220071820',
+      type: '扣除转运质量奖金-合托罚款',
+      site: '台州分拨中心',
+      deduct: '50.00',
+      grant: '/',
+      occur: '2026-07-17',
+      remark: '二次分配',
+      create: '2026-07-17 09:10:00',
+      status: '<span class="tag">分拨二次处理</span>',
+      source: '系统录入',
+      handler: '王经理',
+      handleTime: '2026-07-17 09:30:00',
+      people: [
+        { name: '赵六', id: '90110001', deduct: '50.00', grant: '/' }
+      ]
+    }
+  ];
+
+  function buildBody() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = rows.map((r, idx) => `
+      <tr class="clickable" data-idx="${idx}">
+        <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+        <td><span class="cell-link">${r.voucher}</span></td>
+        <td>${r.type}</td>
+        <td>${r.site}</td>
+        <td>${r.deduct}</td>
+        <td>${r.grant}</td>
+        <td>${r.occur}</td>
+        <td>${r.remark}</td>
+        <td>${r.create}</td>
+        <td>${r.status}</td>
+        <td>${r.source}</td>
+        <td>${r.handler}</td>
+        <td>${r.handleTime}</td>
+        ${r.people && r.people.length ? respCells(r.people) : emptyRespCells()}
+      </tr>
+    `).join('');
+
+    tbody.querySelectorAll('tr.clickable').forEach(tr => {
+      tr.addEventListener('click', (e) => {
+        if (e.target.closest('input[type="checkbox"]')) return;
+        const idx = Number(tr.dataset.idx);
+        openDrawerByRowIndex(idx);
+      });
+      tr.addEventListener('dblclick', (e) => {
+        if (e.target.closest('input[type="checkbox"]')) return;
+        openDrawerByRowIndex(Number(tr.dataset.idx));
+      });
+    });
+  }
+
+  function buildAllocRows(mode) {
+    const body = document.getElementById('allocBody');
+    const sample = mode === 'unequal'
+      ? [
+          { name: '胡丽', id: '80045171', amount: '1.87' },
+          { name: '王迎水', id: '80165887', amount: '1.85' }
+        ]
+      : [
+          { name: '张三', id: '90132802', amount: '200.00' },
+          { name: '', id: '', amount: '' }
+        ];
+    let html = '';
+    for (let i = 1; i <= 20; i++) {
+      const s = sample[i - 1] || { name: '', id: '', amount: '' };
+      html += `<tr>
+        <td class="col-seq">责任人${i}</td>
+        <td><input type="text" value="${s.name}" placeholder="责任人" /></td>
+        <td><input type="text" value="${s.id}" placeholder="工号" /></td>
+        <td><input type="text" value="${s.amount}" placeholder="金额" /></td>
+      </tr>`;
+    }
+    body.innerHTML = html;
+  }
+
+  function fillDrawerForm(row) {
+    if (!row) return;
+    document.getElementById('drawerVoucher').value = row.voucher || '';
+    document.getElementById('drawerType').value = row.type || '';
+    // 若下拉没有该 option，补一条
+    const typeSel = document.getElementById('drawerType');
+    if (![...typeSel.options].some(o => o.value === row.type || o.text === row.type)) {
+      const opt = document.createElement('option');
+      opt.text = row.type;
+      opt.value = row.type;
+      typeSel.add(opt);
+      typeSel.value = row.type;
+    }
+    document.getElementById('drawerSite').value = row.site || '';
+    const amount = row.deduct && row.deduct !== '/' ? row.deduct : (row.grant && row.grant !== '/' ? row.grant : '');
+    document.getElementById('drawerAmount').value = amount;
+    document.getElementById('drawerOccur').value = row.occur || '';
+    document.getElementById('drawerRemark').value = row.remark || '';
+  }
+
+  function openDrawer(mode, row) {
+    const alertEl = document.getElementById('drawerAlert');
+    if (row) fillDrawerForm(row);
+    if (mode === 'limit') {
+      alertEl.textContent = '【张三】质量奖金金额达到上限，请核实后再处理。';
+      alertEl.classList.remove('hide');
+      buildAllocRows('limit');
+    } else if (mode === 'unequal') {
+      alertEl.textContent = '奖罚金额不等于分配金额';
+      alertEl.classList.remove('hide');
+      buildAllocRows('unequal');
+    } else {
+      alertEl.classList.add('hide');
+      buildAllocRows('ok');
+    }
+    document.getElementById('drawerMask').classList.add('open');
+    document.getElementById('drawer').classList.add('open');
+  }
+
+  function openDrawerByRowIndex(idx) {
+    const row = rows[idx];
+    if (!row) return;
+    openDrawer(row.demo === 'limit' ? 'limit' : (row.demo === 'unequal' ? 'unequal' : 'ok'), row);
+  }
+
+  function closeDrawer() {
+    document.getElementById('drawerMask').classList.remove('open');
+    document.getElementById('drawer').classList.remove('open');
+  }
+
+  document.getElementById('btnEdit').addEventListener('click', () => {
+    const checked = [...document.querySelectorAll('#tableBody tr.clickable')].filter(tr => {
+      const cb = tr.querySelector('.row-check');
+      return cb && cb.checked;
+    });
+    if (checked.length === 0) {
+      openDrawerByRowIndex(0);
+      return;
+    }
+    openDrawerByRowIndex(Number(checked[0].dataset.idx));
+  });
+
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('drawerMask').addEventListener('click', closeDrawer);
+  document.getElementById('drawerSave').addEventListener('click', () => {
+    const alertEl = document.getElementById('drawerAlert');
+    if (!alertEl.classList.contains('hide') && alertEl.textContent.indexOf('达到上限') >= 0) {
+      return;
+    }
+    closeDrawer();
+  });
+
+  function openRebrush() {
+    document.getElementById('rebrushMask').classList.add('open');
+  }
+  function closeRebrush() {
+    document.getElementById('rebrushMask').classList.remove('open');
+  }
+  document.getElementById('btnRefresh').addEventListener('click', openRebrush);
+  document.getElementById('rebrushClose').addEventListener('click', closeRebrush);
+  document.getElementById('rebrushMask').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('rebrushMask')) closeRebrush();
+  });
+
+  buildHeader();
+  buildBody();
+  bindAwardType();
+</script>
+
+</body>
+</html>
