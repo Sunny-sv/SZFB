@@ -3,20 +3,28 @@
 母版文件：`docs/_共用/PC端通用框架.html`  
 业务原型：`docs/{项目名}/{中文页面名}.html`（与同项目 PRD 同目录）
 
-## 全局三区 DOM 对照
+**页面即真页面：** 不要在 HTML 里加「原型说明」条、演示备注、临时演示按钮；规则说明放对话或 PRD。
+
+## 全局结构 DOM 对照
+
+整体为 **纵排**：顶栏一行 + 下方 body 横排（侧栏 + 主内容）。
 
 | 区域 | CSS 类 / 元素 | 说明 |
 |------|---------------|------|
-| 整体容器 | `.layout` | flex 横排，100vh |
-| 左侧侧边栏 | `#sidebar.sidebar` | 宽 200px，折叠 64px |
-| Logo 区 | `.sidebar-logo` | 系统名称占位 |
+| 整体容器 | `#layout.layout` | flex 纵排，100vh；折叠时加 `.sidebar-collapsed` |
+| 顶栏整行 | `.top-header` | 高 48px；左品牌 + 右蓝底标签栏 |
+| 品牌区 | `.brand-area` | 宽同侧栏；文案「数智分拨 \| DLC」；折叠时显示 `.brand-short` |
+| 蓝色顶栏 | `.top-tabs` | 背景 `#0659d9` |
+| 折叠按钮 | `#sidebarToggle.collapse-btn` | 在蓝顶栏左侧（汉堡） |
+| 首页按钮 | `.home-btn` | 顶栏内 |
+| 页面标签 | `#pageTabs .page-tab` | 激活白底深字；未选中半透明底白字；可多个 |
+| 顶栏右侧 | `.top-right` | 工具图标 + `.user-info`（头像 / sysadmin） |
+| 下方横排 | `.body-row` | flex 横排：侧栏 + 主内容 |
+| 左侧侧边栏 | `#sidebar.sidebar` | 宽 200px，折叠 64px；无独立 Logo 区 |
 | 菜单列表 | `.sidebar-menu` | `.menu-item` + 可选 `.menu-sub` |
-| 折叠按钮 | `#sidebarToggle` | 底部固定 |
 | 右侧容器 | `.main-wrapper` | flex 纵排 |
-| 顶部标签栏 | `.top-tabs` | 高 40px |
-| 页面标签 | `#pageTabs .page-tab` | 可多个，一项 `.active` |
-| 主内容滚动区 | `.content-area` |  padding 16px，背景 `#f0f2f5` |
-| 内容卡片 | `.content-card` | 白底，承载四模块 |
+| 主内容区 | `.content-area` | padding 16px，背景 `#f0f2f5`；flex 撑满，不整页滚动 |
+| 内容卡片 | `.content-card` | 白底，撑满可视高度，承载四模块 |
 
 ## 主内容四模块 DOM 对照
 
@@ -30,9 +38,11 @@
 | 1e 按钮 | `.filter-actions` | `.btn` 重置 + `.btn-primary` 查询 |
 | 2 标签切换 | `#contentTabs.content-tabs` | `.content-tab`，一项 `.active` |
 | 3 操作按钮 | `.action-bar` | `.btn-action` / `.btn-action.primary` |
-| 4 数据表格 | `.table-area` + `.data-table` | thead + tbody；`th`/`td` 默认 `text-align: center` |
-| 4a 复选框列 | `.col-checkbox` | 表头 `#checkAll` + 行 `.row-check` |
-| 4b 分页 | `.pagination` | 总数 + 页码 + 跳转 |
+| 4 数据列表 | `.table-area` | flex 占满剩余高度；内含 `.table-scroll` + `.pagination` |
+| 4a 表体滚动 | `.table-scroll` | 包住 `.data-table`；行多时在此滚动 |
+| 4b 数据表格 | `.data-table` | thead + tbody；`th`/`td` 默认 `text-align: center` |
+| 4c 复选框列 | `.col-checkbox` | 表头 `#checkAll` + 行 `.row-check` |
+| 4d 分页 | `.pagination` | **贴内容卡片底部**（`margin-top: auto` / 列表区 flex）；总数 + 页码 + 跳转 |
 
 ## 筛选区多行扩展示例
 
@@ -60,6 +70,23 @@
 
 勿使用「4 列 grid 把按钮塞进第 4 列」，否则第 4 个条件会错位到按钮上方。
 勿把筛选名称放在控件上方（上下布局）；统一左右布局。
+
+## 弹框 / 表单字段布局
+
+与筛选区同一原则：**左 label、右控件**，禁止上下叠放。
+
+| 结构 | 要求 |
+|------|------|
+| 单字段 | 左 `.form-label`（右对齐）+ 右控件 |
+| 多列表单 | 可用 grid 排 2～3 列；**每个格子内部仍是左右布局** |
+| 长字段名 | 加宽 label 栏宽，不要改成「名称在上、输入在下」 |
+
+```html
+<div class="form-item">
+  <label class="form-label required">奖罚类型</label>
+  <select class="form-control">...</select>
+</div>
+```
 
 ## 占位命名规范
 
@@ -90,7 +117,7 @@
 
 | 功能 | 选择器 | 行为 |
 |------|--------|------|
-| 侧边栏折叠 | `#sidebarToggle` | toggle `#sidebar.collapsed` |
+| 侧边栏折叠 | `#sidebarToggle` | toggle `#layout.sidebar-collapsed` |
 | 顶栏标签切换 | `#pageTabs` | 切换 `.page-tab.active` |
 | 内容 Tab 切换 | `#contentTabs` | 切换 `.content-tab.active` |
 | 全选 | `#checkAll` | 联动 `.row-check` |

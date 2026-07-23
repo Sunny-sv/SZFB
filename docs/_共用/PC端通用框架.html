@@ -10,6 +10,7 @@
     :root {
       --primary: #1890ff;
       --primary-hover: #40a9ff;
+      --header-blue: #0659d9;
       --sidebar-bg: #001529;
       --sidebar-sub: #000c17;
       --sidebar-text: rgba(255,255,255,.65);
@@ -21,7 +22,7 @@
       --text-secondary: rgba(0,0,0,.45);
       --sidebar-width: 200px;
       --sidebar-collapsed: 64px;
-      --header-height: 40px;
+      --header-height: 48px;
     }
 
     body {
@@ -32,9 +33,169 @@
       overflow: hidden;
     }
 
-    .layout { display: flex; height: 100vh; }
+    .layout { display: flex; flex-direction: column; height: 100vh; }
 
-    /* 左侧侧边栏 */
+    /* 顶部整栏：左品牌 + 右蓝底标签栏 */
+    .top-header {
+      height: var(--header-height);
+      display: flex;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .brand-area {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: width .2s;
+      letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area {
+      width: var(--sidebar-collapsed);
+      padding: 0 8px;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+
+    .top-tabs {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      background: var(--header-blue);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn,
+    .top-tabs .home-btn {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 18px;
+      flex-shrink: 0;
+      opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover,
+    .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+
+    .page-tabs {
+      display: flex;
+      align-items: flex-end;
+      flex: 1;
+      overflow-x: auto;
+      gap: 4px;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 36px;
+      border-radius: 6px 6px 0 0;
+      color: rgba(255,255,255,.95);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active {
+      background: #fff;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .7;
+      margin-left: 2px;
+    }
+    .page-tab.active .tab-close { opacity: .45; color: var(--text-secondary); }
+    .page-tab .tab-close:hover { opacity: 1; color: #ff4d4f; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px 6px 12px;
+      color: #fff;
+      flex-shrink: 0;
+      align-self: flex-end;
+      height: 42px;
+    }
+    .top-right .icon-btn {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .top-right .icon-btn .badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+      padding: 0 4px 0 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 32px;
+    }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #722ed1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+
+    /* 下方：侧栏 + 主内容 */
+    .body-row { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
     .sidebar {
       width: var(--sidebar-width);
       background: var(--sidebar-bg);
@@ -44,28 +205,7 @@
       transition: width .2s;
       overflow: hidden;
     }
-    .sidebar.collapsed { width: var(--sidebar-collapsed); }
-
-    .sidebar-logo {
-      height: 48px;
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 10px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      color: #fff;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .sidebar-logo .logo-icon {
-      width: 28px; height: 28px;
-      background: var(--primary);
-      border-radius: 4px;
-      flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px;
-    }
-    .sidebar.collapsed .logo-text { display: none; }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
 
     .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
 
@@ -84,102 +224,34 @@
     .menu-item.active { background: var(--primary); color: #fff; }
     .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
     .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
-    .sidebar.collapsed .menu-label,
-    .sidebar.collapsed .menu-arrow { display: none; }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
 
     .menu-sub { background: var(--sidebar-sub); }
     .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
-    .sidebar.collapsed .menu-sub { display: none; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
 
-    .sidebar-toggle {
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--sidebar-text);
-      cursor: pointer;
-      border-top: 1px solid rgba(255,255,255,.08);
-      font-size: 16px;
-    }
-    .sidebar-toggle:hover { color: #fff; }
-
-    /* 右侧区域 */
     .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
-    /* 顶部标签栏 */
-    .top-tabs {
-      height: var(--header-height);
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 8px;
-      flex-shrink: 0;
-    }
-    .top-tabs .home-btn {
-      width: 36px; height: 36px;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-secondary);
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 16px;
-    }
-    .top-tabs .home-btn:hover { color: var(--primary); }
-
-    .page-tabs {
-      display: flex;
-      align-items: center;
+    /* 主内容区：卡片撑满可视高度，分页贴底 */
+    .content-area {
       flex: 1;
-      overflow-x: auto;
-      gap: 2px;
-      padding: 0 4px;
-    }
-    .page-tab {
+      min-height: 0;
+      overflow: hidden;
+      padding: 16px;
       display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0 12px;
-      height: 32px;
-      border-radius: 4px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      white-space: nowrap;
-      font-size: 13px;
+      flex-direction: column;
     }
-    .page-tab:hover { color: var(--text); background: #fafafa; }
-    .page-tab.active { color: var(--primary); background: #e6f7ff; }
-    .page-tab .tab-close { font-size: 12px; opacity: .4; margin-left: 2px; }
-    .page-tab .tab-close:hover { opacity: 1; color: #ff4d4f; }
-
-    .top-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 12px;
-      color: var(--text-secondary);
-      flex-shrink: 0;
-    }
-    .top-right .icon-btn { cursor: pointer; font-size: 16px; }
-    .top-right .icon-btn:hover { color: var(--primary); }
-    .avatar {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      background: #ccc;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; color: #fff;
-      cursor: pointer;
-    }
-
-    /* 主内容区 */
-    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
     .content-card {
       background: var(--card);
       border-radius: 4px;
       padding: 16px;
-      min-height: calc(100vh - var(--header-height) - 32px);
+      flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       gap: 16px;
+      overflow: hidden;
     }
 
     /* 1. 筛选条件区：名称左+控件右；3 列网格；重置/查询与最后一行底对齐 */
@@ -298,8 +370,18 @@
     .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
     .btn-action:hover { opacity: .85; }
 
-    /* 4. 数据列表区 */
-    .table-area { flex: 1; display: flex; flex-direction: column; }
+    /* 4. 数据列表区：占满剩余高度，分页始终在底部 */
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
     .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
     .data-table th,
     .data-table td { border: 1px solid var(--border); padding: 10px 12px; text-align: center; }
@@ -309,13 +391,15 @@
     .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
     .cell-placeholder { color: var(--text-secondary); }
 
-    /* 分页 */
+    /* 分页：贴列表区底部固定展示 */
     .pagination {
       display: flex;
       align-items: center;
       justify-content: flex-end;
       gap: 8px;
+      margin-top: auto;
       padding-top: 16px;
+      flex-shrink: 0;
       font-size: 13px;
       color: var(--text-secondary);
     }
@@ -347,30 +431,14 @@
 </head>
 <body>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-icon">L</div>
-      <span class="logo-text">系统名称</span>
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
     </div>
-    <nav class="sidebar-menu">
-      <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">菜单项 1</span></div>
-      <div class="menu-item active">
-        <span class="menu-icon">☰</span><span class="menu-label">菜单项 2</span><span class="menu-arrow">▼</span>
-      </div>
-      <div class="menu-sub">
-        <div class="menu-item">子菜单 1</div>
-        <div class="menu-item">子菜单 2</div>
-        <div class="menu-item">子菜单 3</div>
-      </div>
-      <div class="menu-item"><span class="menu-icon">⚙</span><span class="menu-label">菜单项 3</span><span class="menu-arrow">▶</span></div>
-      <div class="menu-item"><span class="menu-icon">📋</span><span class="menu-label">菜单项 4</span><span class="menu-arrow">▶</span></div>
-    </nav>
-    <div class="sidebar-toggle" id="sidebarToggle" title="折叠/展开">☰</div>
-  </aside>
-
-  <div class="main-wrapper">
-    <header class="top-tabs">
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
       <div class="home-btn" title="首页">⌂</div>
       <div class="page-tabs" id="pageTabs">
         <div class="page-tab active" data-tab="page1">标签页 1 <span class="tab-close">×</span></div>
@@ -378,12 +446,37 @@
         <div class="page-tab" data-tab="page3">标签页 3 <span class="tab-close">×</span></div>
       </div>
       <div class="top-right">
+        <span class="icon-btn" title="文档">📄</span>
+        <span class="icon-btn" title="下载">⬇</span>
         <span class="icon-btn" title="搜索">🔍</span>
-        <span class="icon-btn" title="通知">🔔</span>
-        <div class="avatar" title="用户">U</div>
+        <span class="icon-btn" title="通知">🔔<span class="badge">3</span></span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
       </div>
-    </header>
+    </div>
+  </header>
 
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">菜单项 1</span></div>
+        <div class="menu-item active">
+          <span class="menu-icon">☰</span><span class="menu-label">菜单项 2</span><span class="menu-arrow">▼</span>
+        </div>
+        <div class="menu-sub">
+          <div class="menu-item">子菜单 1</div>
+          <div class="menu-item">子菜单 2</div>
+          <div class="menu-item">子菜单 3</div>
+        </div>
+        <div class="menu-item"><span class="menu-icon">⚙</span><span class="menu-label">菜单项 3</span><span class="menu-arrow">▶</span></div>
+        <div class="menu-item"><span class="menu-icon">📋</span><span class="menu-label">菜单项 4</span><span class="menu-arrow">▶</span></div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
     <main class="content-area">
       <div class="content-card">
 
@@ -456,21 +549,23 @@
         </section>
 
         <section class="table-area">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>
-                <th>列 1</th><th>列 2</th><th>列 3</th><th>列 4</th><th>列 5</th><th>列 6</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody">
-              <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
-              <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
-              <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
-              <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
-              <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
-            </tbody>
-          </table>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>
+                  <th>列 1</th><th>列 2</th><th>列 3</th><th>列 4</th><th>列 5</th><th>列 6</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
+              </tbody>
+            </table>
+          </div>
           <div class="pagination">
             <span class="total">共 100 条</span>
             <button class="page-btn disabled">&lt;</button>
@@ -487,11 +582,12 @@
       </div>
     </main>
   </div>
+  </div>
 </div>
 
 <script>
   document.getElementById('sidebarToggle').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('collapsed');
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
   });
 
   document.getElementById('pageTabs').addEventListener('click', (e) => {

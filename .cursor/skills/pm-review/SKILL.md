@@ -11,11 +11,11 @@ description: >-
 
 ## 何时使用
 
-- **交付前必审**：刚用 `pc-maintain-prd` / `pc-report-prd` / `pm-incremental-prd` / `pc-prototype` 写完时，**先跑本审查、输出「待你确认」清单，再结束本轮**（除非用户明确说「先别审」）
+- **交付前必审**：刚用 `pc-maintain-prd` / `pc-report-prd` / `pm-incremental-prd` / `pc-prototype` 写完时，**先跑本审查、输出「待你确认」清单，再结束本轮**（除非用户明确说「先别审」）。若本轮刚做过 [pm-prd-polish](../pm-prd-polish/SKILL.md)，审查重点查规则是否被润色带偏。
 - 用户说「审查 PRD / 检查原型 / 挑挑刺 / 写完帮我过一遍 / PRD 自检 / 原型评审」
 - 评审前想确认：逻辑有没有打架、结构合不合标准、原型展示/交互有没有问题
 
-**不替代：** 写作用对应 PRD/原型 skill；讨论补方案用 `pm-discuss-challenge`。本 skill 只管**审已有产出物**。
+**不替代：** 写作用对应 PRD/原型 skill；讨论补方案用 `pm-discuss-challenge`；正式润色仅在用户点名时用 `pm-prd-polish`。本 skill 只管**审已有产出物**。
 
 ## 红线
 
@@ -44,6 +44,7 @@ description: >-
 | 维护页 PRD | [pc-maintain-prd](../pc-maintain-prd/SKILL.md) + [pm-prd-writing-style](../pm-prd-writing-style/SKILL.md) + [pm-component-catalog](../pm-component-catalog/SKILL.md) |
 | 报表 PRD | [pc-report-prd](../pc-report-prd/SKILL.md) + writing-style + component-catalog |
 | 增量/规则 PRD | [pm-incremental-prd](../pm-incremental-prd/SKILL.md) + writing-style |
+| 正式润色后的 PRD | [pm-prd-polish](../pm-prd-polish/SKILL.md)（重点查润色是否带偏规则） + writing-style |
 | HTML 原型 | [pc-prototype](../pc-prototype/SKILL.md) + 母版 `docs/_共用/PC端通用框架.html` |
 | 两边都有 | 上表对应项 + checklist「原型 ↔ PRD」对齐 |
 
@@ -70,7 +71,7 @@ description: >-
 
 | 级别 | 何时用 | 对用户的含义 |
 |------|--------|--------------|
-| **阻断** | 逻辑互相打架、缺必填结构模块、原型三区/四模块骨架被改坏 | 建议先改再拿去评审 |
+| **阻断** | 逻辑互相打架、缺必填结构模块、原型顶栏/侧栏/四模块骨架被改坏 | 建议先改再拿去评审 |
 | **建议** | 写法不合规范、交互演示缺失、易误解 | 你决定改不改 |
 | **提醒** | 行业常见坑、口径需业务拍板、可能冲突但证据不足 | 标待确认，不替你定 |
 
@@ -92,6 +93,7 @@ description: >-
 | 写维护页 PRD | pc-maintain-prd → **本 skill 必审** |
 | 写报表 PRD | pc-report-prd → **本 skill 必审** |
 | 写增量/规则 PRD | pm-incremental-prd → **本 skill 必审** |
+| 正式润色 PRD（用户点名） | pm-prd-polish → **本 skill 必审**（规则是否被润色带偏） |
 | 画原型 | pc-prototype → **本 skill 必审** |
 | 仅写法自检清单 | pm-prd-writing-style（轻量）；完整审查仍用本 skill |
 
