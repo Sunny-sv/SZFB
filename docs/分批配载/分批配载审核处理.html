@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>分批配载审核处理</title>
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 40px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; height: 100vh; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .sidebar.collapsed { width: var(--sidebar-collapsed); }
+
+    .sidebar-logo {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      color: #fff;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .sidebar-logo .logo-icon {
+      width: 28px; height: 28px;
+      background: var(--primary);
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+    .sidebar.collapsed .logo-text { display: none; }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .sidebar.collapsed .menu-label,
+    .sidebar.collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .sidebar.collapsed .menu-sub { display: none; }
+
+    .sidebar-toggle {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      border-top: 1px solid rgba(255,255,255,.08);
+      font-size: 16px;
+    }
+    .sidebar-toggle:hover { color: #fff; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .top-tabs {
+      height: var(--header-height);
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+    .top-tabs .home-btn {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .top-tabs .home-btn:hover { color: var(--primary); }
+
+    .page-tabs {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      overflow-x: auto;
+      gap: 2px;
+      padding: 0 4px;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      height: 32px;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    .page-tab:hover { color: var(--text); background: #fafafa; }
+    .page-tab.active { color: var(--primary); background: #e6f7ff; }
+    .page-tab .tab-close { font-size: 12px; opacity: .4; margin-left: 2px; }
+    .page-tab .tab-close:hover { opacity: 1; color: #ff4d4f; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .top-right .icon-btn { cursor: pointer; font-size: 16px; }
+    .top-right .icon-btn:hover { color: var(--primary); }
+    .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #ccc;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #fff;
+      cursor: pointer;
+    }
+
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      min-height: calc(100vh - var(--header-height) - 32px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 168px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-label-select {
+      flex: 0 0 108px;
+      position: relative;
+      text-align: right;
+    }
+    .filter-label-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+      max-width: 108px;
+      border: 0;
+      background: transparent;
+      padding: 0;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .filter-label-trigger .caret {
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1;
+    }
+    .filter-label-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      min-width: 140px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
+      z-index: 5;
+      padding: 4px 0;
+      text-align: left;
+    }
+    .filter-label-menu.open { display: block; }
+    .filter-label-option {
+      padding: 8px 12px;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .filter-label-option:hover { background: #f5f5f5; }
+    .filter-label-option.active { color: var(--primary); }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range,
+    .filter-item .filter-control-wrap > .input-with-count {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .input-with-count { position: relative; }
+    .input-with-count .filter-control { padding-right: 64px; }
+    .input-with-count .char-count {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .multi-select { position: relative; }
+    .multi-select-box {
+      min-height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 28px 2px 4px;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+    }
+    .multi-select.open .multi-select-box {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(24,144,255,.2);
+    }
+    .multi-select-box::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .multi-select.open .multi-select-box::after { content: "▲"; }
+    .multi-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 24px;
+      padding: 0 6px;
+      background: #f0f0f0;
+      border-radius: 2px;
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1;
+    }
+    .multi-tag-remove {
+      border: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+      padding: 0;
+    }
+    .multi-tag-remove:hover { color: var(--text); }
+    .multi-placeholder {
+      padding: 0 7px;
+      color: #bfbfbf;
+      font-size: 14px;
+      line-height: 28px;
+    }
+    .multi-select-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
+      z-index: 6;
+      max-height: 240px;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .multi-select.open .multi-select-menu { display: block; }
+    .multi-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .multi-option:hover { background: #f5f5f5; }
+    .multi-option.selected { color: var(--primary); }
+    .multi-option .check {
+      width: 14px;
+      text-align: center;
+      font-size: 12px;
+      visibility: hidden;
+    }
+    .multi-option.selected .check { visibility: visible; }
+
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; color: var(--text); }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action:hover { opacity: .85; }
+    .btn-action:disabled,
+    .btn-action.disabled {
+      color: rgba(0,0,0,.25);
+      border-color: #d9d9d9;
+      background: #f5f5f5;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+
+    .table-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .select-all-bar {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 12px;
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-bottom: 0;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .select-all-bar.show { display: flex; }
+    .select-all-bar .link {
+      color: var(--primary);
+      cursor: pointer;
+      margin-left: 4px;
+    }
+    .select-all-bar .link:hover { text-decoration: underline; }
+    .table-scroll { overflow-x: auto; border: 1px solid var(--border); }
+    .data-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13px;
+    }
+    .data-table th,
+    .data-table td {
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: center;
+      white-space: nowrap;
+      background: #fff;
+    }
+    .data-table th {
+      background: #fafafa;
+      font-weight: 500;
+      color: var(--text);
+      border-top: 1px solid var(--border);
+    }
+    .data-table th:first-child,
+    .data-table td:first-child { border-left: 1px solid var(--border); }
+    .data-table tbody tr:hover td { background: #fafafa; }
+    .col-checkbox {
+      width: 48px;
+      min-width: 48px;
+      max-width: 48px;
+      text-align: center !important;
+    }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .col-handover { width: 120px; min-width: 120px; }
+    .col-waybill { width: 140px; min-width: 140px; }
+    .col-duty { width: 120px; min-width: 120px; }
+    .col-status { width: 100px; min-width: 100px; }
+    .col-sticky {
+      position: sticky;
+      z-index: 2;
+    }
+    .data-table th.col-sticky { z-index: 3; background: #fafafa; }
+    .col-sticky-1 { left: 0; }
+    .col-sticky-2 { left: 48px; }
+    .col-sticky-3 { left: 168px; }
+    .col-sticky-4 { left: 308px; }
+    .col-sticky-5 { left: 428px; box-shadow: 2px 0 4px rgba(0, 0, 0, .06); }
+    .data-table tbody tr:hover td.col-sticky { background: #fafafa; }
+    .cell-link { color: var(--primary); cursor: pointer; }
+    .cell-link:hover { text-decoration: underline; }
+    .cell-empty { color: var(--text-secondary); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding-top: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-size {
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+    }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .modal-mask {
+      position: fixed; inset: 0; z-index: 20;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, .45);
+    }
+    .modal-mask.open { display: flex; }
+    .modal {
+      width: 560px;
+      max-height: 90vh;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      height: 48px;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .modal-title { font-size: 16px; font-weight: 500; }
+    .modal-close {
+      border: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-body {
+      padding: 20px 24px 8px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .form-row {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .form-label {
+      flex: 0 0 88px;
+      width: 88px;
+      text-align: right;
+      padding-top: 6px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .form-label.required::before {
+      content: "*";
+      color: #ff4d4f;
+      margin-right: 4px;
+    }
+    .form-field {
+      flex: 1;
+      min-width: 0;
+      position: relative;
+    }
+    .form-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      outline: none;
+      font-size: 14px;
+      background: #fff;
+      color: var(--text);
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(24,144,255,.2);
+    }
+    select.form-control {
+      appearance: none;
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    textarea.form-control {
+      height: 88px;
+      padding: 6px 11px 22px;
+      resize: none;
+      line-height: 1.4;
+    }
+    .form-char-count {
+      position: absolute;
+      right: 8px;
+      bottom: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .upload-box {
+      border: 1px dashed #d9d9d9;
+      border-radius: 4px;
+      padding: 28px 16px;
+      text-align: center;
+      color: var(--text-secondary);
+      background: #fafafa;
+      cursor: pointer;
+    }
+    .upload-box:hover { border-color: var(--primary); }
+    .upload-icon {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 10px;
+      border-radius: 50%;
+      background: #e6f7ff;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .upload-main { font-size: 14px; color: var(--text); margin-bottom: 6px; }
+    .upload-tip { font-size: 12px; line-height: 1.5; }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal.confirm { width: 420px; }
+    .confirm-body {
+      padding: 28px 24px 12px;
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">L</div>
+      <span class="logo-text">数智分拨</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item active">
+        <span class="menu-icon">☰</span><span class="menu-label">分拨状态管理</span><span class="menu-arrow">▼</span>
+      </div>
+      <div class="menu-sub">
+        <div class="menu-item active">分批配载审核处理</div>
+        <div class="menu-item">菜单项</div>
+      </div>
+      <div class="menu-item"><span class="menu-icon">⚙</span><span class="menu-label">菜单项</span><span class="menu-arrow">▶</span></div>
+    </nav>
+    <div class="sidebar-toggle" id="sidebarToggle" title="折叠/展开">☰</div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="top-tabs">
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active" data-tab="page1">分批配载审核处理 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔</span>
+        <div class="avatar" title="用户">U</div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">运单号</span>
+              <div class="filter-control-wrap">
+                <div class="input-with-count">
+                  <input class="filter-control" id="waybillInput" type="text" placeholder="请输入单号，多单号，隔开" maxlength="30000" />
+                  <span class="char-count" id="waybillCount">0/30000</span>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">省区</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入省区" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入分拨" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">末端分拨发车确认时间</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" value="2026-07-01" readonly />
+                  <span class="sep">至</span>
+                  <input class="filter-control" type="text" value="2026-07-21" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">审核状态</span>
+              <div class="filter-control-wrap">
+                <div class="multi-select" id="auditStatusSelect">
+                  <div class="multi-select-box" id="auditStatusBox">
+                    <span class="multi-tag">待审核<button type="button" class="multi-tag-remove" data-value="待审核">×</button></span>
+                    <span class="multi-tag">审核通过<button type="button" class="multi-tag-remove" data-value="审核通过">×</button></span>
+                    <span class="multi-tag">审核不通过<button type="button" class="multi-tag-remove" data-value="审核不通过">×</button></span>
+                  </div>
+                  <div class="multi-select-menu" id="auditStatusMenu">
+                    <div class="multi-option selected" data-value="待审核"><span>待审核</span><span class="check">✓</span></div>
+                    <div class="multi-option selected" data-value="审核通过"><span>审核通过</span><span class="check">✓</span></div>
+                    <div class="multi-option selected" data-value="审核不通过"><span>审核不通过</span><span class="check">✓</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn">重置</button>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </section>
+
+        <section class="action-bar">
+          <button class="btn-action disabled" id="btnApprove" disabled>审核通过</button>
+          <button class="btn-action disabled" id="btnReject" disabled>审核不通过</button>
+          <button class="btn-action" id="btnExport">导出</button>
+        </section>
+
+        <section class="table-area">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox col-sticky col-sticky-1"><input type="checkbox" id="checkAll" title="全选当前查询结果" /></th>
+                  <th class="col-handover col-sticky col-sticky-2">交接单号</th>
+                  <th class="col-waybill col-sticky col-sticky-3">运单号</th>
+                  <th class="col-duty col-sticky col-sticky-4">责任分拨</th>
+                  <th class="col-status col-sticky col-sticky-5">审核状态</th>
+                  <th>末端分拨发车确认时间</th>
+                  <th>末端出库分拨</th>
+                  <th>末端目的网点</th>
+                  <th>车线</th>
+                  <th>下一分拨/网点</th>
+                  <th>出库时间</th>
+                  <th>实际重量</th>
+                  <th>体积</th>
+                  <th>录单件数</th>
+                  <th>末端分拨出库件数</th>
+                  <th>责任分拨发件件数</th>
+                  <th>实际分批件数</th>
+                  <th>寄件网点</th>
+                  <th>目的分拨</th>
+                  <th>寄件分拨</th>
+                  <th>责任原因</th>
+                  <th>寄件人</th>
+                  <th>物品名称</th>
+                  <th>VIP类型</th>
+                  <th>审核人</th>
+                  <th>审核时间</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr>
+                  <td class="col-checkbox col-sticky col-sticky-1"><input type="checkbox" class="row-check" /></td>
+                  <td class="col-handover col-sticky col-sticky-2">JJD20260721001</td>
+                  <td class="col-waybill col-sticky col-sticky-3"><span class="cell-link">800209301629</span></td>
+                  <td class="col-duty col-sticky col-sticky-4">邢台分拨中心</td>
+                  <td class="col-status col-sticky col-sticky-5">待审核</td>
+                  <td>2026-07-19</td>
+                  <td>昌黎分拨中心</td>
+                  <td>宣杭</td>
+                  <td>京津线</td>
+                  <td>贵阳分拨中心</td>
+                  <td>2026-07-19 15:00:18</td>
+                  <td>28</td>
+                  <td>0.14</td>
+                  <td>3</td>
+                  <td>2</td>
+                  <td>2</td>
+                  <td>1</td>
+                  <td>汕头潮阳贵屿</td>
+                  <td>昆明分拨中心</td>
+                  <td>汕头分拨中心</td>
+                  <td>汕头潮阳二部未同票同位</td>
+                  <td>张三</td>
+                  <td>冻品</td>
+                  <td></td>
+                  <td class="cell-empty">-</td>
+                  <td class="cell-empty">-</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox col-sticky col-sticky-1"><input type="checkbox" class="row-check" /></td>
+                  <td class="col-handover col-sticky col-sticky-2">JJD20260721002</td>
+                  <td class="col-waybill col-sticky col-sticky-3"><span class="cell-link">ZY202456271749</span></td>
+                  <td class="col-duty col-sticky col-sticky-4">天津分拨中心</td>
+                  <td class="col-status col-sticky col-sticky-5">待审核</td>
+                  <td>2026-07-19</td>
+                  <td>天津分拨中心</td>
+                  <td>蓟州庄安</td>
+                  <td>津冀线</td>
+                  <td>唐山迁安</td>
+                  <td>2026-07-19 14:52:06</td>
+                  <td>42</td>
+                  <td>0.2</td>
+                  <td>5</td>
+                  <td>1</td>
+                  <td>1</td>
+                  <td>1</td>
+                  <td>杭州河洋</td>
+                  <td>天津分拨中心</td>
+                  <td>杭州分拨中心</td>
+                  <td>虚假发件</td>
+                  <td>李四</td>
+                  <td>竹制品</td>
+                  <td></td>
+                  <td class="cell-empty">-</td>
+                  <td class="cell-empty">-</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox col-sticky col-sticky-1"><input type="checkbox" class="row-check" /></td>
+                  <td class="col-handover col-sticky col-sticky-2">JJD20260721003</td>
+                  <td class="col-waybill col-sticky col-sticky-3"><span class="cell-link">800209301630</span></td>
+                  <td class="col-duty col-sticky col-sticky-4">郑州分拨中心</td>
+                  <td class="col-status col-sticky col-sticky-5">审核通过</td>
+                  <td>2026-07-19</td>
+                  <td>洛阳分拨中心</td>
+                  <td>洛宁</td>
+                  <td>豫中线</td>
+                  <td>天津分拨中心</td>
+                  <td>2026-07-19 14:48:33</td>
+                  <td>107</td>
+                  <td>0.53</td>
+                  <td>13</td>
+                  <td>12</td>
+                  <td>12</td>
+                  <td>1</td>
+                  <td>永康丽州二部</td>
+                  <td>长沙分拨中心</td>
+                  <td>金华分拨中心</td>
+                  <td>到件漏扫</td>
+                  <td>王五</td>
+                  <td>家具</td>
+                  <td></td>
+                  <td>胡绵飞</td>
+                  <td>2026-07-20 10:12:33</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox col-sticky col-sticky-1"><input type="checkbox" class="row-check" /></td>
+                  <td class="col-handover col-sticky col-sticky-2">JJD20260721004</td>
+                  <td class="col-waybill col-sticky col-sticky-3"><span class="cell-link">800209301631</span></td>
+                  <td class="col-duty col-sticky col-sticky-4">长沙分拨中心</td>
+                  <td class="col-status col-sticky col-sticky-5">待审核</td>
+                  <td>2026-07-18</td>
+                  <td>长沙分拨中心</td>
+                  <td>冷水江</td>
+                  <td>湘西线</td>
+                  <td>冷水江</td>
+                  <td>2026-07-19 14:41:09</td>
+                  <td>31</td>
+                  <td>0.03</td>
+                  <td>2</td>
+                  <td>3</td>
+                  <td>3</td>
+                  <td>2</td>
+                  <td>安吉递南</td>
+                  <td>长沙分拨中心</td>
+                  <td>杭州分拨中心</td>
+                  <td>萧山分拨中心未同票同位</td>
+                  <td>赵六</td>
+                  <td>保健食品</td>
+                  <td></td>
+                  <td class="cell-empty">-</td>
+                  <td class="cell-empty">-</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox col-sticky col-sticky-1"><input type="checkbox" class="row-check" /></td>
+                  <td class="col-handover col-sticky col-sticky-2">JJD20260721005</td>
+                  <td class="col-waybill col-sticky col-sticky-3"><span class="cell-link">800209301632</span></td>
+                  <td class="col-duty col-sticky col-sticky-4">合肥分拨中心</td>
+                  <td class="col-status col-sticky col-sticky-5">审核不通过</td>
+                  <td>2026-07-18</td>
+                  <td>南昌分拨中心</td>
+                  <td>南昌青云谱</td>
+                  <td>皖赣线</td>
+                  <td>南昌分拨中心</td>
+                  <td>2026-07-19 14:35:22</td>
+                  <td>56</td>
+                  <td>0.28</td>
+                  <td>4</td>
+                  <td>4</td>
+                  <td>4</td>
+                  <td>3</td>
+                  <td>义乌稠城</td>
+                  <td>南昌分拨中心</td>
+                  <td>金华分拨中心</td>
+                  <td>虚假发件</td>
+                  <td>钱七</td>
+                  <td>餐饮用品</td>
+                  <td></td>
+                  <td>胡绵飞</td>
+                  <td>2026-07-21 09:05:11</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 11327 条</span>
+            <button class="page-btn disabled">&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">4</button>
+            <button class="page-btn">5</button>
+            <button class="page-btn">…</button>
+            <button class="page-btn">227</button>
+            <button class="page-btn">&gt;</button>
+            <select class="page-size">
+              <option>50条/页</option>
+              <option>100条/页</option>
+            </select>
+            <div class="page-jump">前往 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="modal-mask" id="auditMask">
+  <div class="modal confirm" role="dialog" aria-labelledby="auditTitle">
+    <div class="modal-header">
+      <span class="modal-title" id="auditTitle">提示</span>
+      <button type="button" class="modal-close" id="auditClose" aria-label="关闭">×</button>
+    </div>
+    <div class="confirm-body" id="auditMessage">是否确认审核通过所选数据（共 11327 条）？</div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="auditCancel">取消</button>
+      <button type="button" class="btn btn-primary" id="auditOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="limitMask">
+  <div class="modal confirm" role="dialog">
+    <div class="modal-header">
+      <span class="modal-title">提示</span>
+      <button type="button" class="modal-close" id="limitClose" aria-label="关闭">×</button>
+    </div>
+    <div class="confirm-body" id="limitMessage">单次最多审核 1000 条，请缩小勾选或查询范围后再审。</div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" id="limitOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const TOTAL_QUERY = 11327;
+  const AUDIT_LIMIT = 1000;
+  const checkAll = document.getElementById('checkAll');
+  const rowChecks = () => document.querySelectorAll('.row-check');
+  const btnApprove = document.getElementById('btnApprove');
+  const btnReject = document.getElementById('btnReject');
+  const auditMask = document.getElementById('auditMask');
+  const auditMessage = document.getElementById('auditMessage');
+  const limitMask = document.getElementById('limitMask');
+  const limitMessage = document.getElementById('limitMessage');
+  const waybillInput = document.getElementById('waybillInput');
+  const waybillCount = document.getElementById('waybillCount');
+  let auditType = '';
+  // 表头勾选 = 全选当前查询结果
+  let selectAllQuery = false;
+
+  function pageCheckedCount() {
+    return Array.from(rowChecks()).filter(cb => cb.checked).length;
+  }
+
+  function selectedCount() {
+    return selectAllQuery ? TOTAL_QUERY : pageCheckedCount();
+  }
+
+  function syncActionButtons() {
+    const hasChecked = selectAllQuery || pageCheckedCount() > 0;
+    [btnApprove, btnReject].forEach(btn => {
+      btn.disabled = !hasChecked;
+      btn.classList.toggle('disabled', !hasChecked);
+    });
+  }
+
+  function tip(msg) {
+    limitMessage.textContent = msg;
+    limitMask.classList.add('open');
+  }
+
+  function getCheckedStatuses() {
+    // 原型仅能读本页勾选行；全选查询结果时不做同状态拦截演示
+    if (selectAllQuery) return null;
+    return Array.from(rowChecks())
+      .filter(cb => cb.checked)
+      .map(cb => {
+        const tr = cb.closest('tr');
+        const cell = tr && tr.querySelector('.col-status');
+        return cell ? cell.textContent.trim() : '';
+      });
+  }
+
+  function openAudit(type) {
+    const count = selectedCount();
+    if (count > AUDIT_LIMIT) {
+      tip('单次最多审核 1000 条，请缩小勾选或查询范围后再审。');
+      return;
+    }
+    const target = type === 'approve' ? '审核通过' : '审核不通过';
+    const statuses = getCheckedStatuses();
+    if (statuses && statuses.length > 0) {
+      const needProcess = statuses.filter(s => s !== target);
+      if (needProcess.length === 0) {
+        tip('无需再次审核');
+        return;
+      }
+      auditType = type;
+      auditMessage.textContent = type === 'approve'
+        ? '是否确认审核通过所选数据（共 ' + needProcess.length + ' 条）？'
+        : '是否确认审核不通过所选数据（共 ' + needProcess.length + ' 条）？';
+      auditMask.classList.add('open');
+      return;
+    }
+    auditType = type;
+    auditMessage.textContent = type === 'approve'
+      ? '是否确认审核通过所选数据（共 ' + count + ' 条）？'
+      : '是否确认审核不通过所选数据（共 ' + count + ' 条）？';
+    auditMask.classList.add('open');
+  }
+
+  function closeAudit() {
+    auditMask.classList.remove('open');
+    auditType = '';
+  }
+
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  });
+
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.page-tab');
+    if (!tab || e.target.classList.contains('tab-close')) return;
+    document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+
+  checkAll.addEventListener('change', function () {
+    selectAllQuery = this.checked;
+    rowChecks().forEach(cb => { cb.checked = this.checked; });
+    syncActionButtons();
+  });
+
+  document.getElementById('tableBody').addEventListener('change', (e) => {
+    if (!e.target.classList.contains('row-check')) return;
+    // 取消某一行后，退出「全选查询结果」
+    if (!e.target.checked && selectAllQuery) {
+      selectAllQuery = false;
+      checkAll.checked = false;
+    }
+    const all = Array.from(rowChecks());
+    const allPageChecked = all.length > 0 && all.every(cb => cb.checked);
+    if (allPageChecked && !selectAllQuery) {
+      // 仅本页勾满，不算全选查询结果；表头保持半选/不勾由业务定：这里不勾表头
+      checkAll.checked = false;
+      checkAll.indeterminate = true;
+    } else if (selectAllQuery) {
+      checkAll.checked = true;
+      checkAll.indeterminate = false;
+    } else {
+      checkAll.checked = false;
+      checkAll.indeterminate = all.some(cb => cb.checked);
+    }
+    syncActionButtons();
+  });
+
+  btnApprove.addEventListener('click', () => {
+    if (btnApprove.disabled) return;
+    openAudit('approve');
+  });
+
+  btnReject.addEventListener('click', () => {
+    if (btnReject.disabled) return;
+    openAudit('reject');
+  });
+
+  document.getElementById('auditClose').addEventListener('click', closeAudit);
+  document.getElementById('auditCancel').addEventListener('click', closeAudit);
+  document.getElementById('auditOk').addEventListener('click', closeAudit);
+  auditMask.addEventListener('click', (e) => {
+    if (e.target === auditMask) closeAudit();
+  });
+
+  function closeLimit() { limitMask.classList.remove('open'); }
+  document.getElementById('limitClose').addEventListener('click', closeLimit);
+  document.getElementById('limitOk').addEventListener('click', closeLimit);
+  limitMask.addEventListener('click', (e) => {
+    if (e.target === limitMask) closeLimit();
+  });
+
+  waybillInput.addEventListener('input', () => {
+    waybillCount.textContent = waybillInput.value.length + '/30000';
+  });
+
+  const auditStatusSelect = document.getElementById('auditStatusSelect');
+  const auditStatusBox = document.getElementById('auditStatusBox');
+  const auditStatusMenu = document.getElementById('auditStatusMenu');
+  const selectedStatuses = new Set(['待审核', '审核通过', '审核不通过']);
+
+  function renderAuditStatus() {
+    auditStatusBox.innerHTML = '';
+    if (selectedStatuses.size === 0) {
+      const ph = document.createElement('span');
+      ph.className = 'multi-placeholder';
+      ph.textContent = '请选择审核状态';
+      auditStatusBox.appendChild(ph);
+    } else {
+      selectedStatuses.forEach(value => {
+        const tag = document.createElement('span');
+        tag.className = 'multi-tag';
+        tag.innerHTML = value + '<button type="button" class="multi-tag-remove" data-value="' + value + '">×</button>';
+        auditStatusBox.appendChild(tag);
+      });
+    }
+    auditStatusMenu.querySelectorAll('.multi-option').forEach(opt => {
+      opt.classList.toggle('selected', selectedStatuses.has(opt.dataset.value));
+    });
+  }
+
+  auditStatusBox.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (e.target.classList.contains('multi-tag-remove')) {
+      selectedStatuses.delete(e.target.dataset.value);
+      renderAuditStatus();
+      return;
+    }
+    auditStatusSelect.classList.toggle('open');
+  });
+
+  auditStatusMenu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const option = e.target.closest('.multi-option');
+    if (!option) return;
+    const value = option.dataset.value;
+    if (selectedStatuses.has(value)) selectedStatuses.delete(value);
+    else selectedStatuses.add(value);
+    renderAuditStatus();
+  });
+
+  document.addEventListener('click', () => {
+    auditStatusSelect.classList.remove('open');
+  });
+
+  renderAuditStatus();
+</script>
+
+</body>
+</html>
