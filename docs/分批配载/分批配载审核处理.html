@@ -287,8 +287,7 @@
     }
     .filter-item .filter-control-wrap > .filter-control,
     .filter-item .filter-control-wrap > .select-wrap,
-    .filter-item .filter-control-wrap > .date-range,
-    .filter-item .filter-control-wrap > .time-query-inline {
+    .filter-item .filter-control-wrap > .date-range {
       width: 100%;
     }
     .filter-control {
@@ -326,14 +325,47 @@
     .date-range { display: flex; align-items: center; gap: 8px; }
     .date-range .filter-control { flex: 1; min-width: 0; }
     .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
-    .time-query-inline {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+    .time-type-label {
+      flex: 0 0 148px;
+      min-width: 0;
+      text-align: right;
+    }
+    .time-type-label .time-type-wrap {
+      position: relative;
+      width: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .time-type-label .time-type-text {
+      display: block;
+      width: 100%;
+      height: 32px;
+      line-height: 30px;
+      padding: 0 28px 0 11px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      background: #fff;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .time-type-label .time-type-wrap .filter-control {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 1;
+    }
+    .filter-item .filter-control-wrap > .date-range {
       width: 100%;
     }
-    .time-query-inline .time-type-wrap { width: 100%; }
-    .time-query-inline .date-range { width: 100%; }
+    .filter-item .filter-control-wrap > .date-range .filter-control {
+      padding: 0 8px;
+    }
 
     .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
     .btn {
@@ -647,19 +679,20 @@
               </div>
             </div>
             <div class="filter-item">
+              <div class="filter-label time-type-label">
+                <div class="select-wrap time-type-wrap" title="末端分拨发车确认时间">
+                  <span class="time-type-text" id="timeTypeText">末端分拨发车确认时间</span>
+                  <select class="filter-control" id="timeType" aria-label="时间类型">
+                    <option value="depart" selected>末端分拨发车确认时间</option>
+                    <option value="audit">审核时间</option>
+                  </select>
+                </div>
+              </div>
               <div class="filter-control-wrap">
-                <div class="time-query-inline">
-                  <div class="select-wrap time-type-wrap">
-                    <select class="filter-control" id="timeType" aria-label="时间类型">
-                      <option value="depart" selected>末端分拨发车确认时间</option>
-                      <option value="audit">审核时间</option>
-                    </select>
-                  </div>
-                  <div class="date-range">
-                    <input class="filter-control" type="text" value="2026-07-01" readonly />
-                    <span class="sep">~</span>
-                    <input class="filter-control" type="text" value="2026-07-22" readonly />
-                  </div>
+                <div class="date-range">
+                  <input class="filter-control" type="text" value="2026-07-01" readonly />
+                  <span class="sep">~</span>
+                  <input class="filter-control" type="text" value="2026-07-22" readonly />
                 </div>
               </div>
             </div>
@@ -686,6 +719,8 @@
         <section class="action-bar">
           <button class="btn-action disabled" id="btnApprove" disabled>审核通过</button>
           <button class="btn-action disabled" id="btnReject" disabled>审核不通过</button>
+          <button class="btn-action" id="btnApproveAll">全部审核通过</button>
+          <button class="btn-action" id="btnRejectAll">全部审核不通过</button>
           <button class="btn-action" id="btnExport">导出</button>
         </section>
 
@@ -694,11 +729,12 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th class="col-checkbox col-sticky col-sticky-1"><input type="checkbox" id="checkAll" title="全选当前查询结果" /></th>
+                  <th class="col-checkbox col-sticky col-sticky-1"><input type="checkbox" id="checkAll" title="全选当前页" /></th>
                   <th class="col-handover col-sticky col-sticky-2">交接单号</th>
                   <th class="col-waybill col-sticky col-sticky-3">运单号</th>
                   <th class="col-duty col-sticky col-sticky-4">责任分拨</th>
                   <th class="col-status col-sticky col-sticky-5">审核状态</th>
+                  <th>数据版本</th>
                   <th>末端分拨发车确认时间</th>
                   <th>末端出库分拨</th>
                   <th>末端目的网点</th>
@@ -729,6 +765,7 @@
                   <td class="col-waybill col-sticky col-sticky-3"><span class="cell-link">800209301629</span></td>
                   <td class="col-duty col-sticky col-sticky-4">邢台分拨中心</td>
                   <td class="col-status col-sticky col-sticky-5">待审核</td>
+                  <td>终版</td>
                   <td>2026-07-19</td>
                   <td>昌黎分拨中心</td>
                   <td>宣杭</td>
@@ -757,6 +794,7 @@
                   <td class="col-waybill col-sticky col-sticky-3"><span class="cell-link">ZY202456271749</span></td>
                   <td class="col-duty col-sticky col-sticky-4">天津分拨中心</td>
                   <td class="col-status col-sticky col-sticky-5">待审核</td>
+                  <td>初版</td>
                   <td>2026-07-19</td>
                   <td>天津分拨中心</td>
                   <td>蓟州庄安</td>
@@ -785,6 +823,7 @@
                   <td class="col-waybill col-sticky col-sticky-3"><span class="cell-link">800209301630</span></td>
                   <td class="col-duty col-sticky col-sticky-4">郑州分拨中心</td>
                   <td class="col-status col-sticky col-sticky-5">审核通过</td>
+                  <td>终版</td>
                   <td>2026-07-19</td>
                   <td>洛阳分拨中心</td>
                   <td>洛宁</td>
@@ -813,6 +852,7 @@
                   <td class="col-waybill col-sticky col-sticky-3"><span class="cell-link">800209301631</span></td>
                   <td class="col-duty col-sticky col-sticky-4">长沙分拨中心</td>
                   <td class="col-status col-sticky col-sticky-5">待审核</td>
+                  <td>终版</td>
                   <td>2026-07-18</td>
                   <td>长沙分拨中心</td>
                   <td>冷水江</td>
@@ -841,6 +881,7 @@
                   <td class="col-waybill col-sticky col-sticky-3"><span class="cell-link">800209301632</span></td>
                   <td class="col-duty col-sticky col-sticky-4">合肥分拨中心</td>
                   <td class="col-status col-sticky col-sticky-5">审核不通过</td>
+                  <td>终版</td>
                   <td>2026-07-18</td>
                   <td>南昌分拨中心</td>
                   <td>南昌青云谱</td>
@@ -867,7 +908,7 @@
             </table>
           </div>
           <div class="pagination">
-            <span class="total">共 11327 条</span>
+            <span class="total">共 856 条</span>
             <button class="page-btn disabled">&lt;</button>
             <button class="page-btn active">1</button>
             <button class="page-btn">2</button>
@@ -875,7 +916,7 @@
             <button class="page-btn">4</button>
             <button class="page-btn">5</button>
             <button class="page-btn">…</button>
-            <button class="page-btn">227</button>
+            <button class="page-btn">18</button>
             <button class="page-btn">&gt;</button>
             <select class="page-size">
               <option>50条/页</option>
@@ -920,13 +961,18 @@
 </div>
 
 <script>
-  const TOTAL_QUERY = 11327;
+  const TOTAL_QUERY = 856;
   const AUDIT_LIMIT = 1000;
+  /** 全部审核：定档剔除 + 同状态跳过后，实际将处理条数（演示用，不超过查询总数）。 */
+  const DEMO_NEED_APPROVE = 720;
+  const DEMO_NEED_REJECT = 680;
   const layout = document.getElementById('layout');
   const checkAll = document.getElementById('checkAll');
   const rowChecks = () => document.querySelectorAll('.row-check');
   const btnApprove = document.getElementById('btnApprove');
   const btnReject = document.getElementById('btnReject');
+  const btnApproveAll = document.getElementById('btnApproveAll');
+  const btnRejectAll = document.getElementById('btnRejectAll');
   const auditMask = document.getElementById('auditMask');
   const auditMessage = document.getElementById('auditMessage');
   const limitMask = document.getElementById('limitMask');
@@ -934,7 +980,6 @@
   const waybillInput = document.getElementById('waybillInput');
   const waybillCount = document.getElementById('waybillCount');
   let auditType = '';
-  let selectAllQuery = false;
 
   document.getElementById('sidebarToggle').addEventListener('click', () => {
     layout.classList.toggle('sidebar-collapsed');
@@ -947,29 +992,33 @@
     tab.classList.add('active');
   });
 
+  /** 统计本页已勾选行数。 */
   function pageCheckedCount() {
     return Array.from(rowChecks()).filter(cb => cb.checked).length;
   }
 
-  function selectedCount() {
-    return selectAllQuery ? TOTAL_QUERY : pageCheckedCount();
-  }
-
+  /** 按勾选与查询结果条数，刷新勾选审核、全部审核按钮可用态。 */
   function syncActionButtons() {
-    const hasChecked = selectAllQuery || pageCheckedCount() > 0;
+    const hasChecked = pageCheckedCount() > 0;
     [btnApprove, btnReject].forEach(btn => {
       btn.disabled = !hasChecked;
       btn.classList.toggle('disabled', !hasChecked);
     });
+    const hasQuery = TOTAL_QUERY > 0;
+    [btnApproveAll, btnRejectAll].forEach(btn => {
+      btn.disabled = !hasQuery;
+      btn.classList.toggle('disabled', !hasQuery);
+    });
   }
 
+  /** 打开通用提示弹框。 */
   function tip(msg) {
     limitMessage.textContent = msg;
     limitMask.classList.add('open');
   }
 
+  /** 读取本页已勾选行的审核状态。 */
   function getCheckedStatuses() {
-    if (selectAllQuery) return null;
     return Array.from(rowChecks())
       .filter(cb => cb.checked)
       .map(cb => {
@@ -979,63 +1028,65 @@
       });
   }
 
+  /** 打开勾选审核确认框：仅处理本页勾选，超限或同状态时直接提示。 */
   function openAudit(type) {
-    const count = selectedCount();
+    const count = pageCheckedCount();
+    if (count === 0) return;
     if (count > AUDIT_LIMIT) {
       tip('单次最多审核 1000 条，请缩小勾选或查询范围后再审。');
       return;
     }
     const target = type === 'approve' ? '审核通过' : '审核不通过';
     const statuses = getCheckedStatuses();
-    if (statuses && statuses.length > 0) {
-      const needProcess = statuses.filter(s => s !== target);
-      if (needProcess.length === 0) {
-        tip('无需再次审核');
-        return;
-      }
-      auditType = type;
-      auditMessage.textContent = type === 'approve'
-        ? '是否确认审核通过所选数据（共 ' + needProcess.length + ' 条）？'
-        : '是否确认审核不通过所选数据（共 ' + needProcess.length + ' 条）？';
-      auditMask.classList.add('open');
+    const needProcess = statuses.filter(s => s !== target);
+    if (needProcess.length === 0) {
+      tip('无需再次审核');
       return;
     }
     auditType = type;
     auditMessage.textContent = type === 'approve'
-      ? '是否确认审核通过所选数据（共 ' + count + ' 条）？'
-      : '是否确认审核不通过所选数据（共 ' + count + ' 条）？';
+      ? '是否确认审核通过所选数据（共 ' + needProcess.length + ' 条）？'
+      : '是否确认审核不通过所选数据（共 ' + needProcess.length + ' 条）？';
     auditMask.classList.add('open');
   }
 
+  /** 打开全部审核确认框：按当前查询结果全量，不依赖勾选；先卡 1000，再演示同状态过滤后的条数。 */
+  function openAuditAll(type) {
+    if (TOTAL_QUERY <= 0) return;
+    if (TOTAL_QUERY > AUDIT_LIMIT) {
+      tip('单次最多审核 1000 条，请缩小查询范围后再审。');
+      return;
+    }
+    const needProcess = type === 'approve' ? DEMO_NEED_APPROVE : DEMO_NEED_REJECT;
+    if (needProcess <= 0) {
+      tip('无需再次审核');
+      return;
+    }
+    auditType = type === 'approve' ? 'approveAll' : 'rejectAll';
+    auditMessage.textContent = type === 'approve'
+      ? '是否确认审核通过当前查询结果（共 ' + needProcess + ' 条）？'
+      : '是否确认审核不通过当前查询结果（共 ' + needProcess + ' 条）？';
+    auditMask.classList.add('open');
+  }
+
+  /** 关闭审核确认弹框。 */
   function closeAudit() {
     auditMask.classList.remove('open');
     auditType = '';
   }
 
   checkAll.addEventListener('change', function () {
-    selectAllQuery = this.checked;
     rowChecks().forEach(cb => { cb.checked = this.checked; });
+    checkAll.indeterminate = false;
     syncActionButtons();
   });
 
   document.getElementById('tableBody').addEventListener('change', (e) => {
     if (!e.target.classList.contains('row-check')) return;
-    if (!e.target.checked && selectAllQuery) {
-      selectAllQuery = false;
-      checkAll.checked = false;
-    }
     const all = Array.from(rowChecks());
-    const allPageChecked = all.length > 0 && all.every(cb => cb.checked);
-    if (allPageChecked && !selectAllQuery) {
-      checkAll.checked = false;
-      checkAll.indeterminate = true;
-    } else if (selectAllQuery) {
-      checkAll.checked = true;
-      checkAll.indeterminate = false;
-    } else {
-      checkAll.checked = false;
-      checkAll.indeterminate = all.some(cb => cb.checked);
-    }
+    const checkedCount = all.filter(cb => cb.checked).length;
+    checkAll.checked = all.length > 0 && checkedCount === all.length;
+    checkAll.indeterminate = checkedCount > 0 && checkedCount < all.length;
     syncActionButtons();
   });
 
@@ -1047,6 +1098,16 @@
     if (btnReject.disabled) return;
     openAudit('reject');
   });
+  btnApproveAll.addEventListener('click', () => {
+    if (btnApproveAll.disabled) return;
+    openAuditAll('approve');
+  });
+  btnRejectAll.addEventListener('click', () => {
+    if (btnRejectAll.disabled) return;
+    openAuditAll('reject');
+  });
+
+  syncActionButtons();
 
   document.getElementById('auditClose').addEventListener('click', closeAudit);
   document.getElementById('auditCancel').addEventListener('click', closeAudit);
@@ -1065,6 +1126,18 @@
   waybillInput.addEventListener('input', () => {
     waybillCount.textContent = waybillInput.value.length + '/30000';
   });
+
+  const timeType = document.getElementById('timeType');
+  const timeTypeText = document.getElementById('timeTypeText');
+  const timeTypeWrap = timeType.closest('.time-type-wrap');
+  /** 同步时间类型展示文案：长名称由样式省略，完整名称放 title。 */
+  function syncTimeTypeText() {
+    const label = timeType.options[timeType.selectedIndex].text;
+    timeTypeText.textContent = label;
+    timeTypeWrap.setAttribute('title', label);
+  }
+  timeType.addEventListener('change', syncTimeTypeText);
+  syncTimeTypeText();
 
   const auditStatusSelect = document.getElementById('auditStatusSelect');
   const auditStatusBox = document.getElementById('auditStatusBox');
