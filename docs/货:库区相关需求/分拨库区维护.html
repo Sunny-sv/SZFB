@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>分拨库区维护</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0659d9;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 48px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+
+    .top-header {
+      height: var(--header-height);
+      display: flex;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .brand-area {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: width .2s;
+      letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area {
+      width: var(--sidebar-collapsed);
+      padding: 0 8px;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+
+    .top-tabs {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      background: var(--header-blue);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn,
+    .top-tabs .home-btn {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 18px;
+      flex-shrink: 0;
+      opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover,
+    .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+
+    .page-tabs {
+      display: flex;
+      align-items: flex-end;
+      flex: 1;
+      overflow-x: auto;
+      gap: 4px;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 36px;
+      border-radius: 6px 6px 0 0;
+      color: rgba(255,255,255,.95);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active {
+      background: #fff;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .7;
+      margin-left: 2px;
+    }
+    .page-tab.active .tab-close { opacity: .45; color: var(--text-secondary); }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px 6px 12px;
+      color: #fff;
+      flex-shrink: 0;
+      align-self: flex-end;
+      height: 42px;
+    }
+    .top-right .icon-btn {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+      padding: 0 4px 0 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 32px;
+    }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #722ed1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+
+    .body-row { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 118px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control,
+    .select-wrap .form-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+    .btn-action:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      color: var(--text-secondary);
+      border-color: var(--border);
+      background: #f5f5f5;
+    }
+
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 1400px; }
+    .data-table.compact { min-width: 960px; }
+    .data-table th,
+    .data-table td { border: 1px solid var(--border); padding: 10px 12px; text-align: center; white-space: nowrap; }
+    .data-table th { background: #fafafa; font-weight: 500; color: var(--text); position: sticky; top: 0; z-index: 1; }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .cell-ellipsis {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin: 0 auto;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .tab-section { display: none; }
+    .tab-section.active { display: flex; }
+    .filter-area.tab-section.active { display: flex; }
+    .action-bar.tab-section.active { display: flex; }
+    .table-area.tab-section.active {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+    }
+
+    .modal-mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      width: min(980px, calc(100vw - 48px));
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 64px);
+    }
+    .modal.modal-sm { width: 420px; }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 16px;
+      font-weight: 500;
+    }
+    .modal-close { cursor: pointer; font-size: 20px; color: var(--text-secondary); line-height: 1; }
+    .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 24px;
+      border-top: 1px solid var(--border);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px 20px;
+    }
+    .form-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .form-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .form-item .form-label {
+      flex: 0 0 118px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .form-item .form-label .req { color: #ff4d4f; margin-right: 2px; }
+    .form-item .form-control-wrap { flex: 1; min-width: 0; }
+    .form-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .form-control:disabled { background: #f5f5f5; color: var(--text-secondary); cursor: not-allowed; }
+    .form-control::placeholder { color: #bfbfbf; }
+    .delete-text { font-size: 14px; line-height: 1.7; color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
+    </div>
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active">分拨库区维护 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="文档">📄</span>
+        <span class="icon-btn" title="下载">⬇</span>
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔</span>
+        <div class="user-info" title="用户">
+          <div class="avatar">胡</div>
+          <span class="user-name">3007085</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+        <div class="menu-item active">
+          <span class="menu-icon">☰</span><span class="menu-label">基础数据</span><span class="menu-arrow">▼</span>
+        </div>
+        <div class="menu-sub">
+          <div class="menu-item">分拨货区维护</div>
+          <div class="menu-item active">分拨库区维护</div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+    <main class="content-area">
+      <div class="content-card">
+
+<section class="filter-area tab-section active" data-scope="transfer">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <span class="filter-label">所属分拨</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请输入所属分拨" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">库区</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>请选择</option>
+                      <option>石家庄分拨到达库</option>
+                      <option>石家庄分拨出发库</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">库区类型</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>出发库</option>
+                      <option>到达库</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">状态</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>失效</option>
+                      <option>有效</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">目的分拨</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请输入目的分拨" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">是否虚拟分库</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>是</option>
+                      <option>否</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">是否混卸限制</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>是</option>
+                      <option>否</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">WIFI定库区</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>是</option>
+                      <option>否</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">额外可卸分拨</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请输入分拨" />
+                </div>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn" type="button">重置</button>
+              <button class="btn btn-primary" type="button">查询</button>
+            </div>
+          </section>
+
+<section class="filter-area tab-section" data-scope="outlet">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <span class="filter-label">所属分拨</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请输入所属分拨" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">库区</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>请选择</option>
+                      <option>石家庄分拨到达库</option>
+                      <option>石家庄分拨出发库</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">库区类型</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>出发库</option>
+                      <option>到达库</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">状态</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>失效</option>
+                      <option>有效</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">目的分拨</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请输入目的分拨" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">是否混卸限制</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>是</option>
+                      <option>否</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">额外可卸分拨</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请输入分拨" />
+                </div>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn" type="button">重置</button>
+              <button class="btn btn-primary" type="button">查询</button>
+            </div>
+          </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-ctab="transfer">干线库区配置（主数据）</div>
+          <div class="content-tab" data-ctab="outlet">网点库区配置</div>
+        </nav>
+
+<section class="action-bar tab-section active" data-scope="transfer">
+            <button class="btn-action primary" type="button" data-open="addTransferMask">+ 新增</button>
+            <button class="btn-action" type="button" data-open="editTransferMask">编辑</button>
+            <button class="btn-action" type="button" data-open="deleteMask" data-count="1" data-delete-tip="transfer">删除</button>
+            <button class="btn-action" type="button">导出</button>
+            <button class="btn-action" type="button">导入</button>
+            <button class="btn-action" type="button">下载模版</button>
+          </section>
+
+<section class="action-bar tab-section" data-scope="outlet">
+            <button class="btn-action primary" type="button" data-open="addOutletMask">+ 新增</button>
+            <button class="btn-action" type="button" data-open="editOutletMask">编辑</button>
+            <button class="btn-action" type="button" data-open="deleteMask" data-count="1">删除</button>
+            <button class="btn-action" type="button">导出</button>
+            <button class="btn-action" type="button">导入</button>
+            <button class="btn-action" type="button">下载模版</button>
+          </section>
+
+<section class="table-area tab-section active" data-scope="transfer">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="col-checkbox"><input type="checkbox" class="check-all" data-scope="transfer" /></th>
+                    <th>库区</th>
+                    <th>库区类型</th>
+                    <th>所属分拨中心</th>
+                    <th>状态</th>
+                    <th>库区标识</th>
+                    <th>目的分拨中心</th>
+                    <th>地址</th>
+                    <th>经纬度</th>
+                    <th>打卡距离(m)</th>
+                    <th>模型地址</th>
+                    <th>是否虚拟分库</th>
+                    <th>是否混卸限制</th>
+                    <th>IP地址开始号段</th>
+                    <th>IP地址结束号段</th>
+                    <th>WIFI定库区</th>
+                    <th>额外可卸分拨</th>
+                    <th>创建人</th>
+                    <th>创建时间</th>
+                    <th>修改人</th>
+                    <th>修改时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="col-checkbox"><input type="checkbox" class="row-check" data-scope="transfer" /></td>
+                    <td>石家庄分拨到达库</td>
+                    <td>到达库</td>
+                    <td>石家庄分拨中心</td>
+                    <td>有效</td>
+                    <td>1</td>
+                    <td><div class="cell-ellipsis" title="石家庄分拨中心、保定分拨中心、邯郸分拨中心">石家庄分拨中心、保定分拨中心、邯郸分拨中心</div></td>
+                    <td>河北省石家庄市…</td>
+                    <td>114.52,38.05</td>
+                    <td>1000</td>
+                    <td></td>
+                    <td>否</td>
+                    <td>是</td>
+                    <td></td>
+                    <td></td>
+                    <td>否</td>
+                    <td></td>
+                    <td>李建宏</td>
+                    <td>2023-07-10 13:20:06</td>
+                    <td>李建宏</td>
+                    <td>2023-07-10 13:20:06</td>
+                  </tr>
+                  <tr>
+                    <td class="col-checkbox"><input type="checkbox" class="row-check" data-scope="transfer" /></td>
+                    <td>石家庄分拨出发库</td>
+                    <td>出发库</td>
+                    <td>石家庄分拨中心</td>
+                    <td>有效</td>
+                    <td>2</td>
+                    <td><div class="cell-ellipsis" title="延安集配站(直营)、西安分拨中心、秦皇岛分拨中心">延安集配站(直营)、西安分拨中心、秦皇岛分拨中心</div></td>
+                    <td>河北省石家庄市…</td>
+                    <td>114.51,38.04</td>
+                    <td>1000</td>
+                    <td></td>
+                    <td>否</td>
+                    <td>是</td>
+                    <td></td>
+                    <td></td>
+                    <td>否</td>
+                    <td></td>
+                    <td>李建宏</td>
+                    <td>2023-07-10 13:20:06</td>
+                    <td>李建宏</td>
+                    <td>2023-07-10 13:20:06</td>
+                  </tr>
+                  <tr>
+                    <td class="col-checkbox"><input type="checkbox" class="row-check" data-scope="transfer" /></td>
+                    <td>石家庄分拨集拼区</td>
+                    <td>出发库</td>
+                    <td>石家庄分拨中心</td>
+                    <td>有效</td>
+                    <td>3</td>
+                    <td><div class="cell-ellipsis" title="唐山分拨中心、沧州分拨中心">唐山分拨中心、沧州分拨中心</div></td>
+                    <td>河北省石家庄市…</td>
+                    <td>114.50,38.03</td>
+                    <td>1000</td>
+                    <td></td>
+                    <td>否</td>
+                    <td>是</td>
+                    <td></td>
+                    <td></td>
+                    <td>否</td>
+                    <td></td>
+                    <td>李建宏</td>
+                    <td>2023-07-10 13:20:06</td>
+                    <td>李建宏</td>
+                    <td>2024-03-12 09:15:22</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total">共 3 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+
+<section class="table-area tab-section" data-scope="outlet">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="col-checkbox"><input type="checkbox" class="check-all" data-scope="outlet" /></th>
+                    <th>库区</th>
+                    <th>库区类型</th>
+                    <th>所属分拨中心</th>
+                    <th>状态</th>
+                    <th>库区标识</th>
+                    <th>目的分拨中心</th>
+                    <th>额外可卸分拨</th>
+                    <th>是否混卸限制</th>
+                    <th>创建人</th>
+                    <th>创建时间</th>
+                    <th>修改人</th>
+                    <th>修改时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="col-checkbox"><input type="checkbox" class="row-check" data-scope="outlet" /></td>
+                    <td>石家庄分拨到达库</td>
+                    <td>到达库</td>
+                    <td>石家庄分拨中心</td>
+                    <td>有效</td>
+                    <td>1</td>
+                    <td><div class="cell-ellipsis" title="石家庄分拨中心">石家庄分拨中心</div></td>
+                    <td></td>
+                    <td>是</td>
+                    <td>胡绵飞</td>
+                    <td>2026-07-28 10:00:00</td>
+                    <td>胡绵飞</td>
+                    <td>2026-07-28 10:00:00</td>
+                  </tr>
+                  <tr>
+                    <td class="col-checkbox"><input type="checkbox" class="row-check" data-scope="outlet" /></td>
+                    <td>石家庄分拨出发库</td>
+                    <td>出发库</td>
+                    <td>石家庄分拨中心</td>
+                    <td>有效</td>
+                    <td>2</td>
+                    <td><div class="cell-ellipsis" title="梅河口集配站(直营)、秦皇岛分拨中心">梅河口集配站(直营)、秦皇岛分拨中心</div></td>
+                    <td></td>
+                    <td>是</td>
+                    <td>胡绵飞</td>
+                    <td>2026-07-28 10:05:00</td>
+                    <td>胡绵飞</td>
+                    <td>2026-07-29 11:20:18</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total">共 2 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+
+      </div>
+    </main>
+  </div>
+  </div>
+</div>
+
+<!-- 干线库区配置：新增 -->
+<div class="modal-mask" id="addTransferMask">
+  <div class="modal">
+    <div class="modal-header">
+      <span>新增</span>
+      <span class="modal-close" data-close="addTransferMask">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>库区</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入库区" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>库区类型</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control"><option>请选择</option><option>出发库</option><option>到达库</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>所属分拨</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入分拨中心" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>库区标识</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control"><option>请选择</option><option>1</option><option>2</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">目的分拨中心</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入目的分拨中心" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>是否虚拟分库</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control"><option>请选择</option><option>是</option><option>否</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>是否混卸限制</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control">
+                <option>请选择</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">IP地址开始号段</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" data-ip-start placeholder="请输入IP地址开始号段" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">IP地址结束号段</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" data-ip-end placeholder="请输入IP地址结束号段" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">WIFI定库区</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" data-wifi-zone disabled><option>请选择</option><option>是</option><option>否</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">额外可卸分拨</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入分拨" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">地址</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入地址" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">经纬度</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入经纬度" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">打卡距离(m)</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入打卡距离" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">模型地址</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入模型地址" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">状态</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" disabled><option selected>有效</option><option>失效</option></select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="addTransferMask">取消</button>
+      <button class="btn btn-primary" type="button" data-close="addTransferMask">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 干线库区配置：编辑 -->
+<div class="modal-mask" id="editTransferMask">
+  <div class="modal">
+    <div class="modal-header">
+      <span>编辑</span>
+      <span class="modal-close" data-close="editTransferMask">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>库区</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" value="石家庄分拨到达库" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>库区类型</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control"><option>出发库</option><option selected>到达库</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>所属分拨</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" value="石家庄分拨中心" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>库区标识</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control"><option selected>1</option><option>2</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">目的分拨中心</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" value="石家庄分拨中心、保定分拨中心、邯郸分拨中心" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>是否虚拟分库</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control"><option>是</option><option selected>否</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>是否混卸限制</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control">
+                <option selected>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">IP地址开始号段</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" data-ip-start placeholder="请输入IP地址开始号段" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">IP地址结束号段</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" data-ip-end placeholder="请输入IP地址结束号段" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">WIFI定库区</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" data-wifi-zone disabled><option selected>否</option><option>是</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">额外可卸分拨</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入分拨" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">地址</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" value="河北省石家庄市…" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">经纬度</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" value="114.52,38.05" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">打卡距离(m)</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" value="1000" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">模型地址</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">状态</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control"><option selected>有效</option><option>失效</option></select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="editTransferMask">取消</button>
+      <button class="btn btn-primary" type="button" data-close="editTransferMask">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 网点库区配置：新增 -->
+<div class="modal-mask" id="addOutletMask">
+  <div class="modal">
+    <div class="modal-header">
+      <span>新增</span>
+      <span class="modal-close" data-close="addOutletMask">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>所属分拨</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入分拨中心" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>库区</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control">
+                <option>请选择（干线已有库区，含失效）</option>
+                <option>石家庄分拨到达库</option>
+                <option>石家庄分拨出发库</option>
+                <option>石家庄分拨集拼区</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">库区类型</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" disabled><option selected>到达库</option><option>出发库</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">库区标识</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" disabled><option selected>1</option><option>2</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">目的分拨中心</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入目的分拨中心" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">额外可卸分拨</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" placeholder="请输入分拨" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>是否混卸限制</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control">
+                <option>请选择</option>
+                <option selected>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="addOutletMask">取消</button>
+      <button class="btn btn-primary" type="button" data-close="addOutletMask">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 网点库区配置：编辑 -->
+<div class="modal-mask" id="editOutletMask">
+  <div class="modal">
+    <div class="modal-header">
+      <span>编辑</span>
+      <span class="modal-close" data-close="editOutletMask">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>所属分拨</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" value="石家庄分拨中心" disabled /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>库区</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" disabled>
+                <option selected>石家庄分拨到达库</option>
+                <option>石家庄分拨出发库</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">库区类型</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" disabled><option selected>到达库</option><option>出发库</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">库区标识</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" disabled><option selected>1</option><option>2</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">目的分拨中心</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" value="石家庄分拨中心" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label">额外可卸分拨</span>
+          <div class="form-control-wrap"><input class="form-control" type="text" value="" placeholder="请输入分拨" /></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>是否混卸限制</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control">
+                <option selected>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="editOutletMask">取消</button>
+      <button class="btn btn-primary" type="button" data-close="editOutletMask">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认 -->
+<div class="modal-mask" id="deleteMask">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>删除提示</span>
+      <span class="modal-close" data-close="deleteMask">×</span>
+    </div>
+    <div class="modal-body">
+      <p class="delete-text" id="deleteText">删除后不可撤销，请确认是否删除？（共 1 条数据）</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="deleteMask">取消</button>
+      <button class="btn btn-primary" type="button" data-close="deleteMask">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const key = tab.getAttribute('data-ctab');
+    document.querySelectorAll('.tab-section').forEach(sec => {
+      sec.classList.toggle('active', sec.getAttribute('data-scope') === key);
+    });
+  });
+
+  document.querySelectorAll('.check-all').forEach(all => {
+    all.addEventListener('change', function () {
+      const scope = this.getAttribute('data-scope');
+      document.querySelectorAll('.row-check[data-scope="' + scope + '"]').forEach(cb => {
+        cb.checked = this.checked;
+      });
+    });
+  });
+
+  function openMask(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('show');
+  }
+  function closeMask(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('show');
+  }
+
+  document.querySelectorAll('[data-open]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-open');
+      if (id === 'deleteMask') {
+        const count = btn.getAttribute('data-count') || '1';
+        const tip = btn.getAttribute('data-delete-tip');
+        if (tip === 'transfer') {
+          document.getElementById('deleteText').textContent =
+            '删除后不可撤销。将同步删除「网点库区配置」中引用该库区的数据，请确认是否删除？（共 ' + count + ' 条数据）';
+        } else {
+          document.getElementById('deleteText').textContent =
+            '删除后不可撤销，请确认是否删除？（共 ' + count + ' 条数据）';
+        }
+      }
+      openMask(id);
+    });
+  });
+
+  document.querySelectorAll('[data-close]').forEach(btn => {
+    btn.addEventListener('click', () => closeMask(btn.getAttribute('data-close')));
+  });
+
+  document.querySelectorAll('.modal-mask').forEach(mask => {
+    mask.addEventListener('click', (e) => {
+      if (e.target === mask) mask.classList.remove('show');
+    });
+  });
+
+  /** 两个 IP 号段都填写后才可编辑 WIFI 定库区；清空任一号段则重新置灰 */
+  function bindWifiByIp(mask) {
+    const start = mask.querySelector('[data-ip-start]');
+    const end = mask.querySelector('[data-ip-end]');
+    const wifi = mask.querySelector('[data-wifi-zone]');
+    if (!start || !end || !wifi) return;
+    function syncWifi() {
+      const ok = start.value.trim() !== '' && end.value.trim() !== '';
+      wifi.disabled = !ok;
+      if (!ok) {
+        wifi.value = wifi.options[0] ? wifi.options[0].value : '';
+        if (wifi.options[0]) wifi.selectedIndex = 0;
+      }
+    }
+    start.addEventListener('input', syncWifi);
+    end.addEventListener('input', syncWifi);
+    syncWifi();
+  }
+  document.querySelectorAll('.modal-mask').forEach(bindWifiByIp);
+</script>
+
+</body>
+</html>
