@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>移动错分货物查询</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0659d9;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 48px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+
+    /* 顶部整栏：左品牌 + 右蓝底标签栏 */
+    .top-header {
+      height: var(--header-height);
+      display: flex;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .brand-area {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: width .2s;
+      letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area {
+      width: var(--sidebar-collapsed);
+      padding: 0 8px;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+
+    .top-tabs {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      background: var(--header-blue);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn,
+    .top-tabs .home-btn {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 18px;
+      flex-shrink: 0;
+      opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover,
+    .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+
+    .page-tabs {
+      display: flex;
+      align-items: flex-end;
+      flex: 1;
+      overflow-x: auto;
+      gap: 4px;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 36px;
+      border-radius: 6px 6px 0 0;
+      color: rgba(255,255,255,.95);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active {
+      background: #fff;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .7;
+      margin-left: 2px;
+    }
+    .page-tab.active .tab-close { opacity: .45; color: var(--text-secondary); }
+    .page-tab .tab-close:hover { opacity: 1; color: #ff4d4f; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px 6px 12px;
+      color: #fff;
+      flex-shrink: 0;
+      align-self: flex-end;
+      height: 42px;
+    }
+    .top-right .icon-btn {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .top-right .icon-btn .badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+      padding: 0 4px 0 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 32px;
+    }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #722ed1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+
+    /* 下方：侧栏 + 主内容 */
+    .body-row { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    /* 主内容区：卡片撑满可视高度，分页贴底 */
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    /* 1. 筛选条件区：名称左+控件右；3 列网格；重置/查询与最后一行底对齐 */
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    /* 2. 标签切换区 */
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* 3. 操作按钮区 */
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    /* 4. 数据列表区：占满剩余高度，分页始终在底部 */
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 14px; }
+    .data-table th,
+    .data-table td { border: 1px solid var(--border); padding: 10px 12px; text-align: center; }
+    .data-table th { background: #fafafa; font-weight: 500; color: var(--text); white-space: nowrap; }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .cell-placeholder { color: var(--text-secondary); }
+
+    /* 分页：贴列表区底部固定展示 */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    /* 多选下拉框 */
+    .multi-select-wrap { position: relative; width: 100%; }
+    .multi-select-box {
+      width: 100%; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 28px 0 11px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    .multi-select-box.has-value { color: var(--text); }
+    .multi-select-box .multi-select-placeholder { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .multi-select-tags {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      overflow: hidden;
+    }
+    .multi-select-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 3px;
+      padding: 0 6px;
+      height: 22px;
+      font-size: 12px;
+      color: var(--primary);
+      line-height: 1;
+    }
+    .multi-select-arrow {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .multi-select-dropdown {
+      display: none;
+      position: absolute;
+      top: 34px; left: 0; right: 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+      z-index: 100;
+      padding: 4px 0;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .multi-select-wrap.open .multi-select-dropdown { display: block; }
+    .multi-select-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .multi-select-option:hover { background: #fafafa; }
+    .multi-select-option.checked { background: #e6f7ff; }
+    .multi-select-option.checked:hover { background: #bae7ff; }
+    .multi-select-option input[type="checkbox"] {
+      width: 16px; height: 16px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
+    </div>
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active" data-tab="page1">移动错分货物查询 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="文档">📄</span>
+        <span class="icon-btn" title="下载">⬇</span>
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔<span class="badge">3</span></span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+        <div class="menu-item active">
+          <span class="menu-icon">☰</span><span class="menu-label">转运质量分析</span><span class="menu-arrow">▼</span>
+        </div>
+        <div class="menu-sub">
+          <div class="menu-item" style="color:#fff;background:rgba(24,144,255,.25);">移动错分货物查询</div>
+          <div class="menu-item">移动错分归位奖罚报表</div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <div class="filter-control-wrap" style="display:flex;gap:6px;align-items:stretch;margin-left:0;">
+                <div class="select-wrap" style="width:88px;flex-shrink:0;">
+                  <select class="filter-control">
+                    <option>运单号</option>
+                    <option>子单号</option>
+                  </select>
+                </div>
+                <input class="filter-control" type="text" placeholder="多条查询请用 , 隔开" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">扫描时间</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" value="2026-08-03 00:00:00" readonly />
+                  <span class="sep">至</span>
+                  <input class="filter-control" type="text" value="2026-08-04 23:59:59" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">当前分拨</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入内容" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">是否在库</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option selected>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">是否归位</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">错分来源</span>
+              <div class="filter-control-wrap">
+                <div class="multi-select-wrap">
+                  <div class="multi-select-box">
+                    <span class="multi-select-placeholder">请选择</span>
+                    <span class="multi-select-tags"></span>
+                    <span class="multi-select-arrow">▼</span>
+                  </div>
+                  <div class="multi-select-dropdown">
+                    <label class="multi-select-option"><input type="checkbox" value="装车错分/强装">装车错分/强装</label>
+                    <label class="multi-select-option"><input type="checkbox" value="跟班装车拦截">跟班装车拦截</label>
+                    <label class="multi-select-option"><input type="checkbox" value="跟班网点到件错分">跟班网点到件错分</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">操作方式</span>
+              <div class="filter-control-wrap">
+                <div class="multi-select-wrap">
+                  <div class="multi-select-box">
+                    <span class="multi-select-placeholder">请选择</span>
+                    <span class="multi-select-tags"></span>
+                    <span class="multi-select-arrow">▼</span>
+                  </div>
+                  <div class="multi-select-dropdown">
+                    <label class="multi-select-option"><input type="checkbox" value="PDA">PDA</label>
+                    <label class="multi-select-option"><input type="checkbox" value="皮带机">皮带机</label>
+                    <label class="multi-select-option"><input type="checkbox" value="流水线">流水线</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn">重置</button>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </section>
+
+        <section class="action-bar">
+          <button class="btn-action primary">导出</button>
+        </section>
+
+        <section class="table-area">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>子单号</th>
+                  <th>运单号</th>
+                  <th>交接单</th>
+                  <th>当前分拨</th>
+                  <th>下一站</th>
+                  <th>目的网点</th>
+                  <th>目的分拨中心</th>
+                  <th>是否归位</th>
+                  <th>错分来源</th>
+                  <th>操作方式</th>
+                  <th>改单前目的网点</th>
+                  <th>改单前目的分拨</th>
+                  <th>货物名称</th>
+                  <th>包装</th>
+                  <th>移动人员</th>
+                  <th>装车人员</th>
+                  <th>是否在库</th>
+                  <th>出库下一站</th>
+                  <th>出库交接单</th>
+                  <th>入库时间</th>
+                  <th>入库类型</th>
+                  <th>发件扫描时间</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr>
+                  <td>5501234567890</td>
+                  <td>YT202608040001</td>
+                  <td>JJD20260804001</td>
+                  <td>郑州分拨</td>
+                  <td>洛阳网点</td>
+                  <td>洛阳网点</td>
+                  <td>洛阳分拨</td>
+                  <td>否</td>
+                  <td>装车错分/强装</td>
+                  <td>PDA</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>日用品</td>
+                  <td>纸箱</td>
+                  <td>张三</td>
+                  <td>李四</td>
+                  <td>是</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>2026-08-04 08:10:00</td>
+                  <td>卸车入库</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>5501234567891</td>
+                  <td>YT202608040002</td>
+                  <td>JJD20260804002</td>
+                  <td>郑州分拨</td>
+                  <td>开封网点</td>
+                  <td>许昌网点</td>
+                  <td>许昌分拨</td>
+                  <td>否</td>
+                  <td>跟班装车拦截</td>
+                  <td>PDA</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>服装</td>
+                  <td>编织袋</td>
+                  <td>王五</td>
+                  <td>赵六</td>
+                  <td>是</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>2026-08-04 09:20:11</td>
+                  <td>卸车入库</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>5501234567892</td>
+                  <td>YT202608040003</td>
+                  <td>JJD20260804003</td>
+                  <td>郑州分拨</td>
+                  <td>新郑网点</td>
+                  <td>中牟网点</td>
+                  <td>郑州分拨</td>
+                  <td>是</td>
+                  <td>跟班网点到件错分</td>
+                  <td>皮带机</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>食品</td>
+                  <td>纸箱</td>
+                  <td>周七</td>
+                  <td>—</td>
+                  <td>否</td>
+                  <td>中牟网点</td>
+                  <td>JJD20260804099</td>
+                  <td>2026-08-04 10:05:00</td>
+                  <td>卸车入库</td>
+                  <td>2026-08-04 12:00:00</td>
+                </tr>
+                <tr>
+                  <td>5501234567893</td>
+                  <td>YT202608040004</td>
+                  <td>JJD20260804004</td>
+                  <td>郑州分拨</td>
+                  <td>巩义网点</td>
+                  <td>登封网点</td>
+                  <td>洛阳分拨</td>
+                  <td>否</td>
+                  <td>跟班网点到件错分</td>
+                  <td>流水线</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>配件</td>
+                  <td>木架</td>
+                  <td>钱八</td>
+                  <td>—</td>
+                  <td>是</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>2026-08-04 11:33:22</td>
+                  <td>卸车入库</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>5501234567894</td>
+                  <td>YT202608040005</td>
+                  <td>JJD20260804005</td>
+                  <td>郑州分拨</td>
+                  <td>平顶山网点</td>
+                  <td>漯河网点</td>
+                  <td>漯河分拨</td>
+                  <td>否</td>
+                  <td>跟班网点到件错分</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>日用品</td>
+                  <td>纸箱</td>
+                  <td>孙九</td>
+                  <td>—</td>
+                  <td>否</td>
+                  <td>漯河网点</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td>2026-08-04 13:20:00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 5 条</span>
+            <button class="page-btn disabled">&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn disabled">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.page-tab');
+    if (!tab || e.target.classList.contains('tab-close')) return;
+    document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+
+  // 多选下拉框交互
+  document.querySelectorAll('.multi-select-wrap').forEach(wrap => {
+    const box = wrap.querySelector('.multi-select-box');
+    const placeholder = wrap.querySelector('.multi-select-placeholder');
+    const tagsContainer = wrap.querySelector('.multi-select-tags');
+    const options = wrap.querySelectorAll('.multi-select-option');
+
+    function render() {
+      const checked = Array.from(options).filter(opt => opt.querySelector('input').checked);
+      const values = checked.map(opt => opt.querySelector('input').value);
+      if (values.length > 0) {
+        placeholder.style.display = 'none';
+        box.classList.add('has-value');
+        tagsContainer.innerHTML = values
+          .map(v => '<span class="multi-select-tag">' + v + '</span>')
+          .join('');
+      } else {
+        placeholder.style.display = '';
+        placeholder.textContent = '请选择';
+        box.classList.remove('has-value');
+        tagsContainer.innerHTML = '';
+      }
+      options.forEach(opt => {
+        opt.classList.toggle('checked', opt.querySelector('input').checked);
+      });
+    }
+
+    box.addEventListener('click', () => {
+      document.querySelectorAll('.multi-select-wrap.open').forEach(other => {
+        if (other !== wrap) other.classList.remove('open');
+      });
+      wrap.classList.toggle('open');
+    });
+
+    options.forEach(opt => {
+      const cb = opt.querySelector('input');
+      cb.addEventListener('change', render);
+    });
+
+    render();
+  });
+
+  // 点击多选框外部才关闭
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.multi-select-wrap')) {
+      document.querySelectorAll('.multi-select-wrap.open').forEach(w => w.classList.remove('open'));
+    }
+  });
+
+</script>
+
+</body>
+</html>
