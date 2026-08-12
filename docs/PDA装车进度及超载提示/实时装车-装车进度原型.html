@@ -21,11 +21,23 @@
       font-size: 12px;
       line-height: 1.5;
     }
-    .review-bar strong { display: block; margin-bottom: 6px; }
+    .review-bar strong { display: block; margin-bottom: 4px; }
+    .review-bar .hint {
+      color: #666;
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+    .review-bar .row { margin-bottom: 6px; }
+    .review-bar .row:last-child { margin-bottom: 0; }
+    .review-bar .lab {
+      font-size: 11px;
+      color: #555;
+      margin-bottom: 4px;
+    }
     .review-bar .btns { display: flex; flex-wrap: wrap; gap: 6px; }
     .review-bar button {
-      font-size: 12px;
-      padding: 6px 8px;
+      font-size: 11px;
+      padding: 5px 7px;
       border: 1px solid #999;
       background: #f5f5f5;
       border-radius: 2px;
@@ -127,7 +139,6 @@
     .tag-must { background: #f8bbd0; color: #ad1457; padding: 0 2px; }
     .tag-ok { background: #b3e5fc; color: #0277bd; padding: 0 2px; }
 
-    /* —— 指标区：左数据 + 右竖排按钮，对齐现网 —— */
     .panel {
       flex: 0 0 auto;
       background: #f5f5f5;
@@ -168,16 +179,20 @@
       font-weight: 700;
     }
     .progress-line.safe .pvalue { color: #222; }
-    .progress-line.warn {
-      background: #fff8e1;
-      border-color: #f9a825;
+    /* 五档颜色：提醒→注意→预警→告警→强制拦截 */
+    .progress-line.l1 { background: #fffde7; border-color: #fbc02d; }
+    .progress-line.l1 .pvalue { color: #f9a825; }
+    .progress-line.l2 { background: #fff8e1; border-color: #ff9800; }
+    .progress-line.l2 .pvalue { color: #ef6c00; }
+    .progress-line.l3 { background: #fff3e0; border-color: #fb8c00; }
+    .progress-line.l3 .pvalue { color: #e65100; }
+    .progress-line.l4 { background: #ffebee; border-color: #e53935; }
+    .progress-line.l4 .pvalue { color: #c62828; }
+    .progress-line.l5 {
+      background: #ffcdd2;
+      border: 2px solid #b71c1c;
     }
-    .progress-line.warn .pvalue { color: #f57f17; }
-    .progress-line.danger {
-      background: #ffebee;
-      border-color: #e53935;
-    }
-    .progress-line.danger .pvalue { color: #c62828; }
+    .progress-line.l5 .pvalue { color: #b71c1c; }
     .progress-line.miss .pvalue {
       font-size: 11px;
       font-weight: 600;
@@ -215,15 +230,12 @@
       color: #fff;
       font-weight: 600;
     }
-
     .settle {
       margin-top: 3px;
       font-size: 11px;
       line-height: 1.3;
       padding: 0 2px 2px;
     }
-
-    /* 底部四键：灰底黑字，一行贴底 */
     .actions-bottom {
       flex: 0 0 40px;
       display: grid;
@@ -288,13 +300,34 @@
 <body>
   <div class="review-bar">
     <strong>评审切换（非线上控件）</strong>
-    <div class="btns">
-      <button type="button" class="active" data-state="safe">安全 72%</button>
-      <button type="button" data-state="warn">临近 80%</button>
-      <button type="button" data-state="danger">告警 90%</button>
-      <button type="button" data-state="block">强制拦截弹框 100%</button>
-      <button type="button" data-state="missW">干线缺额定重量</button>
-      <button type="button" data-state="missV">网点缺额定体积</button>
+    <div class="hint" id="paramHint">干线参数示例：提醒80 / 注意90 / 预警100 / 告警110 / 强制拦截120</div>
+
+    <div class="row">
+      <div class="lab">参数套（干线重量 / 网点体积，互不共用）</div>
+      <div class="btns" id="modeBtns">
+        <button type="button" class="active" data-mode="trunk">干线</button>
+        <button type="button" data-mode="outlet">网点</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lab">进度档位（前 4 档弹窗可继续装；第 5 档强制拦截禁止扫描）</div>
+      <div class="btns" id="levelBtns">
+        <button type="button" class="active" data-level="safe">安全</button>
+        <button type="button" data-level="l1">提醒</button>
+        <button type="button" data-level="l2">注意</button>
+        <button type="button" data-level="l3">预警</button>
+        <button type="button" data-level="l4">告警</button>
+        <button type="button" data-level="l5">强制拦截</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lab">缺额定</div>
+      <div class="btns" id="missBtns">
+        <button type="button" data-level="missW">干线缺额定重量</button>
+        <button type="button" data-level="missV">网点缺额定体积</button>
+      </div>
     </div>
   </div>
 
@@ -367,7 +400,7 @@
             <div>额定体积：<b>130.0</b></div>
             <div class="progress-line safe" id="progressBlock">
               <span class="plabel">装车进度：</span>
-              <span class="pvalue" id="progressValue">72%</span>
+              <span class="pvalue" id="progressValue">55%</span>
             </div>
           </div>
           <div class="panel-right">
@@ -390,7 +423,7 @@
 
     <div class="mask" id="mask" aria-hidden="true">
       <div class="dialog" role="dialog" aria-modal="true">
-        <div class="body">当前装车进度已达强制拦截标准，系统已禁止继续扫描装车。</div>
+        <div class="body" id="dialogBody"></div>
         <div class="foot">
           <button type="button" id="btnKnow">知道了</button>
         </div>
@@ -399,56 +432,131 @@
   </div>
 
   <p class="note">
-    可视区 307×410。右侧竖排：装票/件 → 无头件 → 严重破损 → 发车；底部四灰键贴底。左侧保留预配实际重量、额定重量、额定体积，并新增装车进度%。
+    方案 A：提醒 / 注意 / 预警 / 告警 / 强制拦截。干线、网点两套系统参数分开配。前四档弹窗后可继续装；强制拦截弹窗且禁止装车扫描。
   </p>
 
   <script>
+    /* 演示用默认值：两套互不共用，数值可不同 */
+    var PARAMS = {
+      trunk:  { name: '干线', list: [80, 90, 100, 110, 120] },
+      outlet: { name: '网点', list: [65, 75, 85, 95, 100] }
+    };
+
+    var NAMES = ['提醒', '注意', '预警', '告警', '强制拦截'];
+    var MSG = [
+      '当前装车进度已达提醒标准，请注意控制货量。',
+      '当前装车进度已达注意标准，请注意控制货量。',
+      '当前装车进度已达预警标准，请注意控制货量。',
+      '当前装车进度已达告警标准，请注意控制货量。',
+      '当前装车进度已达强制拦截标准，系统已禁止继续扫描装车。'
+    ];
+
+    var mode = 'trunk';
+    var level = 'safe';
+
     var block = document.getElementById('progressBlock');
     var valueEl = document.getElementById('progressValue');
     var mask = document.getElementById('mask');
-    var buttons = document.querySelectorAll('.review-bar button');
+    var dialogBody = document.getElementById('dialogBody');
+    var paramHint = document.getElementById('paramHint');
+    var modeBtns = document.querySelectorAll('#modeBtns button');
+    var levelBtns = document.querySelectorAll('#levelBtns button');
+    var missBtns = document.querySelectorAll('#missBtns button');
 
-    function setState(state) {
-      buttons.forEach(function (b) {
-        b.classList.toggle('active', b.getAttribute('data-state') === state);
+    function fmtParams() {
+      var p = PARAMS[mode];
+      paramHint.textContent = p.name + '参数示例：提醒' + p.list[0] +
+        ' / 注意' + p.list[1] +
+        ' / 预警' + p.list[2] +
+        ' / 告警' + p.list[3] +
+        ' / 强制拦截' + p.list[4];
+      levelBtns.forEach(function (b) {
+        var lv = b.getAttribute('data-level');
+        if (lv === 'safe') {
+          b.textContent = '安全<' + p.list[0] + '%';
+        } else if (lv.indexOf('l') === 0) {
+          var i = parseInt(lv.slice(1), 10) - 1;
+          b.textContent = NAMES[i] + ' ' + p.list[i] + '%';
+        }
       });
-      block.className = 'progress-line';
+    }
+
+    function showDialog(text) {
+      dialogBody.textContent = text;
+      mask.classList.add('show');
+      mask.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideDialog() {
       mask.classList.remove('show');
       mask.setAttribute('aria-hidden', 'true');
+    }
 
-      if (state === 'safe') {
+    function clearLevelActive() {
+      levelBtns.forEach(function (b) { b.classList.remove('active'); });
+      missBtns.forEach(function (b) { b.classList.remove('active'); });
+    }
+
+    function render() {
+      var p = PARAMS[mode].list;
+      block.className = 'progress-line';
+      hideDialog();
+
+      if (level === 'safe') {
         block.classList.add('safe');
-        valueEl.textContent = '72%';
-      } else if (state === 'warn') {
-        block.classList.add('warn');
-        valueEl.textContent = '80%';
-      } else if (state === 'danger') {
-        block.classList.add('danger');
-        valueEl.textContent = '90%';
-      } else if (state === 'block') {
-        block.classList.add('danger');
-        valueEl.textContent = '100%';
-        mask.classList.add('show');
-        mask.setAttribute('aria-hidden', 'false');
-      } else if (state === 'missW') {
+        valueEl.textContent = Math.max(0, p[0] - 5) + '%';
+        return;
+      }
+      if (level === 'missW') {
         block.classList.add('miss');
         valueEl.textContent = '未获取到额定重量';
-      } else if (state === 'missV') {
+        return;
+      }
+      if (level === 'missV') {
         block.classList.add('miss');
         valueEl.textContent = '未获取到额定体积';
+        return;
+      }
+      if (level.indexOf('l') === 0) {
+        var i = parseInt(level.slice(1), 10) - 1;
+        block.classList.add('l' + (i + 1));
+        valueEl.textContent = p[i] + '%';
+        showDialog(MSG[i]);
       }
     }
 
-    buttons.forEach(function (b) {
+    modeBtns.forEach(function (b) {
       b.addEventListener('click', function () {
-        setState(b.getAttribute('data-state'));
+        modeBtns.forEach(function (x) { x.classList.remove('active'); });
+        b.classList.add('active');
+        mode = b.getAttribute('data-mode');
+        fmtParams();
+        render();
       });
     });
 
-    document.getElementById('btnKnow').addEventListener('click', function () {
-      mask.classList.remove('show');
-      mask.setAttribute('aria-hidden', 'true');
+    levelBtns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        clearLevelActive();
+        b.classList.add('active');
+        level = b.getAttribute('data-level');
+        render();
+      });
     });
+
+    missBtns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        clearLevelActive();
+        b.classList.add('active');
+        level = b.getAttribute('data-level');
+        render();
+      });
+    });
+
+    document.getElementById('btnKnow').addEventListener('click', hideDialog);
+
+    fmtParams();
+    render();
   </script>
 </body>
 </html>
