@@ -290,10 +290,11 @@
     <strong>评审切换（非线上控件）</strong>
     <div class="btns">
       <button type="button" class="active" data-state="safe">安全 72%</button>
-      <button type="button" data-state="warn">临近 90%</button>
-      <button type="button" data-state="danger">告警 100%</button>
-      <button type="button" data-state="block">强制拦截弹框 120%</button>
-      <button type="button" data-state="miss">缺额定</button>
+      <button type="button" data-state="warn">临近 80%</button>
+      <button type="button" data-state="danger">告警 90%</button>
+      <button type="button" data-state="block">强制拦截弹框 100%</button>
+      <button type="button" data-state="missW">干线缺额定重量</button>
+      <button type="button" data-state="missV">网点缺额定体积</button>
     </div>
   </div>
 
@@ -420,18 +421,21 @@
         valueEl.textContent = '72%';
       } else if (state === 'warn') {
         block.classList.add('warn');
-        valueEl.textContent = '90%';
+        valueEl.textContent = '80%';
       } else if (state === 'danger') {
         block.classList.add('danger');
-        valueEl.textContent = '100%';
+        valueEl.textContent = '90%';
       } else if (state === 'block') {
         block.classList.add('danger');
-        valueEl.textContent = '120%';
+        valueEl.textContent = '100%';
         mask.classList.add('show');
         mask.setAttribute('aria-hidden', 'false');
-      } else if (state === 'miss') {
+      } else if (state === 'missW') {
         block.classList.add('miss');
-        valueEl.textContent = '未获取到额定重量/体积';
+        valueEl.textContent = '未获取到额定重量';
+      } else if (state === 'missV') {
+        block.classList.add('miss');
+        valueEl.textContent = '未获取到额定体积';
       }
     }
 
