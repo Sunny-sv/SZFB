@@ -48,6 +48,10 @@
       color: #fff;
       border-color: #5b2c91;
     }
+    .review-bar button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
 
     .phone {
       width: 307px;
@@ -154,7 +158,7 @@
       flex: 1;
       min-width: 0;
       font-size: 12px;
-      line-height: 1.35;
+      line-height: 1.45;
       padding-top: 2px;
     }
     .panel-left .lab { color: #222; }
@@ -164,40 +168,30 @@
       line-height: 1.1;
       margin: 1px 0 4px;
     }
-    .progress-line {
-      margin: 2px 0 2px;
-      padding: 2px 4px;
-      border: 1px solid transparent;
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
+    .metric {
+      margin: 1px 0;
       font-size: 12px;
     }
-    .progress-line .plabel { white-space: nowrap; }
-    .progress-line .pvalue {
-      font-size: 16px;
+    .metric b { font-weight: 700; }
+    .metric .pct {
       font-weight: 700;
+      color: #222;
     }
-    .progress-line.safe .pvalue { color: #222; }
-    /* 五档颜色：提醒→注意→预警→告警→强制拦截 */
-    .progress-line.l1 { background: #fffde7; border-color: #fbc02d; }
-    .progress-line.l1 .pvalue { color: #f9a825; }
-    .progress-line.l2 { background: #fff8e1; border-color: #ff9800; }
-    .progress-line.l2 .pvalue { color: #ef6c00; }
-    .progress-line.l3 { background: #fff3e0; border-color: #fb8c00; }
-    .progress-line.l3 .pvalue { color: #e65100; }
-    .progress-line.l4 { background: #ffebee; border-color: #e53935; }
-    .progress-line.l4 .pvalue { color: #c62828; }
-    .progress-line.l5 {
-      background: #ffcdd2;
-      border: 2px solid #b71c1c;
-    }
-    .progress-line.l5 .pvalue { color: #b71c1c; }
-    .progress-line.miss .pvalue {
+    .metric.tip .pct { color: #ef6c00; }
+    .metric.force .pct { color: #b71c1c; }
+    .metric.miss {
+      color: #757575;
       font-size: 11px;
       font-weight: 600;
-      color: #757575;
     }
+    .lock-tip {
+      display: none;
+      margin-top: 3px;
+      font-size: 11px;
+      color: #b71c1c;
+      font-weight: 600;
+    }
+    .lock-tip.show { display: block; }
 
     .panel-right {
       width: 78px;
@@ -288,45 +282,42 @@
       font-size: 14px;
       font-weight: 600;
     }
-    .note {
-      width: 307px;
-      margin: 10px auto 0;
-      font-size: 12px;
-      color: #666;
-      line-height: 1.5;
-    }
   </style>
 </head>
 <body>
   <div class="review-bar">
     <strong>评审切换（非线上控件）</strong>
-    <div class="hint" id="paramHint">干线参数示例：提醒80 / 注意90 / 预警100 / 告警110 / 强制拦截120</div>
+    <div class="hint" id="paramHint">干线演示：剩余 5 / 3 / 1 吨提示；达 120% 禁止装车</div>
 
     <div class="row">
-      <div class="lab">参数套（干线重量 / 网点体积，互不共用）</div>
+      <div class="lab">操作类型 / 菜单</div>
       <div class="btns" id="modeBtns">
-        <button type="button" class="active" data-mode="trunk">干线</button>
-        <button type="button" data-mode="outlet">网点</button>
+        <button type="button" class="active" data-mode="trunk">干线·实时装车</button>
+        <button type="button" data-mode="outlet">网点装车</button>
+        <button type="button" data-mode="flow">流水装车</button>
+      </div>
+    </div>
+
+    <div class="row" id="comboRow">
+      <div class="lab">策略组合（两项独立开关）</div>
+      <div class="btns" id="comboBtns">
+        <button type="button" class="active" data-combo="both">提示+拦截</button>
+        <button type="button" data-combo="tip">只开提示</button>
+        <button type="button" data-combo="force">只开拦截</button>
+        <button type="button" data-combo="none">都关</button>
       </div>
     </div>
 
     <div class="row">
-      <div class="lab">进度档位（前 4 档弹窗可继续装；第 5 档强制拦截禁止扫描）</div>
-      <div class="btns" id="levelBtns">
-        <button type="button" class="active" data-level="safe">安全</button>
-        <button type="button" data-level="l1">提醒</button>
-        <button type="button" data-level="l2">注意</button>
-        <button type="button" data-level="l3">预警</button>
-        <button type="button" data-level="l4">告警</button>
-        <button type="button" data-level="l5">强制拦截</button>
-      </div>
+      <div class="lab" id="levelLab">剩余可装提示 / 禁止装车</div>
+      <div class="btns" id="levelBtns"></div>
     </div>
 
     <div class="row">
       <div class="lab">缺额定</div>
       <div class="btns" id="missBtns">
-        <button type="button" data-level="missW">干线缺额定重量</button>
-        <button type="button" data-level="missV">网点缺额定体积</button>
+        <button type="button" data-level="missW">缺额定重量</button>
+        <button type="button" data-level="missV">缺额定体积</button>
       </div>
     </div>
   </div>
@@ -335,7 +326,7 @@
     <div class="phone-body">
       <div class="nav">
         <div class="side">←</div>
-        <div>实时装车</div>
+        <div id="navTitle">实时装车</div>
         <div class="side right">上传日志 <span class="scan" aria-hidden="true"></span></div>
       </div>
 
@@ -396,12 +387,9 @@
           <div class="panel-left">
             <div class="lab">预配实际重量：</div>
             <div class="big">9626.53</div>
-            <div>额定重量：<b>27000.0</b></div>
-            <div>额定体积：<b>130.0</b></div>
-            <div class="progress-line safe" id="progressBlock">
-              <span class="plabel">装车进度：</span>
-              <span class="pvalue" id="progressValue">55%</span>
-            </div>
+            <div class="metric" id="rowWeight">额定重量：<b id="ratedW">27000</b> <span class="pct" id="pctW">(72%)</span></div>
+            <div class="metric" id="rowVolume">额定体积：<b id="ratedV">130</b> <span class="pct" id="pctV">(45%)</span></div>
+            <div class="lock-tip" id="lockTip">已禁止装车扫描</div>
           </div>
           <div class="panel-right">
             <div class="tickets">装票/件:1/2</div>
@@ -431,54 +419,52 @@
     </div>
   </div>
 
-  <p class="note">
-    方案 A：提醒 / 注意 / 预警 / 告警 / 强制拦截。干线、网点两套系统参数分开配。前四档弹窗后可继续装；强制拦截弹窗且禁止装车扫描。
-  </p>
-
   <script>
-    /* 演示用默认值：两套互不共用，数值可不同 */
-    var PARAMS = {
-      trunk:  { name: '干线', list: [80, 90, 100, 110, 120] },
-      outlet: { name: '网点', list: [65, 75, 85, 95, 100] }
+    /* 额定重量 27000kg=27吨，用于演示剩余吨 → 重量% */
+    var RATED_KG = 27000;
+    var RATED_TON = 27;
+
+    var MODES = {
+      trunk: {
+        title: '实时装车',
+        tips: [5, 3, 1],
+        canForce: true
+      },
+      outlet: {
+        title: '网点装车',
+        tips: [3, 1],
+        canForce: false
+      },
+      flow: {
+        title: '流水装车',
+        tips: [5, 3, 1],
+        canForce: true,
+        flowOnly: true
+      }
     };
 
-    var NAMES = ['提醒', '注意', '预警', '告警', '强制拦截'];
-    var MSG = [
-      '当前装车进度已达提醒标准，请注意控制货量。',
-      '当前装车进度已达注意标准，请注意控制货量。',
-      '当前装车进度已达预警标准，请注意控制货量。',
-      '当前装车进度已达告警标准，请注意控制货量。',
-      '当前装车进度已达强制拦截标准，系统已禁止继续扫描装车。'
-    ];
-
     var mode = 'trunk';
+    var combo = 'both';
     var level = 'safe';
 
-    var block = document.getElementById('progressBlock');
-    var valueEl = document.getElementById('progressValue');
+    var navTitle = document.getElementById('navTitle');
+    var paramHint = document.getElementById('paramHint');
+    var levelLab = document.getElementById('levelLab');
+    var levelBtns = document.getElementById('levelBtns');
+    var rowWeight = document.getElementById('rowWeight');
+    var rowVolume = document.getElementById('rowVolume');
+    var ratedW = document.getElementById('ratedW');
+    var ratedV = document.getElementById('ratedV');
+    var pctW = document.getElementById('pctW');
+    var pctV = document.getElementById('pctV');
+    var lockTip = document.getElementById('lockTip');
     var mask = document.getElementById('mask');
     var dialogBody = document.getElementById('dialogBody');
-    var paramHint = document.getElementById('paramHint');
-    var modeBtns = document.querySelectorAll('#modeBtns button');
-    var levelBtns = document.querySelectorAll('#levelBtns button');
-    var missBtns = document.querySelectorAll('#missBtns button');
 
-    function fmtParams() {
-      var p = PARAMS[mode];
-      paramHint.textContent = p.name + '参数示例：提醒' + p.list[0] +
-        ' / 注意' + p.list[1] +
-        ' / 预警' + p.list[2] +
-        ' / 告警' + p.list[3] +
-        ' / 强制拦截' + p.list[4];
-      levelBtns.forEach(function (b) {
-        var lv = b.getAttribute('data-level');
-        if (lv === 'safe') {
-          b.textContent = '安全<' + p.list[0] + '%';
-        } else if (lv.indexOf('l') === 0) {
-          var i = parseInt(lv.slice(1), 10) - 1;
-          b.textContent = NAMES[i] + ' ' + p.list[i] + '%';
-        }
-      });
+    function remainToWeightPct(remainTon) {
+      var loaded = RATED_TON - remainTon;
+      if (loaded < 0) loaded = 0;
+      return Math.floor((loaded / RATED_TON) * 100);
     }
 
     function showDialog(text) {
@@ -492,61 +478,167 @@
       mask.setAttribute('aria-hidden', 'true');
     }
 
+    function currentFlags() {
+      var m = MODES[mode];
+      if (m.flowOnly) {
+        return { tip: false, force: false, hint: '流水装车：只展示双百分比，不提示、不拦截' };
+      }
+      var tip = combo === 'both' || combo === 'tip';
+      var force = combo === 'both' || combo === 'force';
+      var hint = '';
+      if (combo === 'both') hint = (mode === 'outlet' ? '网点' : '干线') + '：开提示 + 开拦截';
+      if (combo === 'tip') hint = '只开剩余吨位提示，不拦截';
+      if (combo === 'force') hint = '只开强制拦截（干线常用 120%），不弹剩余吨提示';
+      if (combo === 'none') hint = '两项都关：只展示双百分比';
+      return { tip: tip, force: force, hint: hint };
+    }
+
+    function rebuildLevelBtns() {
+      var m = MODES[mode];
+      var f = currentFlags();
+      var html = '<button type="button" class="active" data-level="safe">安全</button>';
+      m.tips.forEach(function (t) {
+        html += '<button type="button" data-level="t' + t + '">剩余≤' + t + '吨</button>';
+      });
+      html += '<button type="button" data-level="force">禁止装车120%</button>';
+      levelBtns.innerHTML = html;
+      if (m.flowOnly) {
+        levelLab.textContent = '剩余可装（流水只展示，点了也不弹窗）';
+      } else if (f.tip && f.force) {
+        levelLab.textContent = '剩余可装提示 / 禁止装车';
+      } else if (f.tip) {
+        levelLab.textContent = '剩余可装提示（拦截已关）';
+      } else if (f.force) {
+        levelLab.textContent = '禁止装车（提示已关）';
+      } else {
+        levelLab.textContent = '两项都关，点档位不弹窗不锁扫';
+      }
+
+      Array.prototype.forEach.call(levelBtns.querySelectorAll('button'), function (b) {
+        b.addEventListener('click', function () {
+          clearMissActive();
+          Array.prototype.forEach.call(levelBtns.querySelectorAll('button'), function (x) {
+            x.classList.remove('active');
+          });
+          b.classList.add('active');
+          level = b.getAttribute('data-level');
+          render();
+        });
+      });
+    }
+
+    function clearMissActive() {
+      Array.prototype.forEach.call(document.querySelectorAll('#missBtns button'), function (b) {
+        b.classList.remove('active');
+      });
+    }
+
     function clearLevelActive() {
-      levelBtns.forEach(function (b) { b.classList.remove('active'); });
-      missBtns.forEach(function (b) { b.classList.remove('active'); });
+      Array.prototype.forEach.call(levelBtns.querySelectorAll('button'), function (b) {
+        b.classList.remove('active');
+      });
+    }
+
+    function setMetricNormal(weightPct, volumePct) {
+      rowWeight.className = 'metric';
+      rowVolume.className = 'metric';
+      ratedW.textContent = '27000';
+      ratedV.textContent = '130';
+      pctW.style.display = '';
+      pctV.style.display = '';
+      pctW.textContent = '(' + weightPct + '%)';
+      pctV.textContent = '(' + volumePct + '%)';
     }
 
     function render() {
-      var p = PARAMS[mode].list;
-      block.className = 'progress-line';
+      var m = MODES[mode];
+      var f = currentFlags();
+      navTitle.textContent = m.title;
+      paramHint.textContent = f.hint;
       hideDialog();
+      lockTip.classList.remove('show');
+      document.getElementById('comboRow').style.display = m.flowOnly ? 'none' : '';
 
-      if (level === 'safe') {
-        block.classList.add('safe');
-        valueEl.textContent = Math.max(0, p[0] - 5) + '%';
-        return;
-      }
       if (level === 'missW') {
-        block.classList.add('miss');
-        valueEl.textContent = '未获取到额定重量';
+        rowWeight.className = 'metric miss';
+        rowWeight.innerHTML = '额定重量：未获取到额定重量';
+        rowVolume.className = 'metric';
+        rowVolume.innerHTML = '额定体积：<b>130</b> <span class="pct">(45%)</span>';
         return;
       }
       if (level === 'missV') {
-        block.classList.add('miss');
-        valueEl.textContent = '未获取到额定体积';
+        rowWeight.className = 'metric';
+        rowWeight.innerHTML = '额定重量：<b>27000</b> <span class="pct">(72%)</span>';
+        rowVolume.className = 'metric miss';
+        rowVolume.innerHTML = '额定体积：未获取到额定体积';
         return;
       }
-      if (level.indexOf('l') === 0) {
-        var i = parseInt(level.slice(1), 10) - 1;
-        block.classList.add('l' + (i + 1));
-        valueEl.textContent = p[i] + '%';
-        showDialog(MSG[i]);
+
+      /* 重建 metric 节点（缺额定会改 innerHTML） */
+      rowWeight.innerHTML = '额定重量：<b id="ratedW">27000</b> <span class="pct" id="pctW">(72%)</span>';
+      rowVolume.innerHTML = '额定体积：<b id="ratedV">130</b> <span class="pct" id="pctV">(45%)</span>';
+      ratedW = document.getElementById('ratedW');
+      ratedV = document.getElementById('ratedV');
+      pctW = document.getElementById('pctW');
+      pctV = document.getElementById('pctV');
+
+      if (level === 'safe') {
+        setMetricNormal(72, 45);
+        return;
+      }
+
+      if (level === 'force') {
+        setMetricNormal(120, 88);
+        rowWeight.classList.add('force');
+        if (f.force) {
+          lockTip.classList.add('show');
+          showDialog('车辆已超额定载重 120%，禁止继续装车');
+        }
+        return;
+      }
+
+      if (level.indexOf('t') === 0) {
+        var remain = parseInt(level.slice(1), 10);
+        var wPct = remainToWeightPct(remain);
+        var vPct = Math.max(30, Math.min(95, 100 - remain * 8));
+        setMetricNormal(wPct, vPct);
+        rowWeight.classList.add('tip');
+        if (f.tip) {
+          showDialog('剩余可装 ' + remain + ' 吨，请注意控制货量。');
+        }
       }
     }
 
-    modeBtns.forEach(function (b) {
+    Array.prototype.forEach.call(document.querySelectorAll('#modeBtns button'), function (b) {
       b.addEventListener('click', function () {
-        modeBtns.forEach(function (x) { x.classList.remove('active'); });
+        Array.prototype.forEach.call(document.querySelectorAll('#modeBtns button'), function (x) {
+          x.classList.remove('active');
+        });
         b.classList.add('active');
         mode = b.getAttribute('data-mode');
-        fmtParams();
+        level = 'safe';
+        rebuildLevelBtns();
         render();
       });
     });
 
-    levelBtns.forEach(function (b) {
+    Array.prototype.forEach.call(document.querySelectorAll('#comboBtns button'), function (b) {
       b.addEventListener('click', function () {
-        clearLevelActive();
+        Array.prototype.forEach.call(document.querySelectorAll('#comboBtns button'), function (x) {
+          x.classList.remove('active');
+        });
         b.classList.add('active');
-        level = b.getAttribute('data-level');
+        combo = b.getAttribute('data-combo');
+        level = 'safe';
+        rebuildLevelBtns();
         render();
       });
     });
 
-    missBtns.forEach(function (b) {
+    Array.prototype.forEach.call(document.querySelectorAll('#missBtns button'), function (b) {
       b.addEventListener('click', function () {
         clearLevelActive();
+        clearMissActive();
         b.classList.add('active');
         level = b.getAttribute('data-level');
         render();
@@ -555,7 +647,7 @@
 
     document.getElementById('btnKnow').addEventListener('click', hideDialog);
 
-    fmtParams();
+    rebuildLevelBtns();
     render();
   </script>
 </body>
