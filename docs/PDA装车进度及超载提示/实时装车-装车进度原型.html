@@ -272,6 +272,13 @@
       font-size: 13px;
       line-height: 1.45;
     }
+    .dialog .body .ton-num {
+      color: #e53935;
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 2px;
+      vertical-align: -1px;
+    }
     .dialog .foot { border-top: 1px solid #e0e0e0; display: flex; }
     .dialog .foot button {
       flex: 1;
@@ -467,8 +474,12 @@
       return Math.floor((loaded / RATED_TON) * 100);
     }
 
-    function showDialog(text) {
-      dialogBody.textContent = text;
+    function showDialog(text, asHtml) {
+      if (asHtml) {
+        dialogBody.innerHTML = text;
+      } else {
+        dialogBody.textContent = text;
+      }
       mask.classList.add('show');
       mask.setAttribute('aria-hidden', 'false');
     }
@@ -604,7 +615,7 @@
         setMetricNormal(wPct, vPct);
         rowWeight.classList.add('tip');
         if (f.tip) {
-          showDialog('剩余可装 ' + remain + ' 吨，请注意控制货量。');
+          showDialog('剩余可装 <span class="ton-num">' + remain + '</span> 吨，请注意超载！', true);
         }
       }
     }
