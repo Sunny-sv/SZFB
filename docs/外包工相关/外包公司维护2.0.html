@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>外包公司维护2.0 — 优化原型</title>
+  <title>外包公司维护2.0</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -905,6 +905,45 @@
     }
     .preview-price-box .k { color: var(--text-secondary); }
     .preview-price-box .k::after { content: "："; }
+
+    .form-item.form-item-full {
+      grid-column: 1 / -1;
+      align-items: flex-start;
+    }
+    .form-item.form-item-full > label:first-child { padding-top: 8px; }
+    .form-item textarea.form-control {
+      min-height: 88px;
+      height: 88px;
+      resize: vertical;
+      line-height: 1.5;
+      padding: 8px 11px;
+    }
+    .role-switch {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .role-switch select {
+      height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+    }
+    .btn-action:disabled,
+    .btn-action.disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .status-audit { color: #1890ff; }
+    .status-reject { color: #ff4d4f; }
+    .status-fail { color: #fa8c16; }
+    .filter-item.is-hidden { display: none; }
   </style>
 </head>
 <body>
@@ -935,6 +974,12 @@
         <div class="page-tab active" data-tab="page1">外包公司维护2.0 <span class="tab-close">×</span></div>
       </div>
       <div class="top-right">
+        <label class="role-switch">当前账号
+          <select id="roleSelect">
+            <option value="branch" selected>分拨用户</option>
+            <option value="hq">总部用户</option>
+          </select>
+        </label>
         <span class="icon-btn" title="搜索">🔍</span>
         <span class="icon-btn" title="通知">🔔</span>
         <div class="avatar" title="用户">U</div>
@@ -996,7 +1041,7 @@
                 </div>
               </div>
             </div>
-            <div class="filter-item">
+            <div class="filter-item" id="filterPricingItem">
               <span class="filter-label">计价方式</span>
               <div class="filter-control-wrap">
                 <div class="select-wrap">
@@ -1012,10 +1057,25 @@
               <span class="filter-label">状态</span>
               <div class="filter-control-wrap">
                 <div class="select-wrap">
-                  <select class="filter-control">
-                    <option>生效中</option>
+                  <select class="filter-control" id="filterStatus">
+                    <option selected>生效中</option>
                     <option>待生效</option>
                     <option>已失效</option>
+                    <option>审批中</option>
+                    <option>已驳回</option>
+                    <option>推送失败</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">使用方式</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control" id="filterUseMode">
+                    <option value="">全部</option>
+                    <option>立即使用</option>
+                    <option>储备使用</option>
                   </select>
                 </div>
               </div>
@@ -1032,7 +1092,7 @@
                 <input class="filter-control" type="text" placeholder="支持多个，换行输入" />
               </div>
             </div>
-            <div class="filter-item">
+            <div class="filter-item" id="filterUsageItem">
               <span class="filter-label">详细用途</span>
               <div class="filter-control-wrap">
                 <div class="select-wrap">
@@ -1061,6 +1121,7 @@
           <div class="content-tab" data-ctab="4">流水线码货</div>
           <div class="content-tab" data-ctab="5">流水线移动</div>
           <div class="content-tab" data-ctab="6">流水线直装</div>
+          <div class="content-tab" data-ctab="7">其他</div>
         </nav>
 
         <!-- 3. 操作按钮区 -->
@@ -1069,6 +1130,7 @@
           <button class="btn-action" type="button" id="btnEdit">编辑</button>
           <button class="btn-action" type="button" id="btnCopy">复制</button>
           <button class="btn-action" type="button" id="btnDelete">删除</button>
+          <button class="btn-action" type="button" id="btnRetryOa">重推OA</button>
           <button class="btn-action" type="button">导出</button>
         </section>
 
@@ -1104,14 +1166,23 @@
     <div class="modal-body">
       <div class="form-section">
         <div class="form-section-title">基础设定</div>
-        <div class="form-grid">
+                <div class="form-grid" id="addFormGrid">
           <div class="form-item">
             <label><span class="req">*</span>外包公司</label>
             <input class="form-control" type="text" placeholder="请输入" />
           </div>
-          <div class="form-item">
+          <div class="form-item" id="addDepotItem">
             <label><span class="req">*</span>合作分拨</label>
-            <input class="form-control" type="text" placeholder="分拨组件" />
+            <input class="form-control" id="addDepotInput" type="text" placeholder="分拨中心组件" />
+            <div class="select-wrap" id="addDepotSelectWrap" style="display:none; flex:1; min-width:0;">
+              <select class="form-control" id="addDepotSelect">
+                <option value="">请选择</option>
+                <option>金华分拨中心</option>
+                <option>义乌分拨中心</option>
+                <option>杭州转运中心</option>
+                <option>宁波分拨中心</option>
+              </select>
+            </div>
           </div>
           <div class="form-item">
             <label><span class="req">*</span>外包公司类型</label>
@@ -1120,6 +1191,16 @@
                 <option selected>临时工</option>
                 <option>外请车</option>
                 <option>试工</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>使用方式</label>
+            <div class="select-wrap">
+              <select class="form-control" id="addUseMode">
+                <option value="">请选择</option>
+                <option>立即使用</option>
+                <option>储备使用</option>
               </select>
             </div>
           </div>
@@ -1143,10 +1224,6 @@
             <input class="form-control" type="text" placeholder="请输入" />
           </div>
           <div class="form-item">
-            <label>备注</label>
-            <input class="form-control" type="text" placeholder="请输入" />
-          </div>
-          <div class="form-item">
             <label><span class="req">*</span>有效开始日期</label>
             <input class="form-control" type="text" placeholder="请选择" readonly />
           </div>
@@ -1154,16 +1231,24 @@
             <label><span class="req">*</span>有效结束日期</label>
             <input class="form-control" type="text" placeholder="请选择" readonly />
           </div>
+          <div class="form-item form-item-full">
+            <label>备注</label>
+            <textarea class="form-control" id="addRemark" placeholder="请输入备注" maxlength="50"></textarea>
+          </div>
+          <div class="form-item form-item-full" id="addCustomUsageItem" style="display:none;">
+            <label><span class="req">*</span>自定义用途</label>
+            <textarea class="form-control" id="addCustomUsage" placeholder="请输入自定义外包用途" maxlength="50"></textarea>
+          </div>
         </div>
       </div>
-      <div class="form-section">
+      <div class="form-section" id="addPriceSection">
         <div class="form-section-title">单价设定</div>
         <div class="price-list" id="addPriceList"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn" type="button" data-close="addMask">取消</button>
-      <button class="btn btn-primary" type="button" id="btnAddSave">确定</button>
+      <button class="btn btn-primary" type="button" id="btnAddSave">提交发起审批</button>
     </div>
   </div>
 </div>
@@ -1178,14 +1263,23 @@
     <div class="modal-body">
       <div class="form-section">
         <div class="form-section-title">基础设定</div>
-        <div class="form-grid">
+                <div class="form-grid" id="editFormGrid">
           <div class="form-item">
             <label><span class="req">*</span>外包公司</label>
             <input class="form-control" id="editCompany" type="text" />
           </div>
-          <div class="form-item">
+          <div class="form-item" id="editDepotItem">
             <label><span class="req">*</span>合作分拨</label>
-            <input class="form-control" id="editDepot" type="text" />
+            <input class="form-control" id="editDepot" type="text" placeholder="分拨中心组件" />
+            <div class="select-wrap" id="editDepotSelectWrap" style="display:none; flex:1; min-width:0;">
+              <select class="form-control" id="editDepotSelect">
+                <option value="">请选择</option>
+                <option>金华分拨中心</option>
+                <option>义乌分拨中心</option>
+                <option>杭州转运中心</option>
+                <option>宁波分拨中心</option>
+              </select>
+            </div>
           </div>
           <div class="form-item">
             <label><span class="req">*</span>外包公司类型</label>
@@ -1194,6 +1288,15 @@
                 <option>临时工</option>
                 <option>外请车</option>
                 <option>试工</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>使用方式</label>
+            <div class="select-wrap">
+              <select class="form-control" id="editUseMode">
+                <option>立即使用</option>
+                <option>储备使用</option>
               </select>
             </div>
           </div>
@@ -1216,16 +1319,20 @@
             <input class="form-control" id="editPhone" type="text" />
           </div>
           <div class="form-item">
-            <label>备注</label>
-            <input class="form-control" id="editRemark" type="text" placeholder="请输入" />
-          </div>
-          <div class="form-item">
             <label><span class="req">*</span>有效开始日期</label>
             <input class="form-control" id="editStart" type="text" />
           </div>
           <div class="form-item">
             <label><span class="req">*</span>有效结束日期</label>
             <input class="form-control" id="editEnd" type="text" />
+          </div>
+          <div class="form-item form-item-full">
+            <label>备注</label>
+            <textarea class="form-control" id="editRemark" placeholder="请输入备注" maxlength="50"></textarea>
+          </div>
+          <div class="form-item form-item-full" id="editCustomUsageItem" style="display:none;">
+            <label><span class="req">*</span>自定义用途</label>
+            <textarea class="form-control" id="editCustomUsage" placeholder="请输入自定义外包用途" maxlength="50"></textarea>
           </div>
         </div>
       </div>
@@ -1236,7 +1343,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn" type="button" data-close="editMask">取消</button>
-      <button class="btn btn-primary" type="button" id="btnEditSave">确定</button>
+      <button class="btn btn-primary" type="button" id="btnEditSave">保存</button>
     </div>
   </div>
 </div>
@@ -1434,20 +1541,29 @@
   let editTypeBefore = '';
   let editRowRef = null;
 
-  const COLS_ZX = ['合作分拨','外包公司','外包公司类型','有效期限','实际有效期限','详细用途','网点卸车','干线卸车','网点装车','干线装车','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
-  const COLS_YD = ['合作分拨','外包公司','外包公司类型','有效期限','实际有效期限','详细用途','网点卸车移动','干线卸车移动','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
+  let currentRole = 'branch'; // branch | hq
+
+  const COLS_ZX = ['合作分拨','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','详细用途','网点卸车','干线卸车','网点装车','干线装车','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
+  const COLS_YD = ['合作分拨','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','详细用途','网点卸车移动','干线卸车移动','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
+  const COLS_QT = ['合作分拨','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','自定义用途','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
 
   const ROWS_ZX = [
-    { state:'expired', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', start:'2026-05-01', end:'2027-06-01', valid:'2026-05-01 15:00:00 ~ 2027-06-01 14:59:59', actual:'2026-05-01 15:00:00 ~ 2026-06-30 14:59:59', usage:'网点卸车，干线卸车，网点装车，干线装车', cells:['统一计价','统一计价','统一计价','统一计价'], invoice:'普通发票', contact:'1', phone:'15312345678', wf:'-', no:'WB20260501001', creator:'张三', ctime:'2026-05-01 10:20:00', remark:'-', editor:'李四', etime:'2026-06-02 09:00:00', change:true, status:'已失效' },
-    { state:'active', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', start:'2026-07-01', end:'2027-12-31', valid:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', usage:'网点卸车，干线卸车', cells:['统一计价','统一计价','-','-'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'WB20260701002', creator:'张三', ctime:'2026-07-01 11:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
-    { state:'active', depot:'义乌分拨中心', company:'义乌装卸A队', type:'外请车', start:'2026-03-01', end:'2026-12-31', valid:'2026-03-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'2026-03-01 15:00:00 ~ 2026-12-31 14:59:59', usage:'网点装车，干线装车', cells:['-','-','阶梯计价','阶梯计价'], invoice:'专用发票(税率3%)', contact:'赵六', phone:'13900002222', wf:'-', no:'WB20260301003', creator:'钱七', ctime:'2026-03-01 14:30:00', remark:'试算价', editor:'-', etime:'-', change:false, status:'生效中' },
-    { state:'wait', depot:'杭州转运中心', company:'杭州试工队', type:'试工', start:'2026-08-01', end:'2026-08-31', valid:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59', actual:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59', usage:'网点卸车', cells:['统一计价','-','-','-'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'-', no:'WB20260801004', creator:'周九', ctime:'2026-07-10 16:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'待生效' }
+    { state:'expired', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-05-01', end:'2027-06-01', valid:'2026-05-01 15:00:00 ~ 2027-06-01 14:59:59', actual:'2026-05-01 15:00:00 ~ 2026-06-30 14:59:59', usage:'网点卸车，干线卸车，网点装车，干线装车', cells:['统一计价','统一计价','统一计价','统一计价'], invoice:'普通发票', contact:'1', phone:'15312345678', wf:'-', no:'WB20260501001', creator:'张三', ctime:'2026-05-01 10:20:00', remark:'-', editor:'李四', etime:'2026-06-02 09:00:00', change:true, status:'已失效' },
+    { state:'active', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-01', end:'2027-12-31', valid:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', usage:'网点卸车，干线卸车', cells:['统一计价','统一计价','-','-'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'WB20260701002', creator:'张三', ctime:'2026-07-01 11:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'audit', depot:'义乌分拨中心', company:'义乌装卸A队', type:'外请车', useMode:'储备使用', start:'2026-09-01', end:'2026-12-31', valid:'2026-09-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'-', usage:'网点装车，干线装车', cells:['-','-','阶梯计价','阶梯计价'], invoice:'专用发票(税率3%)', contact:'赵六', phone:'13900002222', wf:'OA20260815088', no:'WB20260815003', creator:'钱七', ctime:'2026-08-15 14:30:00', remark:'-', editor:'-', etime:'-', change:false, status:'审批中' },
+    { state:'reject', depot:'杭州转运中心', company:'杭州试工队', type:'试工', useMode:'立即使用', start:'2026-08-01', end:'2026-08-31', valid:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59', actual:'-', usage:'网点卸车', cells:['统一计价','-','-','-'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'OA20260720011', no:'WB20260720004', creator:'周九', ctime:'2026-07-20 16:00:00', remark:'驳回待改', editor:'-', etime:'-', change:false, status:'已驳回' },
+    { state:'fail', depot:'宁波分拨中心', company:'宁波装卸队', type:'临时工', useMode:'立即使用', start:'2026-08-10', end:'2026-11-30', valid:'2026-08-10 15:00:00 ~ 2026-11-30 14:59:59', actual:'-', usage:'网点装车', cells:['-','-','统一计价','-'], invoice:'普通发票', contact:'吴十', phone:'13600004444', wf:'-', no:'WB20260810005', creator:'郑一', ctime:'2026-08-10 09:15:00', remark:'-', editor:'-', etime:'-', change:false, status:'推送失败' }
   ];
 
   const ROWS_YD = [
-    { state:'active', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', start:'2026-07-01', end:'2027-06-30', valid:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', usage:'网点卸车移动，干线卸车移动', cells:['统一计价','统一计价'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'YD20260701001', creator:'张三', ctime:'2026-07-01 11:20:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
-    { state:'expired', depot:'义乌分拨中心', company:'义乌装卸A队', type:'外请车', start:'2026-04-01', end:'2026-05-31', valid:'2026-04-01 15:00:00 ~ 2026-05-31 14:59:59', actual:'2026-04-01 15:00:00 ~ 2026-05-31 14:59:59', usage:'网点卸车移动', cells:['阶梯计价','-'], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'-', no:'YD20260401002', creator:'钱七', ctime:'2026-04-01 09:00:00', remark:'-', editor:'李四', etime:'2026-06-01 10:00:00', change:true, status:'已失效' },
-    { state:'wait', depot:'杭州转运中心', company:'杭州试工队', type:'试工', start:'2026-08-15', end:'2026-09-15', valid:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', actual:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', usage:'干线卸车移动', cells:['-','统一计价'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'-', no:'YD20260815003', creator:'周九', ctime:'2026-07-12 16:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'待生效' }
+    { state:'active', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-01', end:'2027-06-30', valid:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', usage:'网点卸车移动，干线卸车移动', cells:['统一计价','统一计价'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'YD20260701001', creator:'张三', ctime:'2026-07-01 11:20:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'audit', depot:'义乌分拨中心', company:'义乌装卸A队', type:'外请车', useMode:'储备使用', start:'2026-09-01', end:'2026-10-31', valid:'2026-09-01 15:00:00 ~ 2026-10-31 14:59:59', actual:'-', usage:'网点卸车移动', cells:['阶梯计价','-'], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'OA20260812022', no:'YD20260812002', creator:'钱七', ctime:'2026-08-12 09:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'审批中' },
+    { state:'wait', depot:'杭州转运中心', company:'杭州试工队', type:'试工', useMode:'立即使用', start:'2026-08-15', end:'2026-09-15', valid:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', actual:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', usage:'干线卸车移动', cells:['-','统一计价'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'OA20260715033', no:'YD20260715003', creator:'周九', ctime:'2026-07-12 16:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'待生效' }
+  ];
+
+  const ROWS_QT = [
+    { state:'active', depot:'金华分拨中心', company:'金华临时支援', type:'临时工', useMode:'储备使用', start:'2026-07-01', end:'2026-12-31', valid:'2026-07-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2026-12-31 14:59:59', usage:'旺季库区清理', cells:[], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'OA20260628001', no:'QT20260628001', creator:'张三', ctime:'2026-06-28 10:00:00', remark:'不计价', editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'reject', depot:'义乌分拨中心', company:'义乌装卸A队', type:'外请车', useMode:'立即使用', start:'2026-08-01', end:'2026-09-30', valid:'2026-08-01 15:00:00 ~ 2026-09-30 14:59:59', actual:'-', usage:'设备维保协助', cells:[], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'OA20260730002', no:'QT20260730002', creator:'钱七', ctime:'2026-07-30 15:20:00', remark:'-', editor:'-', etime:'-', change:false, status:'已驳回' }
   ];
 
   function formatPeriod(startDate, endDate) {
@@ -1484,18 +1600,31 @@
         const status = el.getAttribute('data-status') || '生效中';
         stamp.textContent = status;
         stamp.classList.remove('wait', 'off');
-        if (status === '待生效') stamp.classList.add('wait');
-        if (status === '已失效') stamp.classList.add('off');
+        if (status === '待生效' || status === '审批中') stamp.classList.add('wait');
+        if (status === '已失效' || status === '已驳回' || status === '推送失败') stamp.classList.add('off');
         openModal('previewMask');
       });
     });
   }
 
+  function statusClass(status) {
+    if (status === '生效中') return 'status-on';
+    if (status === '待生效') return 'status-wait';
+    if (status === '审批中') return 'status-audit';
+    if (status === '已驳回') return 'status-reject';
+    if (status === '推送失败') return 'status-fail';
+    return 'status-off';
+  }
+
   function renderTable(tab) {
     currentTab = tab;
-    const cols = tab === 'yd' ? COLS_YD : COLS_ZX;
-    const rows = tab === 'yd' ? ROWS_YD : ROWS_ZX;
+    const cols = tab === 'yd' ? COLS_YD : (tab === 'qt' ? COLS_QT : COLS_ZX);
+    const rows = tab === 'yd' ? ROWS_YD : (tab === 'qt' ? ROWS_QT : ROWS_ZX);
     LINK_OPTIONS = tab === 'yd' ? LINK_YD.slice() : LINK_ZX.slice();
+
+    const hidePriceFilters = tab === 'qt';
+    document.getElementById('filterPricingItem').classList.toggle('is-hidden', hidePriceFilters);
+    document.getElementById('filterUsageItem').classList.toggle('is-hidden', hidePriceFilters);
 
     const thead = document.getElementById('tableHead');
     thead.innerHTML = '<tr><th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>' +
@@ -1503,15 +1632,23 @@
 
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = rows.map((r, idx) => {
-      const statusCls = r.status === '生效中' ? 'status-on' : (r.status === '待生效' ? 'status-wait' : 'status-off');
+      const statusCls = statusClass(r.status);
       const changeCell = r.change ? '<span class="link js-change">查看</span>' : '<span class="link disabled">查看</span>';
-      return '<tr data-idx="' + idx + '" data-state="' + r.state + '">' +
+      const useMode = r.useMode || '-';
+      let mid = '';
+      if (tab === 'qt') {
+        mid = '<td>' + r.usage + '</td>';
+      } else {
+        mid = '<td>' + r.usage + '</td>' + r.cells.map(c => '<td>' + c + '</td>').join('');
+      }
+      const wfCell = (r.wf && r.wf !== '-') ? ('<span class="link">' + r.wf + '</span>') : '-';
+      return '<tr data-idx="' + idx + '" data-state="' + r.state + '" data-status="' + r.status + '">' +
         '<td class="col-checkbox"><input type="checkbox" class="row-check" /></td>' +
         '<td>' + r.depot + '</td><td>' + r.company + '</td><td class="col-type">' + r.type + '</td>' +
-        '<td title="' + r.valid + '">' + r.valid + '</td><td title="' + r.actual + '">' + r.actual + '</td><td>' + r.usage + '</td>' +
-        r.cells.map(c => '<td>' + c + '</td>').join('') +
+        '<td>' + useMode + '</td>' +
+        '<td title="' + r.valid + '">' + r.valid + '</td><td title="' + r.actual + '">' + r.actual + '</td>' + mid +
         '<td>' + r.invoice + '</td><td>' + r.contact + '</td><td>' + r.phone + '</td>' +
-        '<td>' + r.wf + '</td><td>' + r.no + '</td><td>' + r.creator + '</td><td>' + r.ctime + '</td>' +
+        '<td>' + wfCell + '</td><td>' + r.no + '</td><td>' + r.creator + '</td><td>' + r.ctime + '</td>' +
         '<td>' + r.remark + '</td><td>' + r.editor + '</td><td>' + r.etime + '</td>' +
         '<td>' + changeCell + '</td><td class="' + statusCls + '">' + r.status + '</td>' +
         '<td><span class="link js-preview" data-status="' + r.status + '">预览</span></td></tr>';
@@ -1523,6 +1660,7 @@
     const total = document.querySelector('.pagination .total');
     if (total) total.textContent = '共 ' + rows.length + ' 条';
     bindRowSelect();
+    updateActionButtons();
   }
 
   function getSelectedIndexes() {
@@ -1532,7 +1670,114 @@
     }).map(tr => Number(tr.getAttribute('data-idx')));
   }
 
-  function currentRows() { return currentTab === 'yd' ? ROWS_YD : ROWS_ZX; }
+  function currentRows() {
+    if (currentTab === 'yd') return ROWS_YD;
+    if (currentTab === 'qt') return ROWS_QT;
+    return ROWS_ZX;
+  }
+
+  function applyOtherTabForm(isOther) {
+    const addCustom = document.getElementById('addCustomUsageItem');
+    const editCustom = document.getElementById('editCustomUsageItem');
+    const addPrice = document.getElementById('addPriceSection');
+    const editPrice = document.getElementById('editPriceSection');
+    if (addCustom) addCustom.style.display = isOther ? '' : 'none';
+    if (editCustom) editCustom.style.display = isOther ? '' : 'none';
+    if (addPrice) addPrice.style.display = isOther ? 'none' : '';
+    if (editPrice) editPrice.style.display = isOther ? 'none' : '';
+  }
+
+  /** 分拨用户：合作分拨=OA返回枚举的单选下拉；总部：分拨中心组件输入 */
+  function syncDepotFieldByRole() {
+    const isBranch = currentRole !== 'hq';
+    const pairs = [
+      ['addDepotInput', 'addDepotSelectWrap', 'addDepotSelect'],
+      ['editDepot', 'editDepotSelectWrap', 'editDepotSelect']
+    ];
+    pairs.forEach(([inputId, wrapId, selectId]) => {
+      const input = document.getElementById(inputId);
+      const wrap = document.getElementById(wrapId);
+      const select = document.getElementById(selectId);
+      if (!input || !wrap || !select) return;
+      if (isBranch) {
+        input.style.display = 'none';
+        wrap.style.display = '';
+        if (input.value) {
+          const opt = Array.from(select.options).find(o => o.value === input.value || o.textContent === input.value);
+          if (opt) select.value = opt.value;
+          else if (input.value) {
+            const o = document.createElement('option');
+            o.value = input.value;
+            o.textContent = input.value;
+            select.appendChild(o);
+            select.value = input.value;
+          }
+        }
+      } else {
+        wrap.style.display = 'none';
+        input.style.display = '';
+        if (select.value) input.value = select.value;
+      }
+    });
+  }
+
+  function getEditDepotValue() {
+    if (currentRole !== 'hq') {
+      const s = document.getElementById('editDepotSelect');
+      return s ? s.value : '';
+    }
+    const i = document.getElementById('editDepot');
+    return i ? i.value : '';
+  }
+
+  function updateActionButtons() {
+    const isHq = currentRole === 'hq';
+    const idxs = getSelectedIndexes();
+    const rows = currentRows();
+    const selected = idxs.map(i => rows[i]).filter(Boolean);
+    const btnEdit = document.getElementById('btnEdit');
+    const btnDelete = document.getElementById('btnDelete');
+    const btnRetry = document.getElementById('btnRetryOa');
+    const btnAddSave = document.getElementById('btnAddSave');
+    const btnEditSave = document.getElementById('btnEditSave');
+
+    if (btnAddSave) btnAddSave.textContent = isHq ? '保存' : '提交发起审批';
+    if (btnEditSave) btnEditSave.textContent = isHq ? '保存' : '提交发起审批';
+
+    // 编辑：分拨仅已驳回；总部待生效/生效中/已失效/已驳回（审批中/推送失败不可）
+    if (!isHq) {
+      const ok = selected.length === 1 && selected[0].status === '已驳回';
+      btnEdit.classList.toggle('disabled', !ok);
+      btnEdit.disabled = !ok;
+    } else {
+      const ok = selected.length === 1 && selected[0].status !== '审批中' && selected[0].status !== '推送失败';
+      btnEdit.classList.toggle('disabled', !ok);
+      btnEdit.disabled = !ok;
+    }
+
+    // 删除
+    if (!isHq) {
+      const ok = selected.length > 0 && selected.every(r => r.status === '已驳回' || r.status === '推送失败');
+      btnDelete.classList.toggle('disabled', !ok);
+      btnDelete.disabled = !ok;
+    } else {
+      const ok = selected.length > 0 && selected.every(r => r.status !== '审批中');
+      btnDelete.classList.toggle('disabled', !ok);
+      btnDelete.disabled = !ok;
+    }
+
+    // 重推OA：仅分拨 + 单条推送失败
+    if (isHq) {
+      btnRetry.classList.add('disabled');
+      btnRetry.disabled = true;
+      btnRetry.style.display = 'none';
+    } else {
+      btnRetry.style.display = '';
+      const ok = selected.length === 1 && selected[0].status === '推送失败';
+      btnRetry.classList.toggle('disabled', !ok);
+      btnRetry.disabled = !ok;
+    }
+  }
 
   function setLocked(el, locked) {
     if (!el) return;
@@ -1543,7 +1788,7 @@
   }
 
   function unlockAllEditFields() {
-    ['editCompany', 'editDepot', 'editType', 'editInvoice', 'editContact', 'editPhone', 'editRemark', 'editStart', 'editEnd']
+    ['editCompany', 'editDepot', 'editDepotSelect', 'editType', 'editUseMode', 'editInvoice', 'editContact', 'editPhone', 'editRemark', 'editStart', 'editEnd', 'editCustomUsage']
       .forEach(id => setLocked(document.getElementById(id), false));
     document.getElementById('editPriceSection').style.display = '';
     if (editPanel) editPanel.setLocked(false);
@@ -1553,9 +1798,23 @@
     editRowRef = row;
     document.getElementById('editCompany').value = row.company;
     document.getElementById('editDepot').value = row.depot;
+    const editDepotSelect = document.getElementById('editDepotSelect');
+    if (editDepotSelect) {
+      const hit = Array.from(editDepotSelect.options).find(o => o.value === row.depot || o.textContent === row.depot);
+      if (!hit && row.depot) {
+        const o = document.createElement('option');
+        o.value = row.depot;
+        o.textContent = row.depot;
+        editDepotSelect.appendChild(o);
+      }
+      editDepotSelect.value = row.depot || '';
+    }
     document.getElementById('editType').value = row.type;
     editTypeBefore = row.type;
+    document.getElementById('editUseMode').value = row.useMode || '立即使用';
     document.getElementById('editInvoice').value = row.invoice;
+    const editCustom = document.getElementById('editCustomUsage');
+    if (editCustom) editCustom.value = (currentTab === 'qt' ? (row.usage || '') : '');
     document.getElementById('editContact').value = row.contact;
     document.getElementById('editPhone').value = row.phone;
     document.getElementById('editRemark').value = row.remark === '-' ? '' : row.remark;
@@ -1566,7 +1825,7 @@
   function resetAddFormDefaults() {
     const addBody = document.querySelector('#addMask .form-grid');
     addBody.querySelectorAll('.form-item').forEach(item => {
-      const ctrl = item.querySelector('input.form-control, select.form-control');
+      const ctrl = item.querySelector('input.form-control, select.form-control, textarea.form-control');
       if (!ctrl) return;
       const label = (item.querySelector('label') || {}).textContent || '';
       if (label.indexOf('外包公司类型') >= 0) {
@@ -1898,14 +2157,16 @@
     tab.classList.add('active');
   });
 
-  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    document.getElementById('contentTabs').addEventListener('click', (e) => {
     const tab = e.target.closest('.content-tab');
     if (!tab) return;
     document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     const key = tab.getAttribute('data-ctab');
     if (key === '2') renderTable('yd');
+    else if (key === '7') renderTable('qt');
     else renderTable('zx');
+    applyOtherTabForm(key === '7');
   });
 
   document.querySelectorAll('[data-close]').forEach(el => {
@@ -1918,10 +2179,16 @@
   document.getElementById('btnAdd').addEventListener('click', () => {
     LINK_OPTIONS = currentTab === 'yd' ? LINK_YD.slice() : LINK_ZX.slice();
     resetAddFormDefaults();
-    addPanel.reset([
-      { links: [], pricing: '阶梯计价', mode: '整体', tiers: [{ end: '', prices: {} }, { end: '∞', prices: {} }] },
-      { links: [], pricing: '统一计价', unitPrice: '' }
-    ]);
+    applyOtherTabForm(currentTab === 'qt');
+    if (currentTab !== 'qt') {
+      addPanel.reset([
+        { links: [], pricing: '阶梯计价', mode: '整体', tiers: [{ end: '', prices: {} }, { end: '∞', prices: {} }] },
+        { links: [], pricing: '统一计价', unitPrice: '' }
+      ]);
+    }
+    const title = document.querySelector('#addMask .modal-header div');
+    if (title) title.textContent = '新增';
+    syncDepotFieldByRole();
     openModal('addMask');
   });
 
@@ -1929,14 +2196,27 @@
     const idxs = getSelectedIndexes();
     if (idxs.length !== 1) { showToast('请选中单条数据后再编辑'); return; }
     const row = currentRows()[idxs[0]];
+    if (row.status === '审批中') { showToast('审批中的方案不可编辑'); return; }
+    if (currentRole !== 'hq') {
+      if (row.status !== '已驳回') {
+        showToast('分拨仅可编辑审批不通过的方案');
+        return;
+      }
+    }
     LINK_OPTIONS = currentTab === 'yd' ? LINK_YD.slice() : LINK_ZX.slice();
     fillEditForm(row);
-    editPanel.reset([{
-      links: LINK_OPTIONS.slice(),
-      pricing: '统一计价',
-      unitPrice: '0'
-    }]);
+    applyOtherTabForm(currentTab === 'qt');
+    if (currentTab !== 'qt') {
+      editPanel.reset([{
+        links: LINK_OPTIONS.slice(),
+        pricing: '统一计价',
+        unitPrice: '0'
+      }]);
+    }
     unlockAllEditFields();
+    const editSave = document.getElementById('btnEditSave');
+    if (editSave) editSave.textContent = currentRole === 'hq' ? '保存' : '提交发起审批';
+    syncDepotFieldByRole();
     openModal('editMask');
   });
 
@@ -1945,26 +2225,51 @@
     if (idxs.length !== 1) { showToast('请选中单条数据后再复制'); return; }
     const row = currentRows()[idxs[0]];
     LINK_OPTIONS = currentTab === 'yd' ? LINK_YD.slice() : LINK_ZX.slice();
-    // 预填到新增弹框（不含有效时间）
-    const addBody = document.querySelector('#addMask .form-grid');
-    const inputs = addBody.querySelectorAll('input.form-control, select.form-control');
-    // 按顺序：公司、分拨、类型、发票、联系人、电话、备注、开始、结束
-    const vals = [row.company, row.depot, row.type, row.invoice, row.contact, row.phone, row.remark === '-' ? '' : row.remark, '', ''];
-    let i = 0;
-    addBody.querySelectorAll('.form-item').forEach(item => {
+    resetAddFormDefaults();
+    applyOtherTabForm(currentTab === 'qt');
+    const map = {
+      '外包公司': row.company,
+      '合作分拨': row.depot,
+      '外包公司类型': row.type,
+      '使用方式': row.useMode || '立即使用',
+      '发票种类': row.invoice,
+      '联系人': row.contact,
+      '联系方式': row.phone
+    };
+    document.querySelectorAll('#addMask .form-item').forEach(item => {
+      const label = (item.querySelector('label') || {}).textContent || '';
       const ctrl = item.querySelector('input.form-control, select.form-control');
       if (!ctrl) return;
-      if (i < vals.length) {
-        ctrl.value = vals[i];
-        i += 1;
+      for (const k of Object.keys(map)) {
+        if (label.indexOf(k) >= 0) { ctrl.value = map[k]; break; }
       }
     });
-    addPanel.reset([{
-      links: currentTab === 'yd' ? LINK_YD.slice() : ['网点卸车'],
-      pricing: '统一计价',
-      unitPrice: '0'
-    }]);
+    const addRemark = document.getElementById('addRemark');
+    if (addRemark) addRemark.value = row.remark === '-' ? '' : row.remark;
+    const addCustom = document.getElementById('addCustomUsage');
+    if (addCustom && currentTab === 'qt') addCustom.value = row.usage || '';
+    if (currentTab !== 'qt') {
+      addPanel.reset([{
+        links: currentTab === 'yd' ? LINK_YD.slice() : ['网点卸车'],
+        pricing: '统一计价',
+        unitPrice: '0'
+      }]);
+    }
     openModal('addMask');
+    syncDepotFieldByRole();
+    const addDepotInput = document.getElementById('addDepotInput');
+    const addDepotSelect = document.getElementById('addDepotSelect');
+    if (addDepotInput) addDepotInput.value = row.depot || '';
+    if (addDepotSelect && row.depot) {
+      const hit = Array.from(addDepotSelect.options).find(o => o.value === row.depot || o.textContent === row.depot);
+      if (!hit) {
+        const o = document.createElement('option');
+        o.value = row.depot;
+        o.textContent = row.depot;
+        addDepotSelect.appendChild(o);
+      }
+      addDepotSelect.value = row.depot;
+    }
   });
 
   document.getElementById('btnDelete').addEventListener('click', () => {
@@ -1980,7 +2285,8 @@
 
   document.getElementById('btnAddSave').addEventListener('click', () => {
     closeModal('addMask');
-    showToast('保存成功');
+    if (currentRole === 'hq') showToast('保存成功');
+    else showToast('已提交发起审批');
   });
 
   document.getElementById('btnEditSave').addEventListener('click', () => {
@@ -1994,7 +2300,12 @@
       current.company = company;
       current.depot = depot;
       current.type = type;
+      current.useMode = document.getElementById('editUseMode').value;
+      current.depot = getEditDepotValue() || current.depot;
       current.invoice = document.getElementById('editInvoice').value;
+      if (currentTab === 'qt') {
+        current.usage = document.getElementById('editCustomUsage').value || current.usage;
+      }
       current.contact = document.getElementById('editContact').value;
       current.phone = document.getElementById('editPhone').value;
       current.remark = document.getElementById('editRemark').value || '-';
@@ -2005,6 +2316,17 @@
       if (current.state !== 'expired') current.actual = formatPeriod(start, end);
     }
     closeModal('editMask');
+    if (currentRole !== 'hq') {
+      if (current) {
+        current.status = '审批中';
+        current.state = 'audit';
+        current.actual = '-';
+        current.wf = 'OA' + String(Date.now()).slice(-11);
+      }
+      renderTable(currentTab);
+      showToast('已提交发起审批');
+      return;
+    }
     if (type !== editTypeBefore) {
       const syncN = syncTypeToOthers(company, depot, type, current);
       renderTable(currentTab);
@@ -2018,6 +2340,41 @@
       showToast('保存成功');
     }
   });
+
+  document.getElementById('roleSelect').addEventListener('change', function () {
+    currentRole = this.value;
+    updateActionButtons();
+    syncDepotFieldByRole();
+  });
+
+  document.getElementById('tableBody').addEventListener('change', function (e) {
+    if (e.target.classList.contains('row-check')) updateActionButtons();
+  });
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'checkAll') setTimeout(updateActionButtons, 0);
+  });
+
+  document.getElementById('btnRetryOa').addEventListener('click', function () {
+    if (this.disabled) return;
+    const idxs = getSelectedIndexes();
+    const rows = currentRows();
+    if (idxs.length !== 1) return;
+    const row = rows[idxs[0]];
+    if (!row || row.status !== '推送失败') return;
+    row.status = '审批中';
+    row.state = 'audit';
+    row.wf = 'OA' + String(Date.now()).slice(-11);
+    row.actual = '-';
+    renderTable(currentTab);
+    showToast('已重新推送，状态变为审批中');
+  });
+
+  document.getElementById('tableBody').addEventListener('click', function () {
+    setTimeout(updateActionButtons, 0);
+  });
+
+  applyOtherTabForm(false);
+  syncDepotFieldByRole();
 
   renderTable('zx');
 
