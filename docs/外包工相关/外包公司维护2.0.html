@@ -1056,15 +1056,18 @@
             <div class="filter-item">
               <span class="filter-label">状态</span>
               <div class="filter-control-wrap">
-                <div class="select-wrap">
-                  <select class="filter-control" id="filterStatus">
-                    <option selected>生效中</option>
-                    <option>待生效</option>
-                    <option>已失效</option>
-                    <option>审批中</option>
-                    <option>已驳回</option>
-                    <option>推送失败</option>
-                  </select>
+                <div class="ms-select" id="filterStatusMs">
+                  <div class="select-wrap">
+                    <div class="filter-control filter-multi" id="filterStatusTrigger" tabindex="0">请选择</div>
+                  </div>
+                  <div class="ms-dropdown" id="filterStatusDrop">
+                    <label><input type="checkbox" value="生效中" checked />生效中</label>
+                    <label><input type="checkbox" value="待生效" />待生效</label>
+                    <label><input type="checkbox" value="已失效" />已失效</label>
+                    <label><input type="checkbox" value="审批中" />审批中</label>
+                    <label><input type="checkbox" value="已驳回" />已驳回</label>
+                    <label><input type="checkbox" value="推送失败" />推送失败</label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1380,6 +1383,7 @@
 
       <div class="change-scroll">
         <div class="change-scroll-inner">
+          <div id="changeBlockNormal">
           <div class="change-block">
             <div class="change-title"><span class="change-dot before"></span>变更前</div>
             <table class="change-table">
@@ -1388,6 +1392,7 @@
                   <th rowspan="2">外包公司</th>
                   <th rowspan="2">合作分拨</th>
                   <th rowspan="2">外包公司类型</th>
+                  <th rowspan="2">使用方式</th>
                   <th rowspan="2">合作省区</th>
                   <th rowspan="2">有效期限</th>
                   <th rowspan="2">实际有效期限</th>
@@ -1414,6 +1419,7 @@
                   <td>江苏永宁物流有限公司</td>
                   <td>常州分拨中心</td>
                   <td>临时工</td>
+                  <td class="diff-before">立即使用</td>
                   <td></td>
                   <td class="diff-before">2026-05-01 15:00:00~2027-04-30 14:59:59</td>
                   <td class="diff-before">2026-05-01 15:00:00~2027-04-30 14:59:59</td>
@@ -1440,6 +1446,7 @@
                   <th rowspan="2">外包公司</th>
                   <th rowspan="2">合作分拨</th>
                   <th rowspan="2">外包公司类型</th>
+                  <th rowspan="2">使用方式</th>
                   <th rowspan="2">合作省区</th>
                   <th rowspan="2">有效期限</th>
                   <th rowspan="2">实际有效期限</th>
@@ -1466,6 +1473,7 @@
                   <td>江苏永宁物流有限公司</td>
                   <td>常州分拨中心</td>
                   <td>临时工</td>
+                  <td class="diff-after">储备使用</td>
                   <td></td>
                   <td class="diff-after">2026-05-01 15:00:00~2027-05-01 14:59:59</td>
                   <td class="diff-after">2026-05-01 15:00:00~2027-05-01 14:59:59</td>
@@ -1478,6 +1486,77 @@
                   <td>普通发票</td>
                   <td>1</td>
                   <td>15312345678</td>
+                  <td>生效中</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          </div>
+
+          <!-- 「其他」Tab 变更对比示意：含自定义用途、无环节计价列 -->
+          <div class="change-block" id="changeBlockOther" style="display:none;">
+            <div class="change-title"><span class="change-dot before"></span>变更前（其他）</div>
+            <table class="change-table">
+              <thead>
+                <tr>
+                  <th>外包公司</th>
+                  <th>合作分拨</th>
+                  <th>外包公司类型</th>
+                  <th>使用方式</th>
+                  <th>有效期限</th>
+                  <th>实际有效期限</th>
+                  <th>自定义用途</th>
+                  <th>发票种类</th>
+                  <th>联系人</th>
+                  <th>联系方式</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>金华临时支援</td>
+                  <td>金华分拨中心</td>
+                  <td>临时工</td>
+                  <td class="diff-before">储备使用</td>
+                  <td>2026-07-01 15:00:00~2026-12-31 14:59:59</td>
+                  <td>2026-07-01 15:00:00~2026-12-31 14:59:59</td>
+                  <td class="diff-before">旺季库区清理</td>
+                  <td>普通发票</td>
+                  <td>王五</td>
+                  <td>13800001111</td>
+                  <td>生效中</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="change-title" style="margin-top:16px;"><span class="change-dot after"></span>变更后（其他）</div>
+            <table class="change-table">
+              <thead>
+                <tr>
+                  <th>外包公司</th>
+                  <th>合作分拨</th>
+                  <th>外包公司类型</th>
+                  <th>使用方式</th>
+                  <th>有效期限</th>
+                  <th>实际有效期限</th>
+                  <th>自定义用途</th>
+                  <th>发票种类</th>
+                  <th>联系人</th>
+                  <th>联系方式</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>金华临时支援</td>
+                  <td>金华分拨中心</td>
+                  <td>临时工</td>
+                  <td class="diff-after">立即使用</td>
+                  <td>2026-07-01 15:00:00~2026-12-31 14:59:59</td>
+                  <td>2026-07-01 15:00:00~2026-12-31 14:59:59</td>
+                  <td class="diff-after">设备维保协助</td>
+                  <td>普通发票</td>
+                  <td>王五</td>
+                  <td>13800001111</td>
                   <td>生效中</td>
                 </tr>
               </tbody>
@@ -1501,17 +1580,19 @@
       <div class="preview-section">
         <div class="preview-section-title">基础设定</div>
         <div class="preview-grid">
-          <div class="preview-row"><span class="p-label">外包公司</span><span class="p-value">江苏永宁物流有限公司</span></div>
-          <div class="preview-row"><span class="p-label">分拨中心</span><span class="p-value">常州分拨中心</span></div>
-          <div class="preview-row"><span class="p-label">外包公司类型</span><span class="p-value">临时工</span></div>
-          <div class="preview-row"><span class="p-label">有效期限</span><span class="p-value">2026-05-01 15:00:00 ~ 2027-05-01 14:59:59</span></div>
-          <div class="preview-row"><span class="p-label">发票种类</span><span class="p-value">普通发票</span></div>
-          <div class="preview-row"><span class="p-label">联系方式</span><span class="p-value">15312345678</span></div>
-          <div class="preview-row"><span class="p-label">联系人</span><span class="p-value">1</span></div>
-          <div class="preview-row"><span class="p-label">备注</span><span class="p-value"></span></div>
+          <div class="preview-row"><span class="p-label">外包公司</span><span class="p-value" id="pvCompany">江苏永宁物流有限公司</span></div>
+          <div class="preview-row"><span class="p-label">合作分拨</span><span class="p-value" id="pvDepot">常州分拨中心</span></div>
+          <div class="preview-row"><span class="p-label">外包公司类型</span><span class="p-value" id="pvType">临时工</span></div>
+          <div class="preview-row"><span class="p-label">使用方式</span><span class="p-value" id="pvUseMode">立即使用</span></div>
+          <div class="preview-row"><span class="p-label">有效期限</span><span class="p-value" id="pvValid">2026-05-01 15:00:00 ~ 2027-05-01 14:59:59</span></div>
+          <div class="preview-row"><span class="p-label">发票种类</span><span class="p-value" id="pvInvoice">普通发票</span></div>
+          <div class="preview-row"><span class="p-label">联系方式</span><span class="p-value" id="pvPhone">15312345678</span></div>
+          <div class="preview-row"><span class="p-label">联系人</span><span class="p-value" id="pvContact">1</span></div>
+          <div class="preview-row"><span class="p-label">备注</span><span class="p-value" id="pvRemark"></span></div>
+          <div class="preview-row" id="pvCustomUsageRow" style="display:none;"><span class="p-label">自定义用途</span><span class="p-value" id="pvCustomUsage"></span></div>
         </div>
       </div>
-      <div class="preview-section">
+      <div class="preview-section" id="previewPriceSection">
         <div class="preview-section-title">单价设定</div>
         <div class="preview-links">
           <span>网点装车</span>
@@ -1591,7 +1672,15 @@
       });
     });
     document.querySelectorAll('.js-change').forEach(el => {
-      el.addEventListener('click', (e) => { e.stopPropagation(); openModal('changeMask'); });
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const normal = document.getElementById('changeBlockNormal');
+        const other = document.getElementById('changeBlockOther');
+        const isOther = currentTab === 'qt';
+        if (normal) normal.style.display = isOther ? 'none' : '';
+        if (other) other.style.display = isOther ? '' : 'none';
+        openModal('changeMask');
+      });
     });
     document.querySelectorAll('.js-preview').forEach(el => {
       el.addEventListener('click', (e) => {
@@ -1602,6 +1691,28 @@
         stamp.classList.remove('wait', 'off');
         if (status === '待生效' || status === '审批中') stamp.classList.add('wait');
         if (status === '已失效' || status === '已驳回' || status === '推送失败') stamp.classList.add('off');
+
+        const tr = el.closest('tr');
+        const idx = tr ? Number(tr.getAttribute('data-idx')) : -1;
+        const row = (currentRows() || [])[idx];
+        const isOther = currentTab === 'qt';
+        if (row) {
+          const set = (id, val) => { const n = document.getElementById(id); if (n) n.textContent = val || ''; };
+          set('pvCompany', row.company);
+          set('pvDepot', row.depot);
+          set('pvType', row.type);
+          set('pvUseMode', row.useMode || '-');
+          set('pvValid', row.valid);
+          set('pvInvoice', row.invoice);
+          set('pvPhone', row.phone);
+          set('pvContact', row.contact);
+          set('pvRemark', row.remark === '-' ? '' : row.remark);
+          set('pvCustomUsage', row.usage || '');
+        }
+        const customRow = document.getElementById('pvCustomUsageRow');
+        const priceSec = document.getElementById('previewPriceSection');
+        if (customRow) customRow.style.display = isOther ? '' : 'none';
+        if (priceSec) priceSec.style.display = isOther ? 'none' : '';
         openModal('previewMask');
       });
     });
@@ -1744,9 +1855,9 @@
     if (btnAddSave) btnAddSave.textContent = isHq ? '保存' : '提交发起审批';
     if (btnEditSave) btnEditSave.textContent = isHq ? '保存' : '提交发起审批';
 
-    // 编辑：分拨仅已驳回；总部待生效/生效中/已失效/已驳回（审批中/推送失败不可）
+    // 编辑：分拨已驳回/推送失败；总部待生效/生效中/已失效/已驳回（审批中/推送失败不可）
     if (!isHq) {
-      const ok = selected.length === 1 && selected[0].status === '已驳回';
+      const ok = selected.length === 1 && (selected[0].status === '已驳回' || selected[0].status === '推送失败');
       btnEdit.classList.toggle('disabled', !ok);
       btnEdit.disabled = !ok;
     } else {
@@ -2198,8 +2309,13 @@
     const row = currentRows()[idxs[0]];
     if (row.status === '审批中') { showToast('审批中的方案不可编辑'); return; }
     if (currentRole !== 'hq') {
-      if (row.status !== '已驳回') {
-        showToast('分拨仅可编辑审批不通过的方案');
+      if (row.status !== '已驳回' && row.status !== '推送失败') {
+        showToast('分拨仅可编辑已驳回或推送失败的方案');
+        return;
+      }
+    } else {
+      if (row.status === '推送失败') {
+        showToast('总部不可编辑推送失败的方案');
         return;
       }
     }
@@ -2382,6 +2498,44 @@
     const root = document.getElementById('filterTypeMs');
     const trigger = document.getElementById('filterTypeTrigger');
     const drop = document.getElementById('filterTypeDrop');
+    if (!root || !trigger || !drop) return;
+
+    function selectedValues() {
+      return Array.from(drop.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+    }
+    function renderTrigger() {
+      const vals = selectedValues();
+      if (!vals.length) {
+        trigger.classList.remove('has-value');
+        trigger.textContent = '请选择';
+        return;
+      }
+      trigger.classList.add('has-value');
+      trigger.innerHTML = vals.map(v => '<span class="tag">' + v + '</span>').join('');
+    }
+    function openDrop() { drop.classList.add('open'); }
+    function closeDrop() { drop.classList.remove('open'); }
+    function toggleDrop() {
+      if (drop.classList.contains('open')) closeDrop();
+      else openDrop();
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleDrop();
+    });
+    drop.addEventListener('click', (e) => e.stopPropagation());
+    drop.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', renderTrigger);
+    });
+    document.addEventListener('click', () => closeDrop());
+    renderTrigger();
+  })();
+
+  (function bindStatusMultiSelect() {
+    const root = document.getElementById('filterStatusMs');
+    const trigger = document.getElementById('filterStatusTrigger');
+    const drop = document.getElementById('filterStatusDrop');
     if (!root || !trigger || !drop) return;
 
     function selectedValues() {
