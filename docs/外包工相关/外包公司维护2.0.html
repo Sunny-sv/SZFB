@@ -504,7 +504,20 @@
     .form-item > label:first-child .req { color: #ff4d4f; margin-right: 2px; }
     .form-item > .select-wrap,
     .form-item > .form-control,
-    .form-item > .input-suffix { flex: 1; min-width: 0; }
+    .form-item > .input-suffix,
+    .form-item > .datetime-combo { flex: 1; min-width: 0; }
+    .datetime-combo {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      min-width: 0;
+    }
+    .datetime-combo .date-part { flex: 1; min-width: 0; }
+    .datetime-combo .time-part {
+      width: 96px;
+      flex: 0 0 96px;
+      text-align: center;
+    }
     .form-control {
       width: 100%;
       height: 32px;
@@ -977,6 +990,7 @@
         <label class="role-switch">当前账号
           <select id="roleSelect">
             <option value="branch" selected>分拨用户</option>
+            <option value="branch1">分拨用户（仅1个所属部门）</option>
             <option value="hq">总部用户</option>
           </select>
         </label>
@@ -1001,7 +1015,20 @@
             <div class="filter-item">
               <span class="filter-label">合作分拨</span>
               <div class="filter-control-wrap">
-                <input class="filter-control" type="text" placeholder="分拨组件（多选）" />
+                <input class="filter-control" type="text" placeholder="数据权限组件（多选）" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">所属部门</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option value="">请选择</option>
+                    <option>装卸一部</option>
+                    <option>装卸二部</option>
+                    <option>码货组</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div class="filter-item">
@@ -1133,7 +1160,6 @@
           <button class="btn-action" type="button" id="btnEdit">编辑</button>
           <button class="btn-action" type="button" id="btnCopy">复制</button>
           <button class="btn-action" type="button" id="btnDelete">删除</button>
-          <button class="btn-action" type="button" id="btnRetryOa">重推OA</button>
           <button class="btn-action" type="button">导出</button>
         </section>
 
@@ -1176,14 +1202,13 @@
           </div>
           <div class="form-item" id="addDepotItem">
             <label><span class="req">*</span>合作分拨</label>
-            <input class="form-control" id="addDepotInput" type="text" placeholder="分拨中心组件" />
-            <div class="select-wrap" id="addDepotSelectWrap" style="display:none; flex:1; min-width:0;">
-              <select class="form-control" id="addDepotSelect">
+            <input class="form-control" id="addDepotInput" type="text" placeholder="数据权限组件（单选）" />
+          </div>
+          <div class="form-item" id="addOaDeptItem">
+            <label><span class="req">*</span>所属部门</label>
+            <div class="select-wrap">
+              <select class="form-control" id="addOaDept">
                 <option value="">请选择</option>
-                <option>金华分拨中心</option>
-                <option>义乌分拨中心</option>
-                <option>杭州转运中心</option>
-                <option>宁波分拨中心</option>
               </select>
             </div>
           </div>
@@ -1227,12 +1252,18 @@
             <input class="form-control" type="text" placeholder="请输入" />
           </div>
           <div class="form-item">
-            <label><span class="req">*</span>有效开始日期</label>
-            <input class="form-control" type="text" placeholder="请选择" readonly />
+            <label><span class="req">*</span>有效开始</label>
+            <div class="datetime-combo">
+              <input class="form-control date-part" id="addStart" type="text" placeholder="请选择日期" />
+              <input class="form-control time-part" value="15:00:00" disabled />
+            </div>
           </div>
           <div class="form-item">
-            <label><span class="req">*</span>有效结束日期</label>
-            <input class="form-control" type="text" placeholder="请选择" readonly />
+            <label><span class="req">*</span>有效结束</label>
+            <div class="datetime-combo">
+              <input class="form-control date-part" id="addEnd" type="text" placeholder="请选择日期" />
+              <input class="form-control time-part" value="14:59:59" disabled />
+            </div>
           </div>
           <div class="form-item form-item-full">
             <label>备注</label>
@@ -1273,14 +1304,13 @@
           </div>
           <div class="form-item" id="editDepotItem">
             <label><span class="req">*</span>合作分拨</label>
-            <input class="form-control" id="editDepot" type="text" placeholder="分拨中心组件" />
-            <div class="select-wrap" id="editDepotSelectWrap" style="display:none; flex:1; min-width:0;">
-              <select class="form-control" id="editDepotSelect">
+            <input class="form-control" id="editDepot" type="text" placeholder="数据权限组件（单选）" />
+          </div>
+          <div class="form-item" id="editOaDeptItem">
+            <label><span class="req">*</span>所属部门</label>
+            <div class="select-wrap">
+              <select class="form-control" id="editOaDept">
                 <option value="">请选择</option>
-                <option>金华分拨中心</option>
-                <option>义乌分拨中心</option>
-                <option>杭州转运中心</option>
-                <option>宁波分拨中心</option>
               </select>
             </div>
           </div>
@@ -1322,12 +1352,18 @@
             <input class="form-control" id="editPhone" type="text" />
           </div>
           <div class="form-item">
-            <label><span class="req">*</span>有效开始日期</label>
-            <input class="form-control" id="editStart" type="text" />
+            <label><span class="req">*</span>有效开始</label>
+            <div class="datetime-combo">
+              <input class="form-control date-part" id="editStart" type="text" placeholder="请选择日期" />
+              <input class="form-control time-part" value="15:00:00" disabled />
+            </div>
           </div>
           <div class="form-item">
-            <label><span class="req">*</span>有效结束日期</label>
-            <input class="form-control" id="editEnd" type="text" />
+            <label><span class="req">*</span>有效结束</label>
+            <div class="datetime-combo">
+              <input class="form-control date-part" id="editEnd" type="text" placeholder="请选择日期" />
+              <input class="form-control time-part" value="14:59:59" disabled />
+            </div>
           </div>
           <div class="form-item form-item-full">
             <label>备注</label>
@@ -1391,6 +1427,7 @@
                 <tr>
                   <th rowspan="2">外包公司</th>
                   <th rowspan="2">合作分拨</th>
+                  <th rowspan="2">所属部门</th>
                   <th rowspan="2">外包公司类型</th>
                   <th rowspan="2">使用方式</th>
                   <th rowspan="2">合作省区</th>
@@ -1418,6 +1455,7 @@
                 <tr>
                   <td>江苏永宁物流有限公司</td>
                   <td>常州分拨中心</td>
+                  <td>装卸一部</td>
                   <td>临时工</td>
                   <td class="diff-before">立即使用</td>
                   <td></td>
@@ -1445,6 +1483,7 @@
                 <tr>
                   <th rowspan="2">外包公司</th>
                   <th rowspan="2">合作分拨</th>
+                  <th rowspan="2">所属部门</th>
                   <th rowspan="2">外包公司类型</th>
                   <th rowspan="2">使用方式</th>
                   <th rowspan="2">合作省区</th>
@@ -1472,6 +1511,7 @@
                 <tr>
                   <td>江苏永宁物流有限公司</td>
                   <td>常州分拨中心</td>
+                  <td>装卸一部</td>
                   <td>临时工</td>
                   <td class="diff-after">储备使用</td>
                   <td></td>
@@ -1501,6 +1541,7 @@
                 <tr>
                   <th>外包公司</th>
                   <th>合作分拨</th>
+                  <th>所属部门</th>
                   <th>外包公司类型</th>
                   <th>使用方式</th>
                   <th>有效期限</th>
@@ -1516,6 +1557,7 @@
                 <tr>
                   <td>金华临时支援</td>
                   <td>金华分拨中心</td>
+                  <td>装卸一部</td>
                   <td>临时工</td>
                   <td class="diff-before">储备使用</td>
                   <td>2026-07-01 15:00:00~2026-12-31 14:59:59</td>
@@ -1534,6 +1576,7 @@
                 <tr>
                   <th>外包公司</th>
                   <th>合作分拨</th>
+                  <th>所属部门</th>
                   <th>外包公司类型</th>
                   <th>使用方式</th>
                   <th>有效期限</th>
@@ -1549,6 +1592,7 @@
                 <tr>
                   <td>金华临时支援</td>
                   <td>金华分拨中心</td>
+                  <td>装卸一部</td>
                   <td>临时工</td>
                   <td class="diff-after">立即使用</td>
                   <td>2026-07-01 15:00:00~2026-12-31 14:59:59</td>
@@ -1582,6 +1626,7 @@
         <div class="preview-grid">
           <div class="preview-row"><span class="p-label">外包公司</span><span class="p-value" id="pvCompany">江苏永宁物流有限公司</span></div>
           <div class="preview-row"><span class="p-label">合作分拨</span><span class="p-value" id="pvDepot">常州分拨中心</span></div>
+          <div class="preview-row"><span class="p-label">所属部门</span><span class="p-value" id="pvOaDept">装卸一部</span></div>
           <div class="preview-row"><span class="p-label">外包公司类型</span><span class="p-value" id="pvType">临时工</span></div>
           <div class="preview-row"><span class="p-label">使用方式</span><span class="p-value" id="pvUseMode">立即使用</span></div>
           <div class="preview-row"><span class="p-label">有效期限</span><span class="p-value" id="pvValid">2026-05-01 15:00:00 ~ 2027-05-01 14:59:59</span></div>
@@ -1624,27 +1669,28 @@
 
   let currentRole = 'branch'; // branch | hq
 
-  const COLS_ZX = ['合作分拨','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','详细用途','网点卸车','干线卸车','网点装车','干线装车','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
-  const COLS_YD = ['合作分拨','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','详细用途','网点卸车移动','干线卸车移动','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
-  const COLS_QT = ['合作分拨','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','自定义用途','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
+  const COLS_ZX = ['合作分拨','所属部门','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','详细用途','网点卸车','干线卸车','网点装车','干线装车','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
+  const COLS_YD = ['合作分拨','所属部门','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','详细用途','网点卸车移动','干线卸车移动','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
+  const COLS_QT = ['合作分拨','所属部门','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','自定义用途','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
 
   const ROWS_ZX = [
-    { state:'expired', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-05-01', end:'2027-06-01', valid:'2026-05-01 15:00:00 ~ 2027-06-01 14:59:59', actual:'2026-05-01 15:00:00 ~ 2026-06-30 14:59:59', usage:'网点卸车，干线卸车，网点装车，干线装车', cells:['统一计价','统一计价','统一计价','统一计价'], invoice:'普通发票', contact:'1', phone:'15312345678', wf:'-', no:'WB20260501001', creator:'张三', ctime:'2026-05-01 10:20:00', remark:'-', editor:'李四', etime:'2026-06-02 09:00:00', change:true, status:'已失效' },
-    { state:'active', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-01', end:'2027-12-31', valid:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', usage:'网点卸车，干线卸车', cells:['统一计价','统一计价','-','-'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'WB20260701002', creator:'张三', ctime:'2026-07-01 11:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
-    { state:'audit', depot:'义乌分拨中心', company:'义乌装卸A队', type:'外请车', useMode:'储备使用', start:'2026-09-01', end:'2026-12-31', valid:'2026-09-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'-', usage:'网点装车，干线装车', cells:['-','-','阶梯计价','阶梯计价'], invoice:'专用发票(税率3%)', contact:'赵六', phone:'13900002222', wf:'OA20260815088', no:'WB20260815003', creator:'钱七', ctime:'2026-08-15 14:30:00', remark:'-', editor:'-', etime:'-', change:false, status:'审批中' },
-    { state:'reject', depot:'杭州转运中心', company:'杭州试工队', type:'试工', useMode:'立即使用', start:'2026-08-01', end:'2026-08-31', valid:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59', actual:'-', usage:'网点卸车', cells:['统一计价','-','-','-'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'OA20260720011', no:'WB20260720004', creator:'周九', ctime:'2026-07-20 16:00:00', remark:'驳回待改', editor:'-', etime:'-', change:false, status:'已驳回' },
-    { state:'fail', depot:'宁波分拨中心', company:'宁波装卸队', type:'临时工', useMode:'立即使用', start:'2026-08-10', end:'2026-11-30', valid:'2026-08-10 15:00:00 ~ 2026-11-30 14:59:59', actual:'-', usage:'网点装车', cells:['-','-','统一计价','-'], invoice:'普通发票', contact:'吴十', phone:'13600004444', wf:'-', no:'WB20260810005', creator:'郑一', ctime:'2026-08-10 09:15:00', remark:'-', editor:'-', etime:'-', change:false, status:'推送失败' }
+    { state:'expired', depot:'金华分拨中心', oaDept:'-', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-05-01', end:'2027-06-01', valid:'2026-05-01 15:00:00 ~ 2027-06-01 14:59:59', actual:'2026-05-01 15:00:00 ~ 2026-06-30 14:59:59', usage:'网点卸车，干线卸车，网点装车，干线装车', cells:['统一计价','统一计价','统一计价','统一计价'], invoice:'普通发票', contact:'1', phone:'15312345678', wf:'-', no:'WB20260501001', creator:'张三', ctime:'2026-05-01 10:20:00', remark:'-', editor:'李四', etime:'2026-06-02 09:00:00', change:true, status:'已失效' },
+    { state:'active', depot:'金华分拨中心', oaDept:'-', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-01', end:'2027-12-31', valid:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', usage:'网点卸车，干线卸车', cells:['统一计价','统一计价','-','-'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'WB20260701002', creator:'张三', ctime:'2026-07-01 11:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'expired', depot:'金华分拨中心', oaDept:'装卸一部', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-10', end:'2026-07-20', valid:'2026-07-10 15:00:00 ~ 2026-07-20 14:59:59', actual:'-', usage:'网点卸车', cells:['统一计价','-','-','-'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'OA20260708066', no:'WB20260708006', creator:'张三', ctime:'2026-07-08 09:40:00', remark:'-', editor:'-', etime:'-', change:false, status:'已失效' },
+    { state:'audit', depot:'义乌分拨中心', oaDept:'装卸一部', company:'义乌装卸A队', type:'外请车', useMode:'储备使用', start:'2026-09-01', end:'2026-12-31', valid:'2026-09-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'-', usage:'网点装车，干线装车', cells:['-','-','阶梯计价','阶梯计价'], invoice:'专用发票(税率3%)', contact:'赵六', phone:'13900002222', wf:'OA20260815088', no:'WB20260815003', creator:'钱七', ctime:'2026-08-15 14:30:00', remark:'-', editor:'-', etime:'-', change:false, status:'审批中' },
+    { state:'reject', depot:'杭州转运中心', oaDept:'装卸二部', company:'杭州试工队', type:'试工', useMode:'立即使用', start:'2026-08-01', end:'2026-08-31', valid:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59', actual:'-', usage:'网点卸车', cells:['统一计价','-','-','-'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'OA20260720011', no:'WB20260720004', creator:'周九', ctime:'2026-07-20 16:00:00', remark:'驳回待改', editor:'-', etime:'-', change:false, status:'已驳回' },
+    { state:'fail', depot:'宁波分拨中心', oaDept:'码货组', company:'宁波装卸队', type:'临时工', useMode:'立即使用', start:'2026-08-10', end:'2026-11-30', valid:'2026-08-10 15:00:00 ~ 2026-11-30 14:59:59', actual:'-', usage:'网点装车', cells:['-','-','统一计价','-'], invoice:'普通发票', contact:'吴十', phone:'13600004444', wf:'-', no:'WB20260810005', creator:'郑一', ctime:'2026-08-10 09:15:00', remark:'-', editor:'-', etime:'-', change:false, status:'推送失败' }
   ];
 
   const ROWS_YD = [
-    { state:'active', depot:'金华分拨中心', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-01', end:'2027-06-30', valid:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', usage:'网点卸车移动，干线卸车移动', cells:['统一计价','统一计价'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'YD20260701001', creator:'张三', ctime:'2026-07-01 11:20:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
-    { state:'audit', depot:'义乌分拨中心', company:'义乌装卸A队', type:'外请车', useMode:'储备使用', start:'2026-09-01', end:'2026-10-31', valid:'2026-09-01 15:00:00 ~ 2026-10-31 14:59:59', actual:'-', usage:'网点卸车移动', cells:['阶梯计价','-'], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'OA20260812022', no:'YD20260812002', creator:'钱七', ctime:'2026-08-12 09:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'审批中' },
-    { state:'wait', depot:'杭州转运中心', company:'杭州试工队', type:'试工', useMode:'立即使用', start:'2026-08-15', end:'2026-09-15', valid:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', actual:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', usage:'干线卸车移动', cells:['-','统一计价'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'OA20260715033', no:'YD20260715003', creator:'周九', ctime:'2026-07-12 16:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'待生效' }
+    { state:'active', depot:'金华分拨中心', oaDept:'-', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-01', end:'2027-06-30', valid:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', usage:'网点卸车移动，干线卸车移动', cells:['统一计价','统一计价'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'YD20260701001', creator:'张三', ctime:'2026-07-01 11:20:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'audit', depot:'义乌分拨中心', oaDept:'装卸一部', company:'义乌装卸A队', type:'外请车', useMode:'储备使用', start:'2026-09-01', end:'2026-10-31', valid:'2026-09-01 15:00:00 ~ 2026-10-31 14:59:59', actual:'-', usage:'网点卸车移动', cells:['阶梯计价','-'], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'OA20260812022', no:'YD20260812002', creator:'钱七', ctime:'2026-08-12 09:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'审批中' },
+    { state:'wait', depot:'杭州转运中心', oaDept:'装卸二部', company:'杭州试工队', type:'试工', useMode:'立即使用', start:'2026-08-15', end:'2026-09-15', valid:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', actual:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', usage:'干线卸车移动', cells:['-','统一计价'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'OA20260715033', no:'YD20260715003', creator:'周九', ctime:'2026-07-12 16:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'待生效' }
   ];
 
   const ROWS_QT = [
-    { state:'active', depot:'金华分拨中心', company:'金华临时支援', type:'临时工', useMode:'储备使用', start:'2026-07-01', end:'2026-12-31', valid:'2026-07-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2026-12-31 14:59:59', usage:'旺季库区清理', cells:[], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'OA20260628001', no:'QT20260628001', creator:'张三', ctime:'2026-06-28 10:00:00', remark:'不计价', editor:'-', etime:'-', change:false, status:'生效中' },
-    { state:'reject', depot:'义乌分拨中心', company:'义乌装卸A队', type:'外请车', useMode:'立即使用', start:'2026-08-01', end:'2026-09-30', valid:'2026-08-01 15:00:00 ~ 2026-09-30 14:59:59', actual:'-', usage:'设备维保协助', cells:[], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'OA20260730002', no:'QT20260730002', creator:'钱七', ctime:'2026-07-30 15:20:00', remark:'-', editor:'-', etime:'-', change:false, status:'已驳回' }
+    { state:'active', depot:'金华分拨中心', oaDept:'装卸一部', company:'金华临时支援', type:'临时工', useMode:'储备使用', start:'2026-07-01', end:'2026-12-31', valid:'2026-07-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2026-12-31 14:59:59', usage:'旺季库区清理', cells:[], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'OA20260628001', no:'QT20260628001', creator:'张三', ctime:'2026-06-28 10:00:00', remark:'不计价', editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'reject', depot:'义乌分拨中心', oaDept:'装卸二部', company:'义乌装卸A队', type:'外请车', useMode:'立即使用', start:'2026-08-01', end:'2026-09-30', valid:'2026-08-01 15:00:00 ~ 2026-09-30 14:59:59', actual:'-', usage:'设备维保协助', cells:[], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'OA20260730002', no:'QT20260730002', creator:'钱七', ctime:'2026-07-30 15:20:00', remark:'-', editor:'-', etime:'-', change:false, status:'已驳回' }
   ];
 
   function formatPeriod(startDate, endDate) {
@@ -1700,6 +1746,7 @@
           const set = (id, val) => { const n = document.getElementById(id); if (n) n.textContent = val || ''; };
           set('pvCompany', row.company);
           set('pvDepot', row.depot);
+          set('pvOaDept', row.oaDept || '-');
           set('pvType', row.type);
           set('pvUseMode', row.useMode || '-');
           set('pvValid', row.valid);
@@ -1755,7 +1802,7 @@
       const wfCell = (r.wf && r.wf !== '-') ? ('<span class="link">' + r.wf + '</span>') : '-';
       return '<tr data-idx="' + idx + '" data-state="' + r.state + '" data-status="' + r.status + '">' +
         '<td class="col-checkbox"><input type="checkbox" class="row-check" /></td>' +
-        '<td>' + r.depot + '</td><td>' + r.company + '</td><td class="col-type">' + r.type + '</td>' +
+        '<td>' + r.depot + '</td><td>' + (r.oaDept || '-') + '</td><td>' + r.company + '</td><td class="col-type">' + r.type + '</td>' +
         '<td>' + useMode + '</td>' +
         '<td title="' + r.valid + '">' + r.valid + '</td><td title="' + r.actual + '">' + r.actual + '</td>' + mid +
         '<td>' + r.invoice + '</td><td>' + r.contact + '</td><td>' + r.phone + '</td>' +
@@ -1798,47 +1845,39 @@
     if (editPrice) editPrice.style.display = isOther ? 'none' : '';
   }
 
-  /** 分拨用户：合作分拨=OA返回枚举的单选下拉；总部：分拨中心组件输入 */
-  function syncDepotFieldByRole() {
-    const isBranch = currentRole !== 'hq';
-    const pairs = [
-      ['addDepotInput', 'addDepotSelectWrap', 'addDepotSelect'],
-      ['editDepot', 'editDepotSelectWrap', 'editDepotSelect']
-    ];
-    pairs.forEach(([inputId, wrapId, selectId]) => {
-      const input = document.getElementById(inputId);
-      const wrap = document.getElementById(wrapId);
-      const select = document.getElementById(selectId);
-      if (!input || !wrap || !select) return;
-      if (isBranch) {
-        input.style.display = 'none';
-        wrap.style.display = '';
-        if (input.value) {
-          const opt = Array.from(select.options).find(o => o.value === input.value || o.textContent === input.value);
-          if (opt) select.value = opt.value;
-          else if (input.value) {
-            const o = document.createElement('option');
-            o.value = input.value;
-            o.textContent = input.value;
-            select.appendChild(o);
-            select.value = input.value;
-          }
-        }
-      } else {
-        wrap.style.display = 'none';
-        input.style.display = '';
-        if (select.value) input.value = select.value;
-      }
-    });
+  const OA_DEPT_MULTI = ['装卸一部', '装卸二部', '码货组'];
+  const OA_DEPT_ONE = ['装卸一部'];
+
+  function oaDeptOptions() {
+    return currentRole === 'branch1' ? OA_DEPT_ONE : OA_DEPT_MULTI;
   }
 
-  function getEditDepotValue() {
-    if (currentRole !== 'hq') {
-      const s = document.getElementById('editDepotSelect');
-      return s ? s.value : '';
+  function fillOaDeptSelect(selectEl, savedValue) {
+    if (!selectEl) return;
+    const opts = oaDeptOptions();
+    selectEl.innerHTML = '<option value="">请选择</option>' +
+      opts.map(function (d) { return '<option value="' + d + '">' + d + '</option>'; }).join('');
+    if (opts.length === 1) {
+      selectEl.value = opts[0];
+      selectEl.disabled = true;
+      selectEl.classList.add('is-locked');
+    } else {
+      selectEl.disabled = false;
+      selectEl.classList.remove('is-locked');
+      selectEl.value = (savedValue && savedValue !== '-') ? savedValue : '';
     }
-    const i = document.getElementById('editDepot');
-    return i ? i.value : '';
+  }
+
+  function syncRoleFields(savedOaDept) {
+    const isHq = currentRole === 'hq';
+    ['addOaDeptItem', 'editOaDeptItem'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = isHq ? 'none' : '';
+    });
+    if (!isHq) {
+      fillOaDeptSelect(document.getElementById('addOaDept'), savedOaDept);
+      fillOaDeptSelect(document.getElementById('editOaDept'), savedOaDept);
+    }
   }
 
   function updateActionButtons() {
@@ -1848,7 +1887,6 @@
     const selected = idxs.map(i => rows[i]).filter(Boolean);
     const btnEdit = document.getElementById('btnEdit');
     const btnDelete = document.getElementById('btnDelete');
-    const btnRetry = document.getElementById('btnRetryOa');
     const btnAddSave = document.getElementById('btnAddSave');
     const btnEditSave = document.getElementById('btnEditSave');
 
@@ -1876,18 +1914,6 @@
       btnDelete.classList.toggle('disabled', !ok);
       btnDelete.disabled = !ok;
     }
-
-    // 重推OA：仅分拨 + 单条推送失败
-    if (isHq) {
-      btnRetry.classList.add('disabled');
-      btnRetry.disabled = true;
-      btnRetry.style.display = 'none';
-    } else {
-      btnRetry.style.display = '';
-      const ok = selected.length === 1 && selected[0].status === '推送失败';
-      btnRetry.classList.toggle('disabled', !ok);
-      btnRetry.disabled = !ok;
-    }
   }
 
   function setLocked(el, locked) {
@@ -1899,7 +1925,7 @@
   }
 
   function unlockAllEditFields() {
-    ['editCompany', 'editDepot', 'editDepotSelect', 'editType', 'editUseMode', 'editInvoice', 'editContact', 'editPhone', 'editRemark', 'editStart', 'editEnd', 'editCustomUsage']
+    ['editCompany', 'editDepot', 'editOaDept', 'editType', 'editUseMode', 'editInvoice', 'editContact', 'editPhone', 'editRemark', 'editStart', 'editEnd', 'editCustomUsage']
       .forEach(id => setLocked(document.getElementById(id), false));
     document.getElementById('editPriceSection').style.display = '';
     if (editPanel) editPanel.setLocked(false);
@@ -1909,17 +1935,6 @@
     editRowRef = row;
     document.getElementById('editCompany').value = row.company;
     document.getElementById('editDepot').value = row.depot;
-    const editDepotSelect = document.getElementById('editDepotSelect');
-    if (editDepotSelect) {
-      const hit = Array.from(editDepotSelect.options).find(o => o.value === row.depot || o.textContent === row.depot);
-      if (!hit && row.depot) {
-        const o = document.createElement('option');
-        o.value = row.depot;
-        o.textContent = row.depot;
-        editDepotSelect.appendChild(o);
-      }
-      editDepotSelect.value = row.depot || '';
-    }
     document.getElementById('editType').value = row.type;
     editTypeBefore = row.type;
     document.getElementById('editUseMode').value = row.useMode || '立即使用';
@@ -1936,7 +1951,7 @@
   function resetAddFormDefaults() {
     const addBody = document.querySelector('#addMask .form-grid');
     addBody.querySelectorAll('.form-item').forEach(item => {
-      const ctrl = item.querySelector('input.form-control, select.form-control, textarea.form-control');
+      const ctrl = item.querySelector('input.form-control:not(.time-part), select.form-control, textarea.form-control');
       if (!ctrl) return;
       const label = (item.querySelector('label') || {}).textContent || '';
       if (label.indexOf('外包公司类型') >= 0) {
@@ -2299,7 +2314,7 @@
     }
     const title = document.querySelector('#addMask .modal-header div');
     if (title) title.textContent = '新增';
-    syncDepotFieldByRole();
+    syncRoleFields('');
     openModal('addMask');
   });
 
@@ -2332,7 +2347,7 @@
     unlockAllEditFields();
     const editSave = document.getElementById('btnEditSave');
     if (editSave) editSave.textContent = currentRole === 'hq' ? '保存' : '提交发起审批';
-    syncDepotFieldByRole();
+    syncRoleFields(row.oaDept);
     openModal('editMask');
   });
 
@@ -2346,6 +2361,7 @@
     const map = {
       '外包公司': row.company,
       '合作分拨': row.depot,
+      '所属部门': (row.oaDept && row.oaDept !== '-') ? row.oaDept : '',
       '外包公司类型': row.type,
       '使用方式': row.useMode || '立即使用',
       '发票种类': row.invoice,
@@ -2372,20 +2388,9 @@
       }]);
     }
     openModal('addMask');
-    syncDepotFieldByRole();
+    syncRoleFields(row.oaDept);
     const addDepotInput = document.getElementById('addDepotInput');
-    const addDepotSelect = document.getElementById('addDepotSelect');
     if (addDepotInput) addDepotInput.value = row.depot || '';
-    if (addDepotSelect && row.depot) {
-      const hit = Array.from(addDepotSelect.options).find(o => o.value === row.depot || o.textContent === row.depot);
-      if (!hit) {
-        const o = document.createElement('option');
-        o.value = row.depot;
-        o.textContent = row.depot;
-        addDepotSelect.appendChild(o);
-      }
-      addDepotSelect.value = row.depot;
-    }
   });
 
   document.getElementById('btnDelete').addEventListener('click', () => {
@@ -2414,10 +2419,10 @@
     const current = editRowRef;
     if (current) {
       current.company = company;
-      current.depot = depot;
+      current.depot = document.getElementById('editDepot').value;
+      current.oaDept = currentRole === 'hq' ? '-' : ((document.getElementById('editOaDept') || {}).value || '-');
       current.type = type;
       current.useMode = document.getElementById('editUseMode').value;
-      current.depot = getEditDepotValue() || current.depot;
       current.invoice = document.getElementById('editInvoice').value;
       if (currentTab === 'qt') {
         current.usage = document.getElementById('editCustomUsage').value || current.usage;
@@ -2460,7 +2465,7 @@
   document.getElementById('roleSelect').addEventListener('change', function () {
     currentRole = this.value;
     updateActionButtons();
-    syncDepotFieldByRole();
+    syncRoleFields('');
   });
 
   document.getElementById('tableBody').addEventListener('change', function (e) {
@@ -2470,27 +2475,12 @@
     if (e.target && e.target.id === 'checkAll') setTimeout(updateActionButtons, 0);
   });
 
-  document.getElementById('btnRetryOa').addEventListener('click', function () {
-    if (this.disabled) return;
-    const idxs = getSelectedIndexes();
-    const rows = currentRows();
-    if (idxs.length !== 1) return;
-    const row = rows[idxs[0]];
-    if (!row || row.status !== '推送失败') return;
-    row.status = '审批中';
-    row.state = 'audit';
-    row.wf = 'OA' + String(Date.now()).slice(-11);
-    row.actual = '-';
-    renderTable(currentTab);
-    showToast('已重新推送，状态变为审批中');
-  });
-
   document.getElementById('tableBody').addEventListener('click', function () {
     setTimeout(updateActionButtons, 0);
   });
 
   applyOtherTabForm(false);
-  syncDepotFieldByRole();
+  syncRoleFields('');
 
   renderTable('zx');
 
