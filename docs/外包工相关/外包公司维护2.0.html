@@ -505,7 +505,8 @@
     .form-item > .select-wrap,
     .form-item > .form-control,
     .form-item > .input-suffix,
-    .form-item > .datetime-combo { flex: 1; min-width: 0; }
+    .form-item > .datetime-combo,
+    .form-item > .attach-box { flex: 1; min-width: 0; }
     .datetime-combo {
       display: flex;
       gap: 8px;
@@ -957,6 +958,69 @@
     .status-reject { color: #ff4d4f; }
     .status-fail { color: #fa8c16; }
     .filter-item.is-hidden { display: none; }
+    .attach-box {
+      flex: 1;
+      min-width: 0;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      background: #fafafa;
+    }
+    .attach-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+      min-height: 28px;
+    }
+    .attach-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 28px;
+      padding: 0 8px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text);
+      max-width: 220px;
+    }
+    .attach-chip .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .attach-chip .x {
+      color: var(--text-secondary);
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .attach-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .attach-tip {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+    }
+    .attach-preview-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 14px;
+    }
+    .attach-preview-list .item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fafafa;
+    }
   </style>
 </head>
 <body>
@@ -1269,6 +1333,16 @@
             <label>备注</label>
             <textarea class="form-control" id="addRemark" placeholder="请输入备注" maxlength="50"></textarea>
           </div>
+          <div class="form-item form-item-full" id="addAttachItem">
+            <label><span class="req">*</span>附件</label>
+            <div class="attach-box">
+              <div class="attach-list" id="addAttachList"></div>
+              <div class="attach-actions">
+                <button class="btn" type="button" id="btnAddAttach">+ 上传</button>
+              </div>
+              <div class="attach-tip">支持图片、PDF，最多 3 个</div>
+            </div>
+          </div>
           <div class="form-item form-item-full" id="addCustomUsageItem" style="display:none;">
             <label><span class="req">*</span>自定义用途</label>
             <textarea class="form-control" id="addCustomUsage" placeholder="请输入自定义外包用途" maxlength="50"></textarea>
@@ -1368,6 +1442,16 @@
           <div class="form-item form-item-full">
             <label>备注</label>
             <textarea class="form-control" id="editRemark" placeholder="请输入备注" maxlength="50"></textarea>
+          </div>
+          <div class="form-item form-item-full" id="editAttachItem">
+            <label><span class="req">*</span>附件</label>
+            <div class="attach-box">
+              <div class="attach-list" id="editAttachList"></div>
+              <div class="attach-actions">
+                <button class="btn" type="button" id="btnEditAttach">+ 上传</button>
+              </div>
+              <div class="attach-tip">支持图片、PDF，最多 3 个</div>
+            </div>
           </div>
           <div class="form-item form-item-full" id="editCustomUsageItem" style="display:none;">
             <label><span class="req">*</span>自定义用途</label>
@@ -1657,6 +1741,22 @@
   </div>
 </div>
 
+<!-- 附件预览 -->
+<div class="modal-mask" id="attachPreviewMask">
+  <div class="modal" style="width: 520px;">
+    <div class="modal-header">
+      <div>附件预览</div>
+      <span class="modal-close" data-close="attachPreviewMask">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="attach-preview-list" id="attachPreviewList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="attachPreviewMask">关闭</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1669,29 +1769,81 @@
 
   let currentRole = 'branch'; // branch | hq
 
-  const COLS_ZX = ['合作分拨','所属部门','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','详细用途','网点卸车','干线卸车','网点装车','干线装车','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
-  const COLS_YD = ['合作分拨','所属部门','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','详细用途','网点卸车移动','干线卸车移动','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
-  const COLS_QT = ['合作分拨','所属部门','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','自定义用途','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','修改人','修改时间','变更记录','状态','表单预览'];
+  const COLS_ZX = ['合作分拨','所属部门','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','详细用途','网点卸车','干线卸车','网点装车','干线装车','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','附件','修改人','修改时间','变更记录','状态','表单预览'];
+  const COLS_YD = ['合作分拨','所属部门','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','详细用途','网点卸车移动','干线卸车移动','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','附件','修改人','修改时间','变更记录','状态','表单预览'];
+  const COLS_QT = ['合作分拨','所属部门','外包公司','外包公司类型','使用方式','有效期限','实际有效期限','自定义用途','发票种类','联系人','联系方式','工作流号','方案编号','创建人','创建时间','备注','附件','修改人','修改时间','变更记录','状态','表单预览'];
 
   const ROWS_ZX = [
-    { state:'expired', depot:'金华分拨中心', oaDept:'-', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-05-01', end:'2027-06-01', valid:'2026-05-01 15:00:00 ~ 2027-06-01 14:59:59', actual:'2026-05-01 15:00:00 ~ 2026-06-30 14:59:59', usage:'网点卸车，干线卸车，网点装车，干线装车', cells:['统一计价','统一计价','统一计价','统一计价'], invoice:'普通发票', contact:'1', phone:'15312345678', wf:'-', no:'WB20260501001', creator:'张三', ctime:'2026-05-01 10:20:00', remark:'-', editor:'李四', etime:'2026-06-02 09:00:00', change:true, status:'已失效' },
-    { state:'active', depot:'金华分拨中心', oaDept:'-', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-01', end:'2027-12-31', valid:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', usage:'网点卸车，干线卸车', cells:['统一计价','统一计价','-','-'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'WB20260701002', creator:'张三', ctime:'2026-07-01 11:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
-    { state:'expired', depot:'金华分拨中心', oaDept:'装卸一部', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-10', end:'2026-07-20', valid:'2026-07-10 15:00:00 ~ 2026-07-20 14:59:59', actual:'-', usage:'网点卸车', cells:['统一计价','-','-','-'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'OA20260708066', no:'WB20260708006', creator:'张三', ctime:'2026-07-08 09:40:00', remark:'-', editor:'-', etime:'-', change:false, status:'已失效' },
-    { state:'audit', depot:'义乌分拨中心', oaDept:'装卸一部', company:'义乌装卸A队', type:'外请车', useMode:'储备使用', start:'2026-09-01', end:'2026-12-31', valid:'2026-09-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'-', usage:'网点装车，干线装车', cells:['-','-','阶梯计价','阶梯计价'], invoice:'专用发票(税率3%)', contact:'赵六', phone:'13900002222', wf:'OA20260815088', no:'WB20260815003', creator:'钱七', ctime:'2026-08-15 14:30:00', remark:'-', editor:'-', etime:'-', change:false, status:'审批中' },
-    { state:'reject', depot:'杭州转运中心', oaDept:'装卸二部', company:'杭州试工队', type:'试工', useMode:'立即使用', start:'2026-08-01', end:'2026-08-31', valid:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59', actual:'-', usage:'网点卸车', cells:['统一计价','-','-','-'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'OA20260720011', no:'WB20260720004', creator:'周九', ctime:'2026-07-20 16:00:00', remark:'驳回待改', editor:'-', etime:'-', change:false, status:'已驳回' },
-    { state:'fail', depot:'宁波分拨中心', oaDept:'码货组', company:'宁波装卸队', type:'临时工', useMode:'立即使用', start:'2026-08-10', end:'2026-11-30', valid:'2026-08-10 15:00:00 ~ 2026-11-30 14:59:59', actual:'-', usage:'网点装车', cells:['-','-','统一计价','-'], invoice:'普通发票', contact:'吴十', phone:'13600004444', wf:'-', no:'WB20260810005', creator:'郑一', ctime:'2026-08-10 09:15:00', remark:'-', editor:'-', etime:'-', change:false, status:'推送失败' }
+    { state:'expired', depot:'金华分拨中心', oaDept:'-', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-05-01', end:'2027-06-01', valid:'2026-05-01 15:00:00 ~ 2027-06-01 14:59:59', actual:'2026-05-01 15:00:00 ~ 2026-06-30 14:59:59', usage:'网点卸车，干线卸车，网点装车，干线装车', cells:['统一计价','统一计价','统一计价','统一计价'], invoice:'普通发票', contact:'1', phone:'15312345678', wf:'-', no:'WB20260501001', creator:'张三', ctime:'2026-05-01 10:20:00', remark:'-', attaches:[], editor:'李四', etime:'2026-06-02 09:00:00', change:true, status:'已失效' },
+    { state:'active', depot:'金华分拨中心', oaDept:'-', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-01', end:'2027-12-31', valid:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-12-31 14:59:59', usage:'网点卸车，干线卸车', cells:['统一计价','统一计价','-','-'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'WB20260701002', creator:'张三', ctime:'2026-07-01 11:00:00', remark:'-', attaches:[], editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'expired', depot:'金华分拨中心', oaDept:'装卸一部', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-10', end:'2026-07-20', valid:'2026-07-10 15:00:00 ~ 2026-07-20 14:59:59', actual:'-', usage:'网点卸车', cells:['统一计价','-','-','-'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'OA20260708066', no:'WB20260708006', creator:'张三', ctime:'2026-07-08 09:40:00', remark:'-', attaches:['营业执照.jpg'], editor:'-', etime:'-', change:false, status:'已失效' },
+    { state:'audit', depot:'义乌分拨中心', oaDept:'装卸一部', company:'义乌装卸A队', type:'外请车', useMode:'储备使用', start:'2026-09-01', end:'2026-12-31', valid:'2026-09-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'-', usage:'网点装车，干线装车', cells:['-','-','阶梯计价','阶梯计价'], invoice:'专用发票(税率3%)', contact:'赵六', phone:'13900002222', wf:'OA20260815088', no:'WB20260815003', creator:'钱七', ctime:'2026-08-15 14:30:00', remark:'-', attaches:['营业执照.pdf','资质证明.jpg'], editor:'-', etime:'-', change:false, status:'审批中' },
+    { state:'reject', depot:'杭州转运中心', oaDept:'装卸二部', company:'杭州试工队', type:'试工', useMode:'立即使用', start:'2026-08-01', end:'2026-08-31', valid:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59', actual:'-', usage:'网点卸车', cells:['统一计价','-','-','-'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'OA20260720011', no:'WB20260720004', creator:'周九', ctime:'2026-07-20 16:00:00', remark:'驳回待改', attaches:['营业执照.jpg'], editor:'-', etime:'-', change:false, status:'已驳回' },
+    { state:'fail', depot:'宁波分拨中心', oaDept:'码货组', company:'宁波装卸队', type:'临时工', useMode:'立即使用', start:'2026-08-10', end:'2026-11-30', valid:'2026-08-10 15:00:00 ~ 2026-11-30 14:59:59', actual:'-', usage:'网点装车', cells:['-','-','统一计价','-'], invoice:'普通发票', contact:'吴十', phone:'13600004444', wf:'-', no:'WB20260810005', creator:'郑一', ctime:'2026-08-10 09:15:00', remark:'-', attaches:['营业执照.pdf'], editor:'-', etime:'-', change:false, status:'推送失败' }
   ];
 
   const ROWS_YD = [
-    { state:'active', depot:'金华分拨中心', oaDept:'-', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-01', end:'2027-06-30', valid:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', usage:'网点卸车移动，干线卸车移动', cells:['统一计价','统一计价'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'YD20260701001', creator:'张三', ctime:'2026-07-01 11:20:00', remark:'-', editor:'-', etime:'-', change:false, status:'生效中' },
-    { state:'audit', depot:'义乌分拨中心', oaDept:'装卸一部', company:'义乌装卸A队', type:'外请车', useMode:'储备使用', start:'2026-09-01', end:'2026-10-31', valid:'2026-09-01 15:00:00 ~ 2026-10-31 14:59:59', actual:'-', usage:'网点卸车移动', cells:['阶梯计价','-'], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'OA20260812022', no:'YD20260812002', creator:'钱七', ctime:'2026-08-12 09:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'审批中' },
-    { state:'wait', depot:'杭州转运中心', oaDept:'装卸二部', company:'杭州试工队', type:'试工', useMode:'立即使用', start:'2026-08-15', end:'2026-09-15', valid:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', actual:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', usage:'干线卸车移动', cells:['-','统一计价'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'OA20260715033', no:'YD20260715003', creator:'周九', ctime:'2026-07-12 16:00:00', remark:'-', editor:'-', etime:'-', change:false, status:'待生效' }
+    { state:'active', depot:'金华分拨中心', oaDept:'-', company:'金华拼多多专用', type:'临时工', useMode:'立即使用', start:'2026-07-01', end:'2027-06-30', valid:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', actual:'2026-07-01 15:00:00 ~ 2027-06-30 14:59:59', usage:'网点卸车移动，干线卸车移动', cells:['统一计价','统一计价'], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'-', no:'YD20260701001', creator:'张三', ctime:'2026-07-01 11:20:00', remark:'-', attaches:[], editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'audit', depot:'义乌分拨中心', oaDept:'装卸一部', company:'义乌装卸A队', type:'外请车', useMode:'储备使用', start:'2026-09-01', end:'2026-10-31', valid:'2026-09-01 15:00:00 ~ 2026-10-31 14:59:59', actual:'-', usage:'网点卸车移动', cells:['阶梯计价','-'], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'OA20260812022', no:'YD20260812002', creator:'钱七', ctime:'2026-08-12 09:00:00', remark:'-', attaches:['营业执照.pdf'], editor:'-', etime:'-', change:false, status:'审批中' },
+    { state:'wait', depot:'杭州转运中心', oaDept:'装卸二部', company:'杭州试工队', type:'试工', useMode:'立即使用', start:'2026-08-15', end:'2026-09-15', valid:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', actual:'2026-08-15 15:00:00 ~ 2026-09-15 14:59:59', usage:'干线卸车移动', cells:['-','统一计价'], invoice:'普通发票', contact:'孙八', phone:'13700003333', wf:'OA20260715033', no:'YD20260715003', creator:'周九', ctime:'2026-07-12 16:00:00', remark:'-', attaches:['营业执照.jpg','资质.png'], editor:'-', etime:'-', change:false, status:'待生效' }
   ];
 
   const ROWS_QT = [
-    { state:'active', depot:'金华分拨中心', oaDept:'装卸一部', company:'金华临时支援', type:'临时工', useMode:'储备使用', start:'2026-07-01', end:'2026-12-31', valid:'2026-07-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2026-12-31 14:59:59', usage:'旺季库区清理', cells:[], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'OA20260628001', no:'QT20260628001', creator:'张三', ctime:'2026-06-28 10:00:00', remark:'不计价', editor:'-', etime:'-', change:false, status:'生效中' },
-    { state:'reject', depot:'义乌分拨中心', oaDept:'装卸二部', company:'义乌装卸A队', type:'外请车', useMode:'立即使用', start:'2026-08-01', end:'2026-09-30', valid:'2026-08-01 15:00:00 ~ 2026-09-30 14:59:59', actual:'-', usage:'设备维保协助', cells:[], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'OA20260730002', no:'QT20260730002', creator:'钱七', ctime:'2026-07-30 15:20:00', remark:'-', editor:'-', etime:'-', change:false, status:'已驳回' }
+    { state:'active', depot:'金华分拨中心', oaDept:'装卸一部', company:'金华临时支援', type:'临时工', useMode:'储备使用', start:'2026-07-01', end:'2026-12-31', valid:'2026-07-01 15:00:00 ~ 2026-12-31 14:59:59', actual:'2026-07-01 15:00:00 ~ 2026-12-31 14:59:59', usage:'旺季库区清理', cells:[], invoice:'普通发票', contact:'王五', phone:'13800001111', wf:'OA20260628001', no:'QT20260628001', creator:'张三', ctime:'2026-06-28 10:00:00', remark:'不计价', attaches:['营业执照.jpg'], editor:'-', etime:'-', change:false, status:'生效中' },
+    { state:'reject', depot:'义乌分拨中心', oaDept:'装卸二部', company:'义乌装卸A队', type:'外请车', useMode:'立即使用', start:'2026-08-01', end:'2026-09-30', valid:'2026-08-01 15:00:00 ~ 2026-09-30 14:59:59', actual:'-', usage:'设备维保协助', cells:[], invoice:'普通发票', contact:'赵六', phone:'13900002222', wf:'OA20260730002', no:'QT20260730002', creator:'钱七', ctime:'2026-07-30 15:20:00', remark:'-', attaches:['营业执照.pdf'], editor:'-', etime:'-', change:false, status:'已驳回' }
   ];
+
+  let addAttaches = [];
+  let editAttaches = [];
+  const SAMPLE_ATTACH_NAMES = ['营业执照.jpg', '资质证明.pdf', '补充材料.png'];
+
+  function renderAttachList(listEl, files, onRemove) {
+    if (!listEl) return;
+    listEl.innerHTML = files.map(function (name, idx) {
+      return '<span class="attach-chip"><span class="name" title="' + name + '">' + name + '</span><span class="x" data-idx="' + idx + '">×</span></span>';
+    }).join('');
+    listEl.querySelectorAll('.x').forEach(function (x) {
+      x.addEventListener('click', function (e) {
+        e.stopPropagation();
+        onRemove(Number(x.getAttribute('data-idx')));
+      });
+    });
+  }
+
+  function syncAttachButtons() {
+    const addBtn = document.getElementById('btnAddAttach');
+    const editBtn = document.getElementById('btnEditAttach');
+    if (addBtn) addBtn.disabled = addAttaches.length >= 3;
+    if (editBtn) editBtn.disabled = editAttaches.length >= 3;
+  }
+
+  function setAddAttaches(files) {
+    addAttaches = (files || []).slice(0, 3);
+    renderAttachList(document.getElementById('addAttachList'), addAttaches, function (idx) {
+      addAttaches.splice(idx, 1);
+      setAddAttaches(addAttaches);
+    });
+    syncAttachButtons();
+  }
+
+  function setEditAttaches(files) {
+    editAttaches = (files || []).slice(0, 3);
+    renderAttachList(document.getElementById('editAttachList'), editAttaches, function (idx) {
+      editAttaches.splice(idx, 1);
+      setEditAttaches(editAttaches);
+    });
+    syncAttachButtons();
+  }
+
+  function openAttachPreview(files) {
+    const box = document.getElementById('attachPreviewList');
+    if (!box) return;
+    const list = files && files.length ? files : [];
+    box.innerHTML = list.length
+      ? list.map(function (name) { return '<div class="item">📎 ' + name + '</div>'; }).join('')
+      : '<div class="item">暂无附件</div>';
+    openModal('attachPreviewMask');
+  }
 
   function formatPeriod(startDate, endDate) {
     return startDate + ' 15:00:00 ~ ' + endDate + ' 14:59:59';
@@ -1726,6 +1878,14 @@
         if (normal) normal.style.display = isOther ? 'none' : '';
         if (other) other.style.display = isOther ? '' : 'none';
         openModal('changeMask');
+      });
+    });
+    document.querySelectorAll('.js-attach').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = Number(el.getAttribute('data-idx'));
+        const row = (currentRows() || [])[idx];
+        openAttachPreview(row ? row.attaches : []);
       });
     });
     document.querySelectorAll('.js-preview').forEach(el => {
@@ -1800,6 +1960,10 @@
         mid = '<td>' + r.usage + '</td>' + r.cells.map(c => '<td>' + c + '</td>').join('');
       }
       const wfCell = (r.wf && r.wf !== '-') ? ('<span class="link">' + r.wf + '</span>') : '-';
+      const attaches = r.attaches || [];
+      const attachCell = attaches.length
+        ? ('<span class="link js-attach" data-idx="' + idx + '">查看</span>')
+        : '-';
       return '<tr data-idx="' + idx + '" data-state="' + r.state + '" data-status="' + r.status + '">' +
         '<td class="col-checkbox"><input type="checkbox" class="row-check" /></td>' +
         '<td>' + r.depot + '</td><td>' + (r.oaDept || '-') + '</td><td>' + r.company + '</td><td class="col-type">' + r.type + '</td>' +
@@ -1807,7 +1971,7 @@
         '<td title="' + r.valid + '">' + r.valid + '</td><td title="' + r.actual + '">' + r.actual + '</td>' + mid +
         '<td>' + r.invoice + '</td><td>' + r.contact + '</td><td>' + r.phone + '</td>' +
         '<td>' + wfCell + '</td><td>' + r.no + '</td><td>' + r.creator + '</td><td>' + r.ctime + '</td>' +
-        '<td>' + r.remark + '</td><td>' + r.editor + '</td><td>' + r.etime + '</td>' +
+        '<td>' + r.remark + '</td><td>' + attachCell + '</td><td>' + r.editor + '</td><td>' + r.etime + '</td>' +
         '<td>' + changeCell + '</td><td class="' + statusCls + '">' + r.status + '</td>' +
         '<td><span class="link js-preview" data-status="' + r.status + '">预览</span></td></tr>';
     }).join('');
@@ -1870,7 +2034,7 @@
 
   function syncRoleFields(savedOaDept) {
     const isHq = currentRole === 'hq';
-    ['addOaDeptItem', 'editOaDeptItem'].forEach(function (id) {
+    ['addOaDeptItem', 'editOaDeptItem', 'addAttachItem', 'editAttachItem'].forEach(function (id) {
       const el = document.getElementById(id);
       if (el) el.style.display = isHq ? 'none' : '';
     });
@@ -2315,6 +2479,7 @@
     const title = document.querySelector('#addMask .modal-header div');
     if (title) title.textContent = '新增';
     syncRoleFields('');
+    setAddAttaches([]);
     openModal('addMask');
   });
 
@@ -2348,6 +2513,7 @@
     const editSave = document.getElementById('btnEditSave');
     if (editSave) editSave.textContent = currentRole === 'hq' ? '保存' : '提交发起审批';
     syncRoleFields(row.oaDept);
+    setEditAttaches(row.attaches || []);
     openModal('editMask');
   });
 
@@ -2389,6 +2555,7 @@
     }
     openModal('addMask');
     syncRoleFields(row.oaDept);
+    setAddAttaches(row.attaches || []);
     const addDepotInput = document.getElementById('addDepotInput');
     if (addDepotInput) addDepotInput.value = row.depot || '';
   });
@@ -2405,12 +2572,20 @@
   });
 
   document.getElementById('btnAddSave').addEventListener('click', () => {
+    if (currentRole !== 'hq' && !addAttaches.length) {
+      showToast('请上传附件后再提交发起审批');
+      return;
+    }
     closeModal('addMask');
     if (currentRole === 'hq') showToast('保存成功');
     else showToast('已提交发起审批');
   });
 
   document.getElementById('btnEditSave').addEventListener('click', () => {
+    if (currentRole !== 'hq' && !editAttaches.length) {
+      showToast('请上传附件后再提交发起审批');
+      return;
+    }
     const type = document.getElementById('editType').value;
     const company = document.getElementById('editCompany').value;
     const depot = document.getElementById('editDepot').value;
@@ -2430,6 +2605,7 @@
       current.contact = document.getElementById('editContact').value;
       current.phone = document.getElementById('editPhone').value;
       current.remark = document.getElementById('editRemark').value || '-';
+      current.attaches = currentRole === 'hq' ? [] : editAttaches.slice();
       current.start = start;
       current.end = end;
       current.valid = formatPeriod(start, end);
@@ -2466,6 +2642,17 @@
     currentRole = this.value;
     updateActionButtons();
     syncRoleFields('');
+  });
+
+  document.getElementById('btnAddAttach').addEventListener('click', function () {
+    if (addAttaches.length >= 3) return;
+    const name = SAMPLE_ATTACH_NAMES[addAttaches.length] || ('附件' + (addAttaches.length + 1) + '.jpg');
+    setAddAttaches(addAttaches.concat([name]));
+  });
+  document.getElementById('btnEditAttach').addEventListener('click', function () {
+    if (editAttaches.length >= 3) return;
+    const name = SAMPLE_ATTACH_NAMES[editAttaches.length] || ('附件' + (editAttaches.length + 1) + '.jpg');
+    setEditAttaches(editAttaches.concat([name]));
   });
 
   document.getElementById('tableBody').addEventListener('change', function (e) {
