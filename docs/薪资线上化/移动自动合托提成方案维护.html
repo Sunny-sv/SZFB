@@ -1,0 +1,3918 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>移动自动合托提成方案维护</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0659d9;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 48px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+
+    .top-header {
+      height: var(--header-height);
+      display: flex;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .brand-area {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: width .2s;
+      letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area {
+      width: var(--sidebar-collapsed);
+      padding: 0 8px;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+
+    .top-tabs {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      background: var(--header-blue);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn,
+    .top-tabs .home-btn {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 18px;
+      flex-shrink: 0;
+      opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover,
+    .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+
+    .page-tabs {
+      display: flex;
+      align-items: flex-end;
+      flex: 1;
+      overflow-x: auto;
+      gap: 4px;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 36px;
+      border-radius: 6px 6px 0 0;
+      color: rgba(255,255,255,.95);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active {
+      background: #fff;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .7;
+      margin-left: 2px;
+    }
+    .page-tab.active .tab-close { opacity: .45; color: var(--text-secondary); }
+    .page-tab .tab-close:hover { opacity: 1; color: #ff4d4f; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px 6px 12px;
+      color: #fff;
+      flex-shrink: 0;
+      align-self: flex-end;
+      height: 42px;
+    }
+    .top-right .icon-btn {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .top-right .icon-btn .badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+      padding: 0 4px 0 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 32px;
+    }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #722ed1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+
+    .body-row { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 110px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control,
+    .select-wrap .form-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    /* 多选下拉框（查询区 / 弹框） */
+    .multi-select-wrap { position: relative; width: 100%; }
+    .multi-select-box {
+      width: 100%; min-height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 28px 0 11px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    .multi-select-box.has-value { color: var(--text); }
+    .multi-select-box .multi-select-placeholder { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .multi-select-tags {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      overflow: hidden;
+      padding: 2px 0;
+    }
+    .multi-select-tag {
+      display: inline-flex;
+      align-items: center;
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      border-radius: 3px;
+      padding: 0 6px;
+      height: 22px;
+      font-size: 12px;
+      color: var(--primary);
+      line-height: 1;
+      max-width: 88px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .multi-select-arrow {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .multi-select-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 2px); left: 0; right: 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+      z-index: 120;
+      padding: 4px 0;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .multi-select-wrap.open .multi-select-dropdown { display: block; }
+    .multi-select-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .multi-select-option:hover { background: #fafafa; }
+    .multi-select-option.checked { background: #e6f7ff; }
+    .multi-select-option input[type="checkbox"] {
+      width: 16px; height: 16px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .sub-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .sub-tabs.hidden { display: none; }
+    .sub-tab {
+      padding: 6px 16px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 13px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .sub-tab:hover { color: var(--primary); }
+    .sub-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    .btn-action:disabled,
+    .btn-action.disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+    .btn-action:disabled:hover,
+    .btn-action.disabled:hover { opacity: .45; }
+    .tag-gray { background: #f5f5f5; color: rgba(0,0,0,.45); border: 1px solid #d9d9d9; }
+    .toast {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-12px);
+      background: rgba(0,0,0,.75);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 13px;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+      max-width: 720px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .form-control.is-locked,
+    .form-control:disabled {
+      background: #f5f5f5;
+      color: rgba(0,0,0,.45);
+      cursor: not-allowed;
+    }
+
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 1200px; }
+    .data-table-wide { min-width: 2600px; }
+    .data-table-wide th,
+    .data-table-wide td { white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+    .data-table th,
+    .data-table td { border: 1px solid var(--border); padding: 10px 12px; text-align: center; }
+    .data-table th { background: #fafafa; font-weight: 500; color: var(--text); white-space: nowrap; text-align: center; }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+
+    .tag { display: inline-block; padding: 0 8px; border-radius: 2px; font-size: 12px; line-height: 20px; }
+    .tag-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+    .tag-orange { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+    .tag-blue { background: #e6f7ff; color: var(--primary); border: 1px solid #91d5ff; }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 16px; }
+    .panel-filter { display: none; width: 100%; }
+    .panel-filter.active { display: flex; align-items: flex-start; gap: 16px; }
+    .panel-filter.active .filter-actions { padding-top: 4px; align-self: flex-end; }
+    .panel-action { display: none; }
+    .panel-action.active { display: flex; gap: 8px; flex-wrap: wrap; }
+    .panel-table { display: none; flex: 1; min-height: 0; flex-direction: column; }
+    .panel-table.active { display: flex; }
+
+    .modal-mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 4px;
+      width: 880px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 24px rgba(0,0,0,.15);
+    }
+    .modal.modal-wide { width: 960px; }
+
+    .modal.modal-xl { width: 1200px; }
+    .form-item.combo-label > .label-combo {
+      flex: 0 0 120px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .form-item.combo-label > .label-combo .form-control {
+      width: 110px;
+      height: 32px;
+      font-size: 13px;
+      padding: 0 8px;
+    }
+    .form-item .field-stack {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .form-item .field-stack .check-right {
+      text-align: right;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .form-item .field-stack .check-right input { margin-right: 4px; accent-color: var(--primary); }
+    .input-prepend {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .input-prepend .pre-select {
+      width: 72px;
+      flex-shrink: 0;
+      border: none;
+      border-right: 1px solid var(--border);
+      background: #fafafa;
+      padding: 0 6px;
+      font-size: 13px;
+      outline: none;
+      appearance: auto;
+    }
+    .input-prepend input {
+      flex: 1;
+      border: none;
+      height: 100%;
+      padding: 0 11px;
+      outline: none;
+      font-size: 13px;
+      min-width: 0;
+    }
+    .form-item > .input-prepend { flex: 1; min-width: 0; }
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 16px;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-close { cursor: pointer; font-size: 20px; color: var(--text-secondary); line-height: 1; }
+    .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      padding: 12px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .form-section { margin-bottom: 20px; }
+    .form-section:last-child { margin-bottom: 0; }
+    .form-section-title {
+      font-weight: 500;
+      margin-bottom: 12px;
+      padding-left: 8px;
+      border-left: 3px solid var(--primary);
+    }
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 24px; }
+    .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; }
+    .form-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .form-item > label:first-child {
+      flex: 0 0 120px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .form-item > label:first-child .req { color: #ff4d4f; margin-right: 2px; }
+    .form-item > .select-wrap,
+    .form-item > .form-control,
+    .form-item > .radio-group,
+    .form-item > .checkbox-group,
+    .form-item > .form-control-col { flex: 1; min-width: 0; }
+    .form-item.span-row { grid-column: 1 / -1; }
+    .form-item.align-start { align-items: flex-start; }
+    .form-item.align-start > label:first-child { padding-top: 6px; }
+    .form-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .form-control-col { display: flex; flex-direction: column; gap: 8px; }
+    .radio-group { display: flex; gap: 20px; align-items: center; height: 32px; flex-wrap: wrap; }
+    .radio-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; margin: 0; white-space: nowrap; }
+    .checkbox-group { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; min-height: 32px; }
+    .checkbox-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; margin: 0; white-space: nowrap; }
+
+    /* 按普货区间 — 对齐 adjustRatio 交互（无调整比例列） */
+    .interval-mode-section {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .interval-mode-section label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .interval-mode-section input { accent-color: var(--primary); }
+    .interval-none-hint {
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding: 8px 0 4px;
+    }
+    .idc-ep-config { width: 100%; }
+    .idc-ep-section { margin-bottom: 16px; }
+    .idc-ep-section-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .idc-ep-dim-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: 4px;
+      background: #fafafa;
+    }
+    .idc-ep-dim-group { display: flex; flex-direction: column; gap: 6px; }
+    .idc-ep-group-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .idc-ep-checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+      font-size: 13px;
+    }
+    .idc-ep-checkbox-group label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .idc-ep-checkbox-group input { accent-color: var(--primary); }
+    .idc-ep-table {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .idc-ep-table-header {
+      display: grid;
+      grid-template-columns: 1fr 72px;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #f5f7fa;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .idc-ep-table-header .col-interval { color: var(--primary); }
+    .idc-ep-table-header .col-ops { text-align: center; }
+    .idc-ep-empty {
+      padding: 32px 12px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .idc-ep-table-group { border-bottom: 1px dashed var(--border); }
+    .idc-ep-table-group:last-child { border-bottom: none; }
+    .idc-ep-table-row {
+      display: grid;
+      grid-template-columns: 1fr 72px;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      background: #fff;
+    }
+    .idc-ep-table-row + .idc-ep-table-row { border-top: 1px solid #f5f7fa; }
+    .row-interval {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .row-label { font-size: 13px; white-space: nowrap; }
+    .interval-input {
+      width: 96px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      outline: none;
+    }
+    .interval-input:focus { border-color: var(--primary); }
+    .interval-sep { color: var(--text-secondary); font-size: 12px; }
+    .col-ops-cell {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      align-items: center;
+    }
+    .interval-row { display: flex; align-items: center; gap: 8px; }
+    .interval-row .form-control { flex: 1; }
+    .interval-row .sep { color: var(--text-secondary); flex-shrink: 0; }
+    .hidden { display: none !important; }
+
+    /* 特殊提成单价 — 对齐外包公司维护移动单价设定 */
+    .price-list { display: flex; flex-direction: column; gap: 12px; }
+    .price-block {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 14px;
+      background: #fafafa;
+    }
+    .price-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .price-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .price-field > .pf-label {
+      flex: 0 0 auto;
+      text-align: right;
+      font-size: 13px;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .price-field > .pf-label .req { color: #ff4d4f; margin-right: 2px; }
+    .price-field .pf-ctrl { min-width: 140px; }
+    .input-suffix {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-width: 140px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      overflow: hidden;
+      height: 32px;
+    }
+    .input-suffix input {
+      flex: 1;
+      border: none;
+      height: 100%;
+      padding: 0 11px;
+      outline: none;
+      font-size: 13px;
+      min-width: 0;
+      background: transparent;
+    }
+    .input-suffix .suffix {
+      padding: 0 10px;
+      background: #fafafa;
+      border-left: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 12px;
+      white-space: nowrap;
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+    .circle-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .circle-btn.add { background: var(--primary); }
+    .circle-btn.remove { background: #ff4d4f; }
+    .circle-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .tier-list { display: flex; flex-direction: column; gap: 12px; }
+    .tier-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 16px;
+    }
+    .tier-range {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    .tier-range .rl { font-size: 13px; white-space: nowrap; }
+    .tier-range .rl .req { color: #ff4d4f; margin-right: 2px; }
+    .tier-range .form-control { width: 88px; }
+    .tier-prices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      align-items: center;
+    }
+    .tier-price-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tier-price-item .plabel { font-size: 13px; white-space: nowrap; }
+    .tier-price-item .plabel .req { color: #ff4d4f; margin-right: 2px; }
+    .tier-price-item .input-suffix { min-width: 160px; }
+
+    /* 表单预览 — 特殊提成 */
+
+    .link {
+      color: var(--primary);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .link:hover { text-decoration: underline; }
+    .price-block-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+    .price-field.links-field {
+      flex: 0 0 auto;
+      align-items: flex-start;
+    }
+    .price-field.links-field > .pf-label { padding-top: 6px; }
+    .price-field.links-field .ms-wrap {
+      width: 220px;
+      flex: 0 0 220px;
+    }
+    .ms-wrap { position: relative; width: 100%; }
+    .ms-trigger {
+      min-height: 32px;
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      padding: 4px 28px 4px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      align-content: flex-start;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+    .ms-trigger::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .ms-trigger .placeholder { color: #bfbfbf; font-size: 13px; }
+    .ms-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f0f0f0;
+      border-radius: 2px;
+      padding: 0 6px;
+      height: 22px;
+      font-size: 12px;
+    }
+    .ms-tag .x { color: var(--text-secondary); cursor: pointer; }
+    .ms-drop {
+      display: none;
+      position: absolute;
+      left: 0; right: 0; top: calc(100% + 2px);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+      z-index: 30;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .ms-drop.open { display: block; }
+    .ms-opt {
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ms-opt:hover { background: #f5f5f5; }
+    .ms-opt.disabled { color: #bfbfbf; cursor: not-allowed; }
+    .ms-opt.disabled:hover { background: #fff; }
+    .ms-opt input { accent-color: var(--primary); }
+
+    .modal.preview-modal { width: 860px; }
+    .preview-body { position: relative; }
+    .preview-stamp {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 72px;
+      height: 72px;
+      border: 2px solid #52c41a;
+      border-radius: 50%;
+      color: #52c41a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      transform: rotate(-18deg);
+      opacity: .9;
+      pointer-events: none;
+      background: rgba(255,255,255,.65);
+    }
+    .preview-stamp.wait { border-color: #faad14; color: #faad14; }
+    .preview-stamp.off { border-color: rgba(0,0,0,.35); color: rgba(0,0,0,.45); }
+    .preview-section { margin-bottom: 24px; }
+    .preview-section:last-child { margin-bottom: 0; }
+    .preview-section-title {
+      font-weight: 500;
+      margin-bottom: 14px;
+      padding-left: 8px;
+      border-left: 3px solid var(--primary);
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 48px;
+      padding-right: 88px;
+    }
+    .preview-row {
+      display: flex;
+      font-size: 14px;
+      line-height: 22px;
+      min-height: 22px;
+    }
+    .preview-row .p-label {
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .preview-row .p-label::after { content: "："; }
+    .preview-row .p-value { color: var(--text); word-break: break-all; }
+    .preview-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .preview-price-box {
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 22px;
+    }
+    .preview-price-box .item {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+    .preview-price-box .item:last-child { margin-bottom: 0; }
+    .preview-price-box .k { color: var(--text-secondary); }
+    .preview-price-box .k::after { content: "："; }
+
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
+    </div>
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab" data-tab="salary">薪资线上化 <span class="tab-close">×</span></div>
+        <div class="page-tab active" data-tab="current">移动自动合托提成方案维护 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="文档">📄</span>
+        <span class="icon-btn" title="下载">⬇</span>
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔<span class="badge">3</span></span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">📊</span><span class="menu-label">货量提成</span><span class="menu-arrow">▼</span></div>
+        <div class="menu-sub">
+          <div class="menu-item"><span class="menu-label">薪资线上化</span><span class="menu-arrow">▼</span></div>
+          <div class="menu-sub" style="background:#00080f">
+            <div class="menu-item">基础提成方案维护</div>
+            <div class="menu-item">机叉叉车组长绩效标准</div>
+            <div class="menu-item active">移动自动合托提成方案维护</div>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+      <main class="content-area">
+        <div class="content-card">
+
+          <!-- 1. 筛选区（按面板切换） -->
+          <div id="filterContainer">
+            <!-- 适用分拨 -->
+            <section class="filter-area panel-filter active" data-panel="fenbo">
+              <div class="filter-grid">
+                <div class="filter-item">
+                  <span class="filter-label">分拨中心</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box">
+                        <span class="multi-select-placeholder">请选择</span>
+                        <span class="multi-select-tags"></span>
+                        <span class="multi-select-arrow">▼</span>
+                      </div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="金华分拨中心">金华分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="杭州分拨中心">杭州分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="宁波分拨中心">宁波分拨中心</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">状态</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box">
+                        <span class="multi-select-placeholder">请选择</span>
+                        <span class="multi-select-tags"></span>
+                        <span class="multi-select-arrow">▼</span>
+                      </div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="生效中" checked>生效中</label>
+                        <label class="multi-select-option"><input type="checkbox" value="待生效">待生效</label>
+                        <label class="multi-select-option"><input type="checkbox" value="已失效">已失效</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">有效月份</span>
+                  <div class="filter-control-wrap">
+                    <div class="date-range">
+                      <input class="filter-control" type="text" value="2026-01" readonly />
+                      <span class="sep">~</span>
+                      <input class="filter-control" type="text" value="2026-12" readonly />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-actions">
+                <button class="btn">重置</button>
+                <button class="btn btn-primary">查询</button>
+              </div>
+            </section>
+
+            <!-- 按普货计价货 -->
+            <section class="filter-area panel-filter" data-panel="puhuo">
+              <div class="filter-grid">
+                <div class="filter-item">
+                  <span class="filter-label">分拨中心</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="金华分拨中心">金华分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="杭州分拨中心">杭州分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="宁波分拨中心">宁波分拨中心</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">操作类型</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="卸车">卸车</label>
+                        <label class="multi-select-option"><input type="checkbox" value="移动">移动</label>
+                        <label class="multi-select-option"><input type="checkbox" value="装车">装车</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">重/抛货</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="重货">重货</label>
+                        <label class="multi-select-option"><input type="checkbox" value="抛货">抛货</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">任务类型</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="分拨">分拨</label>
+                        <label class="multi-select-option"><input type="checkbox" value="服务站">服务站</label>
+                        <label class="multi-select-option"><input type="checkbox" value="集配站">集配站</label>
+                        <label class="multi-select-option"><input type="checkbox" value="网点">网点</label>
+                        <label class="multi-select-option"><input type="checkbox" value="智运分拨">智运分拨</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">组合项</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="上一站">上一站</label>
+                        <label class="multi-select-option"><input type="checkbox" value="下一站">下一站</label>
+                        <label class="multi-select-option"><input type="checkbox" value="开单网点/分拨/省区">开单网点/分拨/省区</label>
+                        <label class="multi-select-option"><input type="checkbox" value="产品类型">产品类型</label>
+                        <label class="multi-select-option"><input type="checkbox" value="物品类型">物品类型</label>
+                        <label class="multi-select-option"><input type="checkbox" value="物品名称">物品名称</label>
+                        <label class="multi-select-option"><input type="checkbox" value="包装类型">包装类型</label>
+                        <label class="multi-select-option"><input type="checkbox" value="寄件人">寄件人</label>
+                        <label class="multi-select-option"><input type="checkbox" value="是否申报物品">是否申报物品</label>
+                        <label class="multi-select-option"><input type="checkbox" value="订单来源">订单来源</label>
+                        <label class="multi-select-option"><input type="checkbox" value="是否电商件">是否电商件</label>
+                        <label class="multi-select-option"><input type="checkbox" value="区间纬度">区间纬度</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">状态</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="生效中" checked>生效中</label>
+                        <label class="multi-select-option"><input type="checkbox" value="待生效">待生效</label>
+                        <label class="multi-select-option"><input type="checkbox" value="已失效">已失效</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">上一站</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="义乌一部">义乌一部</label>
+                        <label class="multi-select-option"><input type="checkbox" value="金华分拨中心">金华分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="杭州分拨中心">杭州分拨中心</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">下一站</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="义乌一部">义乌一部</label>
+                        <label class="multi-select-option"><input type="checkbox" value="金华分拨中心">金华分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="杭州分拨中心">杭州分拨中心</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">开单网点/分拨/省区</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="宁波分拨中心">宁波分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="浙东省区">浙东省区</label>
+                        <label class="multi-select-option"><input type="checkbox" value="慈溪一部">慈溪一部</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">产品类型</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="国内件">国内件</label>
+                        <label class="multi-select-option"><input type="checkbox" value="仓配一体">仓配一体</label>
+                        <label class="multi-select-option"><input type="checkbox" value="普货">普货</label>
+                        <label class="multi-select-option"><input type="checkbox" value="冷链">冷链</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">物品类型</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="文件">文件</label>
+                        <label class="multi-select-option"><input type="checkbox" value="包裹">包裹</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">物品名称</span>
+                  <div class="filter-control-wrap">
+                    <input class="filter-control" type="text" placeholder="请输入物品名称" />
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">包装类型</span>
+                  <div class="filter-control-wrap">
+                    <input class="filter-control" type="text" placeholder="请输入包装类型" />
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">寄件人</span>
+                  <div class="filter-control-wrap">
+                    <input class="filter-control" type="text" placeholder="请输入寄件人" />
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">是否申报物品</span>
+                  <div class="filter-control-wrap">
+                    <div class="select-wrap">
+                      <select class="filter-control"><option selected>全部</option><option>是</option><option>否</option></select>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">订单来源</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="线上">线上</label>
+                        <label class="multi-select-option"><input type="checkbox" value="线下">线下</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">是否电商件</span>
+                  <div class="filter-control-wrap">
+                    <div class="select-wrap">
+                      <select class="filter-control"><option selected>全部</option><option>是</option><option>否</option></select>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">区间模式</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="不区分">不区分</label>
+                        <label class="multi-select-option"><input type="checkbox" value="按区间配置">按区间配置</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">区间纬度</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="票-操作结算重量段">票-操作结算重量段</label>
+                        <label class="multi-select-option"><input type="checkbox" value="票-体积段">票-体积段</label>
+                        <label class="multi-select-option"><input type="checkbox" value="件-操作结算重量段">件-操作结算重量段</label>
+                        <label class="multi-select-option"><input type="checkbox" value="件-体积段">件-体积段</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">有效月份</span>
+                  <div class="filter-control-wrap">
+                    <div class="date-range">
+                      <input class="filter-control" type="text" value="2026-01" readonly />
+                      <span class="sep">~</span>
+                      <input class="filter-control" type="text" value="2026-12" readonly />
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">创建人</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="张三">张三</label>
+                        <label class="multi-select-option"><input type="checkbox" value="李四">李四</label>
+                        <label class="multi-select-option"><input type="checkbox" value="王五">王五</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">创建时间</span>
+                  <div class="filter-control-wrap">
+                    <div class="date-range">
+                      <input class="filter-control" type="text" placeholder="开始日期" readonly />
+                      <span class="sep">~</span>
+                      <input class="filter-control" type="text" placeholder="结束日期" readonly />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-actions">
+                <button class="btn">重置</button>
+                <button class="btn btn-primary">查询</button>
+              </div>
+            </section>
+
+            <!-- 月额度标准 -->
+            <section class="filter-area panel-filter" data-panel="month">
+              <div class="filter-grid">
+                <div class="filter-item">
+                  <span class="filter-label">维度</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="人员">人员</label>
+                        <label class="multi-select-option"><input type="checkbox" value="分拨">分拨</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">分拨中心</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="金华分拨中心">金华分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="杭州分拨中心">杭州分拨中心</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">人员</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="赵六">赵六</label>
+                        <label class="multi-select-option"><input type="checkbox" value="钱七">钱七</label>
+                        <label class="multi-select-option"><input type="checkbox" value="孙八">孙八</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">状态</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="生效中" checked>生效中</label>
+                        <label class="multi-select-option"><input type="checkbox" value="待生效">待生效</label>
+                        <label class="multi-select-option"><input type="checkbox" value="已失效">已失效</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">有效月份</span>
+                  <div class="filter-control-wrap">
+                    <div class="date-range">
+                      <input class="filter-control" type="text" value="2026-01" readonly />
+                      <span class="sep">~</span>
+                      <input class="filter-control" type="text" value="2026-12" readonly />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-actions">
+                <button class="btn">重置</button>
+                <button class="btn btn-primary">查询</button>
+              </div>
+            </section>
+
+            <!-- 特殊提成单价 -->
+            <section class="filter-area panel-filter" data-panel="special">
+              <div class="filter-grid">
+                <div class="filter-item">
+                  <span class="filter-label">分拨中心</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="金华分拨中心">金华分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="杭州分拨中心">杭州分拨中心</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">计价方式</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="统一计价">统一计价</label>
+                        <label class="multi-select-option"><input type="checkbox" value="阶梯计价">阶梯计价</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">方案类型</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="按吨计算">按吨计算</label>
+                        <label class="multi-select-option"><input type="checkbox" value="按托计算">按托计算</label>
+                        <label class="multi-select-option"><input type="checkbox" value="吨托结合">吨托结合</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">状态</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="生效中" checked>生效中</label>
+                        <label class="multi-select-option"><input type="checkbox" value="待生效">待生效</label>
+                        <label class="multi-select-option"><input type="checkbox" value="已失效">已失效</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">有效月份</span>
+                  <div class="filter-control-wrap">
+                    <div class="date-range">
+                      <input class="filter-control" type="text" value="2026-01" readonly />
+                      <span class="sep">~</span>
+                      <input class="filter-control" type="text" value="2026-12" readonly />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-actions">
+                <button class="btn">重置</button>
+                <button class="btn btn-primary">查询</button>
+              </div>
+            </section>
+          </div>
+
+          <!-- 2. 主 Tab -->
+          <nav class="content-tabs" id="mainTabs">
+            <div class="content-tab active" data-main="scope">适用范围</div>
+            <div class="content-tab" data-main="month">月额度标准</div>
+            <div class="content-tab" data-main="special">特殊提成单价</div>
+          </nav>
+
+          <!-- 2b. 子 Tab（适用范围） -->
+          <nav class="sub-tabs" id="subTabs">
+            <div class="sub-tab active" data-sub="fenbo">适用分拨</div>
+            <div class="sub-tab" data-sub="puhuo">按普货计价货</div>
+          </nav>
+
+          <!-- 3. 按钮区 -->
+          <div id="actionContainer">
+            <section class="action-bar panel-action active" data-panel="fenbo">
+              <button class="btn-action primary" data-modal="modalFenbo" id="btnFenboAdd">新增</button>
+              <button class="btn-action" type="button" id="btnFenboEdit" disabled>编辑</button>
+              <button class="btn-action" type="button" id="btnFenboDelete" disabled>删除</button>
+              <button class="btn-action" type="button" id="btnFenboImport">导入</button>
+              <button class="btn-action" type="button" id="btnFenboExport">导出</button>
+            </section>
+            <section class="action-bar panel-action" data-panel="puhuo">
+              <button class="btn-action primary" data-modal="modalPuhuo" id="btnPuhuoAdd">新增</button>
+              <button class="btn-action" type="button" id="btnPuhuoEdit" disabled>编辑</button>
+              <button class="btn-action" type="button" id="btnPuhuoDelete" disabled>删除</button>
+              <button class="btn-action" type="button" id="btnPuhuoExport">导出</button>
+            </section>
+            <section class="action-bar panel-action" data-panel="month">
+              <button class="btn-action primary" data-modal="modalMonth" id="btnMonthAdd">新增</button>
+              <button class="btn-action" type="button" id="btnMonthEdit" disabled>编辑</button>
+              <button class="btn-action" type="button" id="btnMonthDelete" disabled>删除</button>
+              <button class="btn-action" type="button" id="btnMonthImport">导入</button>
+              <button class="btn-action" type="button" id="btnMonthExport">导出</button>
+            </section>
+            <section class="action-bar panel-action" data-panel="special">
+              <button class="btn-action primary" data-modal="modalSpecial" id="btnSpecialAdd">新增</button>
+              <button class="btn-action" type="button" id="btnSpecialEdit" disabled>编辑</button>
+              <button class="btn-action" type="button" id="btnSpecialDelete" disabled>删除</button>
+              <button class="btn-action" type="button" id="btnSpecialExport">导出</button>
+            </section>
+          </div>
+
+          <!-- 4. 表格区 -->
+          <div id="tableContainer" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+
+            <!-- 适用分拨表格 -->
+            <section class="table-area panel-table active" data-panel="fenbo">
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th class="col-checkbox"><input type="checkbox" class="check-all" data-target="fenbo" /></th>
+                      <th>分拨中心</th>
+                      <th>省区</th>
+                      <th>有效期限</th>
+                      <th>状态</th>
+                      <th>备注</th>
+                      <th>创建人</th>
+                      <th>创建时间</th>
+                      <th>修改人</th>
+                      <th>修改时间</th>
+                    </tr>
+                  </thead>
+                  <tbody id="fenboTableBody">
+                    <!-- 由脚本渲染 -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <span class="total" id="fenboTotal">共 3 条</span>
+                <button class="page-btn disabled">&lt;</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn disabled">&gt;</button>
+                <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+              </div>
+            </section>
+
+            <!-- 按普货计价货表格 -->
+            <section class="table-area panel-table" data-panel="puhuo">
+              <div class="table-scroll">
+                <table class="data-table data-table-wide">
+                  <thead>
+                    <tr>
+                      <th class="col-checkbox"><input type="checkbox" class="check-all" data-target="puhuo" /></th>
+                      <th>分拨中心</th>
+                      <th>操作类型</th>
+                      <th>重/抛货</th>
+                      <th>任务类型</th>
+                      <th>上一站</th>
+                      <th>下一站</th>
+                      <th>开单网点/分拨/省区</th>
+                      <th>产品类型</th>
+                      <th>物品类型</th>
+                      <th>物品名称</th>
+                      <th>包装类型</th>
+                      <th>寄件人</th>
+                      <th>是否申报物品</th>
+                      <th>订单来源</th>
+                      <th>是否电商件</th>
+                      <th>区间模式</th>
+                      <th>区间纬度</th>
+                      <th>区间明细</th>
+                      <th>有效期限</th>
+                      <th>状态</th>
+                      <th>备注</th>
+                      <th>创建人</th>
+                      <th>创建时间</th>
+                    </tr>
+                  </thead>
+                  <tbody id="puhuoTableBody">
+                    <!-- 由脚本渲染 -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <span class="total" id="puhuoTotal">共 2 条</span>
+                <button class="page-btn disabled">&lt;</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn disabled">&gt;</button>
+                <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+              </div>
+            </section>
+
+            <!-- 月额度标准表格 -->
+            <section class="table-area panel-table" data-panel="month">
+              <div class="table-scroll">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th class="col-checkbox"><input type="checkbox" class="check-all" data-target="month" /></th>
+                      <th>维度</th>
+                      <th>分拨中心</th>
+                      <th>人员</th>
+                      <th>额度单位</th>
+                      <th>月额度</th>
+                      <th>超限计价方式</th>
+                      <th>有效期限</th>
+                      <th>状态</th>
+                      <th>备注</th>
+                      <th>创建人</th>
+                      <th>创建时间</th>
+                      <th>修改人</th>
+                      <th>修改时间</th>
+                    </tr>
+                  </thead>
+                  <tbody id="monthTableBody">
+                    <!-- 由脚本渲染 -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <span class="total" id="monthTotal">共 2 条</span>
+                <button class="page-btn disabled">&lt;</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn disabled">&gt;</button>
+                <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+              </div>
+            </section>
+
+            <!-- 特殊提成单价表格 -->
+            <section class="table-area panel-table" data-panel="special">
+              <div class="table-scroll">
+                <table class="data-table" id="specialTable">
+                  <thead>
+                    <tr>
+                      <th class="col-checkbox"><input type="checkbox" class="check-all" data-target="special" /></th>
+                      <th>分拨中心</th>
+                      <th>网点卸车移动</th>
+                      <th>干线卸车移动</th>
+                      <th>有效期限</th>
+                      <th>状态</th>
+                      <th>备注</th>
+                      <th>创建人</th>
+                      <th>创建时间</th>
+                      <th>修改人</th>
+                      <th>修改时间</th>
+                      <th>表单预览</th>
+                    </tr>
+                  </thead>
+                  <tbody id="specialTableBody">
+                    <!-- 由脚本渲染样例 -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <span class="total" id="specialTotal">共 2 条</span>
+                <button class="page-btn disabled">&lt;</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn disabled">&gt;</button>
+                <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+              </div>
+            </section>
+
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- 适用分拨 新增/编辑弹框 -->
+<div class="modal-mask" id="modalFenbo">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="fenboModalTitle">新增适用分拨</span>
+      <span class="modal-close" data-close="modalFenbo">×</span>
+    </div>
+    <div class="modal-body">
+      <p id="fenboEditHint" style="display:none;margin:0 0 12px;font-size:13px;color:#fa8c16;line-height:1.5;">当前为生效中方案且开始月不是当月，仅可修改有效结束月份。</p>
+      <div class="form-grid">
+        <div class="form-item">
+          <label><span class="req">*</span>分拨中心</label>
+          <div class="select-wrap">
+            <select class="form-control" id="fbDepot"><option value="">请选择</option><option>金华分拨中心</option><option>杭州分拨中心</option><option>宁波分拨中心</option></select>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>有效开始月份</label>
+          <input class="form-control" type="text" id="fbStart" placeholder="如 2026-01" />
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>有效结束月份</label>
+          <input class="form-control" type="text" id="fbEnd" placeholder="如 2026-12" />
+        </div>
+        <div class="form-item span-row">
+          <label>备注</label>
+          <input class="form-control" type="text" id="fbRemark" placeholder="请输入备注" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close="modalFenbo">取消</button>
+      <button class="btn btn-primary" type="button" id="btnFenboSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 按普货计价货 新增/编辑弹框（基础设定+匹配条件对齐货量重量配置-实时特殊 addSpecial） -->
+<div class="modal-mask" id="modalPuhuo">
+  <div class="modal modal-xl">
+    <div class="modal-header">
+      <span id="puhuoModalTitle">新增按普货计价货</span>
+      <span class="modal-close" data-close="modalPuhuo">×</span>
+    </div>
+    <div class="modal-body">
+      <p id="puhuoEditHint" style="display:none;margin:0 0 12px;font-size:13px;color:#fa8c16;line-height:1.5;">当前为生效中方案且开始月不是当月，仅可修改有效结束月份。</p>
+
+      <div class="form-section" id="puhuoBasicSection">
+        <div class="form-section-title">基础设定</div>
+        <div class="form-grid-3">
+          <div class="form-item">
+            <label><span class="req">*</span>分拨中心</label>
+            <div class="select-wrap">
+              <select class="form-control" id="phDepot"><option value="">请选择</option><option>金华分拨中心</option><option>杭州分拨中心</option><option>宁波分拨中心</option></select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>操作类型</label>
+            <div class="select-wrap">
+              <select class="form-control" id="phOpType">
+                <option value="">请选择</option>
+                <option value="卸车">卸车</option>
+                <option value="移动" selected>移动</option>
+                <option value="装车">装车</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>有效开始月份</label>
+            <input class="form-control" type="text" id="phStart" placeholder="如 2026-01" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>有效结束月份</label>
+            <input class="form-control" type="text" id="phEnd" placeholder="如 2026-12" />
+          </div>
+          <div class="form-item">
+            <label>备注</label>
+            <input class="form-control" type="text" id="phRemark" placeholder="请输入备注" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section" id="puhuoExtraSection">
+        <div class="form-section-title">匹配条件</div>
+        <div class="form-grid-3">
+          <div class="form-item">
+            <label>重/抛货</label>
+            <div class="select-wrap">
+              <select class="form-control" id="phWeightType">
+                <option value="">请选择</option>
+                <option>重货</option>
+                <option>抛货</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label>任务类型</label>
+            <div class="multi-select-wrap">
+              <div class="multi-select-box">
+                <span class="multi-select-placeholder">请选择</span>
+                <span class="multi-select-tags"></span>
+                <span class="multi-select-arrow">▼</span>
+              </div>
+              <div class="multi-select-dropdown">
+                <label class="multi-select-option"><input type="checkbox" value="分拨">分拨</label>
+                <label class="multi-select-option"><input type="checkbox" value="服务站">服务站</label>
+                <label class="multi-select-option"><input type="checkbox" value="集配站">集配站</label>
+                <label class="multi-select-option"><input type="checkbox" value="网点">网点</label>
+                <label class="multi-select-option"><input type="checkbox" value="智运分拨">智运分拨</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-item combo-label align-start">
+            <div class="label-combo">
+              <select class="form-control" id="phPrevType">
+                <option value="网点">上一站网点</option>
+                <option value="分拨">上一站分拨</option>
+                <option value="省区">上一站省区</option>
+              </select>
+            </div>
+            <div class="field-stack">
+              <input class="form-control" type="text" id="phPrevSite" placeholder="请选择（多选）" />
+              <label class="check-right"><input type="checkbox" id="phPrevL2" />包含二级</label>
+            </div>
+          </div>
+          <div class="form-item combo-label align-start">
+            <div class="label-combo">
+              <select class="form-control" id="phNextType">
+                <option value="网点">下一站网点</option>
+                <option value="分拨">下一站分拨</option>
+                <option value="省区">下一站省区</option>
+              </select>
+            </div>
+            <div class="field-stack">
+              <input class="form-control" type="text" id="phNextSite" placeholder="请选择（多选）" />
+              <label class="check-right"><input type="checkbox" id="phNextL2" />包含二级</label>
+            </div>
+          </div>
+          <div class="form-item combo-label align-start">
+            <div class="label-combo">
+              <select class="form-control" id="phBillType">
+                <option value="网点">开单网点</option>
+                <option value="分拨">开单所属分拨</option>
+                <option value="省区">开单所属省区</option>
+              </select>
+            </div>
+            <div class="field-stack">
+              <input class="form-control" type="text" id="phBillSite" placeholder="请选择（多选）" />
+              <label class="check-right"><input type="checkbox" id="phBillL2" />包含二级</label>
+            </div>
+          </div>
+          <div class="form-item">
+            <label>产品类型</label>
+            <div class="multi-select-wrap">
+              <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+              <div class="multi-select-dropdown">
+                <label class="multi-select-option"><input type="checkbox" value="国内件">国内件</label>
+                <label class="multi-select-option"><input type="checkbox" value="仓配一体">仓配一体</label>
+                <label class="multi-select-option"><input type="checkbox" value="普货">普货</label>
+                <label class="multi-select-option"><input type="checkbox" value="冷链">冷链</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <label>物品类型</label>
+            <div class="multi-select-wrap">
+              <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+              <div class="multi-select-dropdown">
+                <label class="multi-select-option"><input type="checkbox" value="文件">文件</label>
+                <label class="multi-select-option"><input type="checkbox" value="包裹">包裹</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <label>物品名称</label>
+            <div class="input-prepend">
+              <select class="pre-select" id="phGoodsNameOp"><option>等于</option><option>包含</option></select>
+              <input type="text" id="phGoodsName" placeholder="请输入内容" />
+            </div>
+          </div>
+          <div class="form-item">
+            <label>包装类型</label>
+            <div class="input-prepend">
+              <select class="pre-select" id="phPackOp"><option>等于</option><option>包含</option></select>
+              <input type="text" id="phPack" placeholder="请输入内容" />
+            </div>
+          </div>
+          <div class="form-item">
+            <label>寄件人</label>
+            <input class="form-control" type="text" id="phSender" placeholder="请输入内容" />
+          </div>
+          <div class="form-item">
+            <label>是否申报物品</label>
+            <div class="select-wrap">
+              <select class="form-control" id="phDeclare">
+                <option value="">请选择</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label>订单来源</label>
+            <div class="multi-select-wrap">
+              <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+              <div class="multi-select-dropdown">
+                <label class="multi-select-option"><input type="checkbox" value="线上">线上</label>
+                <label class="multi-select-option"><input type="checkbox" value="线下">线下</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <label>是否电商件</label>
+            <div class="select-wrap">
+              <select class="form-control" id="phEcommerce">
+                <option value="">请选择</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:20px;">区间</div>
+        <div class="idc-ep-config" id="puhuoIntervalBlock">
+          <div class="interval-mode-section">
+            <label><input type="radio" name="phIntervalMode" value="1" checked /> 不区分</label>
+            <label><input type="radio" name="phIntervalMode" value="2" /> 按区间配置</label>
+          </div>
+          <div class="interval-none-hint" id="phIntervalNoneHint">不区分：不按操作结算重量段 / 体积段匹配。</div>
+          <div id="phIntervalConfig" class="hidden">
+            <div class="idc-ep-section">
+              <div class="idc-ep-section-title">区间纬度（可多选，至少 1 项）</div>
+              <div class="idc-ep-dim-groups" id="phDimGroups">
+                <div class="idc-ep-dim-group">
+                  <div class="idc-ep-group-name">票</div>
+                  <div class="idc-ep-checkbox-group">
+                    <label><input type="checkbox" class="ph-dim" value="ticketWeight" /> 票-操作结算重量段</label>
+                    <label><input type="checkbox" class="ph-dim" value="ticketVol" /> 票-体积段</label>
+                  </div>
+                </div>
+                <div class="idc-ep-dim-group">
+                  <div class="idc-ep-group-name">件</div>
+                  <div class="idc-ep-checkbox-group">
+                    <label><input type="checkbox" class="ph-dim" value="pieceWeight" /> 件-操作结算重量段</label>
+                    <label><input type="checkbox" class="ph-dim" value="pieceVol" /> 件-体积段</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="idc-ep-table" id="phIntervalTable"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close="modalPuhuo">取消</button>
+      <button class="btn btn-primary" type="button" id="btnPuhuoSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 月额度标准 新增/编辑弹框 -->
+<div class="modal-mask" id="modalMonth">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="monthModalTitle">新增月额度标准</span>
+      <span class="modal-close" data-close="modalMonth">×</span>
+    </div>
+    <div class="modal-body">
+      <p id="monthEditHint" style="display:none;margin:0 0 12px;font-size:13px;color:#fa8c16;line-height:1.5;">当前为生效中方案且开始月不是当月，仅可修改有效结束月份。</p>
+      <div class="form-grid" id="monthFormGrid">
+        <div class="form-item">
+          <label><span class="req">*</span>维度</label>
+          <div class="radio-group" id="monthDimGroup">
+            <label><input type="radio" name="dim" value="分拨" checked /> 分拨</label>
+            <label><input type="radio" name="dim" value="人员" /> 人员</label>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>分拨中心</label>
+          <div class="select-wrap">
+            <select class="form-control" id="moDepot"><option value="">请选择</option><option>金华分拨中心</option><option>杭州分拨中心</option><option>宁波分拨中心</option></select>
+          </div>
+        </div>
+        <div class="form-item">
+          <label>人员</label>
+          <div class="multi-select-wrap" id="moPeopleWrap">
+            <div class="multi-select-box">
+              <span class="multi-select-placeholder">请选择</span>
+              <span class="multi-select-tags"></span>
+              <span class="multi-select-arrow">▼</span>
+            </div>
+            <div class="multi-select-dropdown">
+              <label class="multi-select-option"><input type="checkbox" value="赵六">赵六</label>
+              <label class="multi-select-option"><input type="checkbox" value="钱七">钱七</label>
+              <label class="multi-select-option"><input type="checkbox" value="孙八">孙八</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>额度单位</label>
+          <div class="radio-group" id="monthUnitGroup">
+            <label><input type="radio" name="unit" value="托" checked /> 托</label>
+            <label><input type="radio" name="unit" value="吨" /> 吨</label>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>月额度</label>
+          <input class="form-control" type="text" id="moQuota" placeholder="请输入月额度" />
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>超限计价方式</label>
+          <div class="select-wrap">
+            <select class="form-control" id="moOver"><option>全部按特殊单价</option><option>超出按特殊单价</option></select>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>有效开始月份</label>
+          <input class="form-control" type="text" id="moStart" placeholder="如 2026-01" />
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>有效结束月份</label>
+          <input class="form-control" type="text" id="moEnd" placeholder="如 2026-12" />
+        </div>
+        <div class="form-item span-row">
+          <label>备注</label>
+          <input class="form-control" type="text" id="moRemark" placeholder="请输入备注" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close="modalMonth">取消</button>
+      <button class="btn btn-primary" type="button" id="btnMonthSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 特殊提成单价 新增弹框（网点/干线拆分，对齐外包移动） -->
+<div class="modal-mask" id="modalSpecial">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <span id="specialModalTitle">新增特殊提成单价</span>
+      <span class="modal-close" data-close="modalSpecial">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">
+        <div class="form-section-title">基础设定</div>
+        <p id="specialEditHint" style="display:none;margin:0 0 12px;font-size:13px;color:#fa8c16;line-height:1.5;">当前为生效中方案且开始月不是当月，仅可修改有效结束月份。</p>
+        <div class="form-grid">
+          <div class="form-item">
+            <label><span class="req">*</span>分拨中心</label>
+            <div class="select-wrap">
+              <select class="form-control" id="spDepot"><option value="">请选择</option><option>金华分拨中心</option><option>杭州分拨中心</option><option>宁波分拨中心</option></select>
+            </div>
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>有效开始月份</label>
+            <input class="form-control" type="text" id="spStart" placeholder="如 2026-01" />
+          </div>
+          <div class="form-item">
+            <label><span class="req">*</span>有效结束月份</label>
+            <input class="form-control" type="text" id="spEnd" placeholder="如 2026-12" />
+          </div>
+          <div class="form-item span-row">
+            <label>备注</label>
+            <input class="form-control" type="text" id="spRemark" placeholder="请输入备注" maxlength="200" />
+          </div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">单价设定</div>
+        <div class="price-list" id="specialPriceList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close="modalSpecial">取消</button>
+      <button class="btn btn-primary" type="button" id="btnSpecialSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 共用删除确认（适用分拨 / 按普货 / 月额度） -->
+<div class="modal-mask" id="modalStrictDelete">
+  <div class="modal" style="width: 480px;">
+    <div class="modal-header">
+      <div>删除</div>
+      <span class="modal-close" data-close="modalStrictDelete">×</span>
+    </div>
+    <div class="modal-body" style="font-size: 14px; line-height: 1.6;">
+      删除后不可撤销，请确认是否删除？（共 <span id="strictDeleteCount">0</span> 条）
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalStrictDelete">取消</button>
+      <button class="btn btn-primary" type="button" id="btnStrictDeleteOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 特殊提成单价 删除确认 -->
+<div class="modal-mask" id="modalSpecialDelete">
+  <div class="modal" style="width: 480px;">
+    <div class="modal-header">
+      <div>删除</div>
+      <span class="modal-close" data-close="modalSpecialDelete">×</span>
+    </div>
+    <div class="modal-body" style="font-size: 14px; line-height: 1.6;">
+      删除后不可撤销，请确认是否删除？（共 <span id="specialDeleteCount">0</span> 条）
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalSpecialDelete">取消</button>
+      <button class="btn btn-primary" type="button" id="btnSpecialDeleteOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 特殊提成单价 表单预览 -->
+<div class="modal-mask" id="modalSpecialPreview">
+  <div class="modal preview-modal">
+    <div class="modal-header">
+      <div>表单预览</div>
+      <span class="modal-close" data-close="modalSpecialPreview">×</span>
+    </div>
+    <div class="modal-body preview-body">
+      <div class="preview-stamp" id="spPreviewStamp">生效中</div>
+      <div class="preview-section">
+        <div class="preview-section-title">基础设定</div>
+        <div class="preview-grid">
+          <div class="preview-row"><span class="p-label">分拨中心</span><span class="p-value" id="spPvDepot"></span></div>
+          <div class="preview-row"><span class="p-label">有效期限</span><span class="p-value" id="spPvValid"></span></div>
+          <div class="preview-row"><span class="p-label">状态</span><span class="p-value" id="spPvStatus"></span></div>
+          <div class="preview-row"><span class="p-label">备注</span><span class="p-value" id="spPvRemark"></span></div>
+        </div>
+      </div>
+      <div class="preview-section">
+        <div class="preview-section-title">单价设定</div>
+        <div class="preview-links" id="spPvLinks"></div>
+        <div id="spPvPriceBoxes"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalSpecialPreview">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.page-tab');
+    if (!tab || e.target.classList.contains('tab-close')) return;
+    document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+
+  function initMultiSelects(root) {
+    (root || document).querySelectorAll('.multi-select-wrap').forEach(wrap => {
+      if (wrap.dataset.msInit) return;
+      wrap.dataset.msInit = '1';
+      const box = wrap.querySelector('.multi-select-box');
+      const placeholder = wrap.querySelector('.multi-select-placeholder');
+      const tagsContainer = wrap.querySelector('.multi-select-tags');
+      const options = wrap.querySelectorAll('.multi-select-option');
+
+      function render() {
+        const checked = Array.from(options).filter(opt => opt.querySelector('input').checked);
+        const values = checked.map(opt => opt.querySelector('input').value);
+        if (values.length > 0) {
+          placeholder.style.display = 'none';
+          box.classList.add('has-value');
+          tagsContainer.innerHTML = values.map(v => '<span class="multi-select-tag">' + v + '</span>').join('');
+        } else {
+          placeholder.style.display = '';
+          placeholder.textContent = '请选择';
+          box.classList.remove('has-value');
+          tagsContainer.innerHTML = '';
+        }
+        options.forEach(opt => {
+          opt.classList.toggle('checked', opt.querySelector('input').checked);
+        });
+      }
+
+      box.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.multi-select-wrap.open').forEach(other => {
+          if (other !== wrap) other.classList.remove('open');
+        });
+        wrap.classList.toggle('open');
+      });
+
+      options.forEach(opt => {
+        opt.addEventListener('click', (e) => e.stopPropagation());
+        opt.querySelector('input').addEventListener('change', render);
+      });
+
+      render();
+    });
+  }
+
+  initMultiSelects();
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.multi-select-wrap')) {
+      document.querySelectorAll('.multi-select-wrap.open').forEach(w => w.classList.remove('open'));
+    }
+  });
+
+  function getMultiSelectValues(wrapId) {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return [];
+    return Array.from(wrap.querySelectorAll('.multi-select-option input:checked')).map(cb => cb.value);
+  }
+
+  function refreshMultiSelect(wrap) {
+    if (!wrap || !wrap.dataset.msInit) return;
+    const first = wrap.querySelector('.multi-select-option input');
+    if (first) first.dispatchEvent(new Event('change'));
+  }
+
+  function setMultiSelectValues(wrapId, values) {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    const set = new Set(Array.isArray(values) ? values : String(values || '').split(/[、,，]/).map(s => s.trim()).filter(Boolean));
+    wrap.querySelectorAll('.multi-select-option input').forEach(cb => { cb.checked = set.has(cb.value); });
+    refreshMultiSelect(wrap);
+  }
+
+  function clearMultiSelect(wrapId) {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    wrap.querySelectorAll('.multi-select-option input').forEach(cb => { cb.checked = false; });
+    refreshMultiSelect(wrap);
+  }
+
+  function getMoPeopleText() {
+    const vals = getMultiSelectValues('moPeopleWrap');
+    return vals.length ? vals.join('、') : '—';
+  }
+
+  let currentMain = 'scope';
+  let currentSub = 'fenbo';
+
+  function getActivePanel() {
+    if (currentMain === 'scope') return currentSub;
+    return currentMain;
+  }
+
+  function switchPanel(panelId) {
+    document.querySelectorAll('.panel-filter').forEach(el => {
+      el.classList.toggle('active', el.dataset.panel === panelId);
+    });
+    document.querySelectorAll('.panel-action').forEach(el => {
+      el.classList.toggle('active', el.dataset.panel === panelId);
+    });
+    document.querySelectorAll('.panel-table').forEach(el => {
+      el.classList.toggle('active', el.dataset.panel === panelId);
+    });
+  }
+
+  function updateView() {
+    const subTabs = document.getElementById('subTabs');
+    if (currentMain === 'scope') {
+      subTabs.classList.remove('hidden');
+      switchPanel(currentSub);
+    } else {
+      subTabs.classList.add('hidden');
+      switchPanel(currentMain);
+    }
+  }
+
+  document.getElementById('mainTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('#mainTabs .content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentMain = tab.dataset.main;
+    updateView();
+  });
+
+  document.getElementById('subTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.sub-tab');
+    if (!tab) return;
+    document.querySelectorAll('#subTabs .sub-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentSub = tab.dataset.sub;
+    switchPanel(currentSub);
+  });
+
+  document.querySelectorAll('.check-all').forEach(checkAll => {
+    checkAll.addEventListener('change', function () {
+      const target = this.dataset.target;
+      document.querySelectorAll('.' + target + '-check').forEach(cb => { cb.checked = this.checked; });
+    });
+  });
+
+  function openModal(id) {
+    document.getElementById(id).classList.add('show');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+
+  document.querySelectorAll('[data-modal]').forEach(btn => {
+    btn.addEventListener('click', () => openModal(btn.dataset.modal));
+  });
+
+  document.querySelectorAll('[data-close]').forEach(el => {
+    el.addEventListener('click', () => closeModal(el.dataset.close));
+  });
+
+  document.querySelectorAll('.modal-mask').forEach(mask => {
+    mask.addEventListener('click', (e) => {
+      if (e.target === mask) closeModal(mask.id);
+    });
+  });
+
+
+  /* ========== 三 Tab 共用严控：编辑/删除 ========== */
+  const CURRENT_MONTH = '2026-08'; /* 原型演示：当月 */
+  const PREV_MONTH = '2026-07'; /* 原型演示：上月 */
+  const GRACE_DEADLINE_DAY = 6; /* 上月方案维护截止日（系统参数，默认 6） */
+  const CURRENT_DAY = 5; /* 原型演示：当月 5 号，处于补录窗口内 */
+
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  function statusTagClass(status) {
+    if (status === '生效中') return 'tag-green';
+    if (status === '待生效') return 'tag-orange';
+    return 'tag-gray';
+  }
+
+  function inGracePeriod() {
+    return CURRENT_DAY <= GRACE_DEADLINE_DAY;
+  }
+
+  function minAllowedStartMonth() {
+    return inGracePeriod() ? PREV_MONTH : CURRENT_MONTH;
+  }
+
+  /** 已失效方案在补录窗口内是否可全量可编（开始月、结束月均=上月） */
+  function isExpiredGraceEditable(row) {
+    return row && row.status === '已失效' && inGracePeriod()
+      && row.start === PREV_MONTH && row.end === PREV_MONTH;
+  }
+
+  /** 生效中方案是否按「开始月=当月」全量可编（含补录窗口内开始月=上月） */
+  function isFullEditStartMonth(start) {
+    return start === CURRENT_MONTH || (inGracePeriod() && start === PREV_MONTH);
+  }
+
+  function canEditRow(row) {
+    if (!row) return false;
+    if (row.status === '待生效' || row.status === '生效中') return true;
+    if (isExpiredGraceEditable(row)) return true;
+    return false;
+  }
+
+  function canDeleteRow(row) {
+    if (!row) return false;
+    if (row.status === '待生效') return true;
+    if (row.status === '生效中' && row.start === CURRENT_MONTH) return true;
+    if (inGracePeriod() && row.start === PREV_MONTH && (row.status === '生效中' || row.status === '已失效')) return true;
+    return false;
+  }
+
+  function editLockMode(row) {
+    if (!canEditRow(row)) return null;
+    if (isExpiredGraceEditable(row)) return 'full';
+    if (row.status === '生效中' && !isFullEditStartMonth(row.start)) return 'endOnly';
+    return 'full';
+  }
+
+  function setBtnState(btn, ok) {
+    if (!btn) return;
+    btn.disabled = !ok;
+    btn.classList.toggle('disabled', !ok);
+  }
+
+  function setFieldLocked(el, locked) {
+    if (!el) return;
+    el.disabled = !!locked;
+    el.classList.toggle('is-locked', !!locked);
+  }
+
+  function setAreaLocked(root, locked) {
+    if (!root) return;
+    root.style.pointerEvents = locked ? 'none' : '';
+    root.style.opacity = locked ? '0.55' : '';
+    root.querySelectorAll('input, select, textarea, button').forEach(el => {
+      el.disabled = !!locked;
+    });
+  }
+
+  let strictDeleteCtx = null; /* { rows, idxs, onOk } */
+
+  function openStrictDelete(idxs, rows, onOk) {
+    if (!idxs.length) { showToast('请先勾选要删除的数据'); return; }
+    const selected = idxs.map(i => rows[i]);
+    if (!selected.every(canDeleteRow)) {
+      showToast('仅待生效，或生效中/已失效且开始月为当月/上月（上月须在补录窗口内）的方案可删除');
+      return;
+    }
+    strictDeleteCtx = { idxs: idxs.slice(), rows, onOk };
+    document.getElementById('strictDeleteCount').textContent = String(idxs.length);
+    openModal('modalStrictDelete');
+  }
+
+  document.getElementById('btnStrictDeleteOk').addEventListener('click', () => {
+    if (!strictDeleteCtx) return;
+    const { idxs, onOk } = strictDeleteCtx;
+    onOk(idxs);
+    strictDeleteCtx = null;
+    closeModal('modalStrictDelete');
+    showToast('删除成功');
+  });
+
+  function bindPanelChecks(checkClass, updateFn) {
+    document.querySelectorAll('.' + checkClass).forEach(cb => {
+      cb.addEventListener('change', updateFn);
+    });
+  }
+
+  function wireCheckAll(target, updateFn) {
+    const checkAll = document.querySelector('.check-all[data-target="' + target + '"]');
+    if (!checkAll) return;
+    checkAll.addEventListener('change', function () {
+      document.querySelectorAll('.' + target + '-check').forEach(cb => { cb.checked = this.checked; });
+      updateFn();
+    });
+  }
+
+  function getSelectedIdxs(checkClass) {
+    return Array.from(document.querySelectorAll('.' + checkClass + ':checked'))
+      .map(cb => Number(cb.closest('tr').dataset.idx))
+      .filter(i => !Number.isNaN(i));
+  }
+
+  function validateMonths(start, end, lockMode) {
+    if (!start || !end) { showToast('请完善必填项'); return false; }
+    const minStart = minAllowedStartMonth();
+    if (lockMode !== 'endOnly' && start < minStart) {
+      showToast(inGracePeriod()
+        ? '有效开始月份不能早于上月（补录窗口内）'
+        : '有效开始月份不能早于当月');
+      return false;
+    }
+    if (lockMode === 'endOnly' && end < CURRENT_MONTH) {
+      showToast('有效结束月份不能早于当月');
+      return false;
+    }
+    if (end < start) { showToast('有效结束月份不能早于开始月份'); return false; }
+    return true;
+  }
+
+  /* ----- 适用分拨 ----- */
+  const FENBO_ROWS = [
+    { depot: '金华分拨中心', province: '浙中省区', start: '2026-01', end: '2026-12', valid: '2026-01 ~ 2026-12', status: '生效中', remark: '移动自动合托试点', creator: '张三', ctime: '2026-01-05 10:20', editor: '张三', etime: '2026-01-05 10:20' },
+    { depot: '杭州分拨中心', province: '浙北省区', start: '2026-09', end: '2026-12', valid: '2026-09 ~ 2026-12', status: '待生效', remark: '—', creator: '李四', ctime: '2026-08-18 14:35', editor: '李四', etime: '2026-08-18 14:35' },
+    { depot: '宁波分拨中心', province: '浙东省区', start: '2026-08', end: '2026-12', valid: '2026-08 ~ 2026-12', status: '生效中', remark: '当月启用', creator: '王五', ctime: '2026-08-05 09:15', editor: '王五', etime: '2026-08-05 09:15' },
+    { depot: '杭州分拨中心', province: '浙北省区', start: '2026-07', end: '2026-12', valid: '2026-07 ~ 2026-12', status: '生效中', remark: '上月方案（补录窗口内可全改/可删）', creator: '李四', ctime: '2026-07-08 11:20', editor: '李四', etime: '2026-07-08 11:20' },
+    { depot: '金华分拨中心', province: '浙中省区', start: '2026-01', end: '2026-06', valid: '2026-01 ~ 2026-06', status: '已失效', remark: '上半年试点', creator: '张三', ctime: '2025-12-20 11:00', editor: '张三', etime: '2026-07-01 00:00' },
+    { depot: '宁波分拨中心', province: '浙东省区', start: '2026-07', end: '2026-07', valid: '2026-07 ~ 2026-07', status: '已失效', remark: '仅上月（补录窗口内可编/可删）', creator: '王五', ctime: '2026-07-28 16:00', editor: '王五', etime: '2026-08-01 00:00' }
+  ];
+  let fenboEditIdx = -1;
+  let fenboLock = 'none';
+
+  function updateFenboButtons() {
+    const idxs = getSelectedIdxs('fenbo-check');
+    const rows = idxs.map(i => FENBO_ROWS[i]).filter(Boolean);
+    setBtnState(document.getElementById('btnFenboEdit'), rows.length === 1 && canEditRow(rows[0]));
+    setBtnState(document.getElementById('btnFenboDelete'), rows.length > 0 && rows.every(canDeleteRow));
+  }
+
+  function resetFenboForm() {
+    fenboEditIdx = -1;
+    fenboLock = 'none';
+    document.getElementById('fenboModalTitle').textContent = '新增适用分拨';
+    document.getElementById('fenboEditHint').style.display = 'none';
+    document.getElementById('fbDepot').value = '';
+    document.getElementById('fbStart').value = '';
+    document.getElementById('fbEnd').value = '';
+    document.getElementById('fbRemark').value = '';
+    ['fbDepot', 'fbStart', 'fbEnd', 'fbRemark'].forEach(id => setFieldLocked(document.getElementById(id), false));
+  }
+
+  function applyFenboLock(mode) {
+    fenboLock = mode;
+    const endOnly = mode === 'endOnly';
+    document.getElementById('fenboEditHint').style.display = endOnly ? '' : 'none';
+    setFieldLocked(document.getElementById('fbDepot'), endOnly);
+    setFieldLocked(document.getElementById('fbStart'), endOnly);
+    setFieldLocked(document.getElementById('fbEnd'), false);
+    setFieldLocked(document.getElementById('fbRemark'), endOnly);
+  }
+
+  function renderFenboTable() {
+    const tbody = document.getElementById('fenboTableBody');
+    tbody.innerHTML = FENBO_ROWS.map((r, idx) =>
+      '<tr data-idx="' + idx + '">' +
+      '<td class="col-checkbox"><input type="checkbox" class="row-check fenbo-check" /></td>' +
+      '<td>' + r.depot + '</td><td>' + r.province + '</td><td>' + r.valid + '</td>' +
+      '<td><span class="tag ' + statusTagClass(r.status) + '">' + r.status + '</span></td>' +
+      '<td>' + r.remark + '</td><td>' + r.creator + '</td><td>' + r.ctime + '</td>' +
+      '<td>' + r.editor + '</td><td>' + r.etime + '</td></tr>'
+    ).join('');
+    document.getElementById('fenboTotal').textContent = '共 ' + FENBO_ROWS.length + ' 条';
+    bindPanelChecks('fenbo-check', updateFenboButtons);
+    updateFenboButtons();
+  }
+
+  document.getElementById('btnFenboAdd').addEventListener('click', resetFenboForm);
+  document.getElementById('btnFenboEdit').addEventListener('click', () => {
+    const idxs = getSelectedIdxs('fenbo-check');
+    if (idxs.length !== 1) { showToast('请选中单条数据后再编辑'); return; }
+    const row = FENBO_ROWS[idxs[0]];
+    if (!canEditRow(row)) { showToast('已失效方案不可编辑'); return; }
+    fenboEditIdx = idxs[0];
+    document.getElementById('fenboModalTitle').textContent = '编辑适用分拨';
+    document.getElementById('fbDepot').value = row.depot;
+    document.getElementById('fbStart').value = row.start;
+    document.getElementById('fbEnd').value = row.end;
+    document.getElementById('fbRemark').value = row.remark === '—' ? '' : row.remark;
+    applyFenboLock(editLockMode(row));
+    openModal('modalFenbo');
+  });
+  document.getElementById('btnFenboDelete').addEventListener('click', () => {
+    openStrictDelete(getSelectedIdxs('fenbo-check'), FENBO_ROWS, (idxs) => {
+      const set = new Set(idxs);
+      for (let i = FENBO_ROWS.length - 1; i >= 0; i--) if (set.has(i)) FENBO_ROWS.splice(i, 1);
+      renderFenboTable();
+    });
+  });
+  document.getElementById('btnFenboSave').addEventListener('click', () => {
+    const depot = document.getElementById('fbDepot').value;
+    const start = document.getElementById('fbStart').value.trim();
+    const end = document.getElementById('fbEnd').value.trim();
+    const remark = document.getElementById('fbRemark').value.trim() || '—';
+    if (!depot) { showToast('请完善必填项'); return; }
+    if (!validateMonths(start, end, fenboLock)) return;
+    if (fenboEditIdx >= 0) {
+      const row = FENBO_ROWS[fenboEditIdx];
+      if (fenboLock === 'endOnly') {
+        row.end = end;
+        row.valid = row.start + ' ~ ' + end;
+      } else {
+        Object.assign(row, { depot, start, end, valid: start + ' ~ ' + end, remark });
+      }
+      row.editor = '当前用户';
+      row.etime = '2026-08-19 16:40';
+    } else {
+      FENBO_ROWS.unshift({
+        depot, province: '—', start, end, valid: start + ' ~ ' + end,
+        status: start === CURRENT_MONTH ? '生效中' : '待生效',
+        remark, creator: '当前用户', ctime: '2026-08-19 16:40', editor: '当前用户', etime: '2026-08-19 16:40'
+      });
+    }
+    showToast('保存成功');
+    closeModal('modalFenbo');
+    resetFenboForm();
+    renderFenboTable();
+  });
+  document.getElementById('btnFenboImport').addEventListener('click', () => showToast('已打开导入（原型示意）'));
+  document.getElementById('btnFenboExport').addEventListener('click', () => showToast('已导出（原型示意）'));
+  wireCheckAll('fenbo', updateFenboButtons);
+
+  /* ----- 按普货计价货 ----- */
+  const PUHUO_ROWS = [
+    {
+      depot: '金华分拨中心', opType: '移动', start: '2026-01', end: '2026-12', valid: '2026-01 ~ 2026-12',
+      weightType: '重货', taskType: '分拨,网点', prevStation: '义乌一部', nextStation: '—',
+      billOrg: '开单网点：金华一部', productType: '国内件,仓配一体', goodsType: '—', goodsName: '—',
+      packType: '—', sender: '—', declare: '—', orderSrc: '—', ecommerce: '—',
+      intervalMode: '按区间配置', intervalDims: '票-操作结算重量段', intervalDetail: '0—50；50—100',
+      status: '生效中', remark: '—', creator: '张三', ctime: '2026-01-08 11:00'
+    },
+    {
+      depot: '杭州分拨中心', opType: '移动', start: '2026-09', end: '2026-12', valid: '2026-09 ~ 2026-12',
+      weightType: '抛货', taskType: '网点', prevStation: '—', nextStation: '杭州转',
+      billOrg: '—', productType: '—', goodsType: '包裹', goodsName: '等于：电商件',
+      packType: '—', sender: '—', declare: '否', orderSrc: '线上', ecommerce: '是',
+      intervalMode: '按区间配置', intervalDims: '件-体积段', intervalDetail: '0—0.5；0.5—1',
+      status: '待生效', remark: '电商件专用', creator: '李四', ctime: '2026-08-12 15:30'
+    },
+    {
+      depot: '宁波分拨中心', opType: '移动', start: '2026-08', end: '2026-12', valid: '2026-08 ~ 2026-12',
+      weightType: '重货', taskType: '分拨', prevStation: '慈溪一部', nextStation: '—',
+      billOrg: '开单所属分拨：宁波分拨中心', productType: '普货', goodsType: '—', goodsName: '—',
+      packType: '包含：纸箱', sender: '—', declare: '—', orderSrc: '—', ecommerce: '否',
+      intervalMode: '按区间配置', intervalDims: '票-操作结算重量段,票-体积段', intervalDetail: '重量 0—80 / 体积 0—1',
+      status: '生效中', remark: '当月新建', creator: '王五', ctime: '2026-08-06 10:00'
+    },
+    {
+      depot: '金华分拨中心', opType: '移动', start: '2026-01', end: '2026-03', valid: '2026-01 ~ 2026-03',
+      weightType: '抛货', taskType: '—', prevStation: '—', nextStation: '—',
+      billOrg: '—', productType: '—', goodsType: '—', goodsName: '—',
+      packType: '—', sender: '张三商贸', declare: '是', orderSrc: '线下', ecommerce: '—',
+      intervalMode: '不区分', intervalDims: '—', intervalDetail: '—',
+      status: '已失效', remark: '已停用', creator: '张三', ctime: '2026-01-02 09:00'
+    }
+  ];
+  let puhuoEditIdx = -1;
+  let puhuoLock = 'none';
+
+  function updatePuhuoButtons() {
+    const idxs = getSelectedIdxs('puhuo-check');
+    const rows = idxs.map(i => PUHUO_ROWS[i]).filter(Boolean);
+    setBtnState(document.getElementById('btnPuhuoEdit'), rows.length === 1 && canEditRow(rows[0]));
+    setBtnState(document.getElementById('btnPuhuoDelete'), rows.length > 0 && rows.every(canDeleteRow));
+  }
+
+  function resetPuhuoForm() {
+    puhuoEditIdx = -1;
+    puhuoLock = 'none';
+    document.getElementById('puhuoModalTitle').textContent = '新增按普货计价货';
+    document.getElementById('puhuoEditHint').style.display = 'none';
+    document.getElementById('phDepot').value = '';
+    document.getElementById('phOpType').value = '移动';
+    document.getElementById('phStart').value = '';
+    document.getElementById('phEnd').value = '';
+    document.getElementById('phRemark').value = '';
+    ['phDepot', 'phOpType', 'phStart', 'phEnd', 'phRemark'].forEach(id => setFieldLocked(document.getElementById(id), false));
+    setAreaLocked(document.getElementById('puhuoBasicSection'), false);
+    setAreaLocked(document.getElementById('puhuoExtraSection'), false);
+    resetPuhuoInterval();
+  }
+
+  function applyPuhuoLock(mode) {
+    puhuoLock = mode;
+    const endOnly = mode === 'endOnly';
+    document.getElementById('puhuoEditHint').style.display = endOnly ? '' : 'none';
+    setAreaLocked(document.getElementById('puhuoBasicSection'), endOnly);
+    setAreaLocked(document.getElementById('puhuoExtraSection'), endOnly);
+    setFieldLocked(document.getElementById('phEnd'), false);
+  }
+
+  function renderPuhuoTable() {
+    const tbody = document.getElementById('puhuoTableBody');
+    const dash = (v) => (v == null || v === '' ? '—' : v);
+    tbody.innerHTML = PUHUO_ROWS.map((r, idx) =>
+      '<tr data-idx="' + idx + '">' +
+      '<td class="col-checkbox"><input type="checkbox" class="row-check puhuo-check" /></td>' +
+      '<td title="' + dash(r.depot) + '">' + dash(r.depot) + '</td>' +
+      '<td>' + dash(r.opType) + '</td>' +
+      '<td>' + dash(r.weightType) + '</td>' +
+      '<td title="' + dash(r.taskType) + '">' + dash(r.taskType) + '</td>' +
+      '<td title="' + dash(r.prevStation) + '">' + dash(r.prevStation) + '</td>' +
+      '<td title="' + dash(r.nextStation) + '">' + dash(r.nextStation) + '</td>' +
+      '<td title="' + dash(r.billOrg) + '">' + dash(r.billOrg) + '</td>' +
+      '<td title="' + dash(r.productType) + '">' + dash(r.productType) + '</td>' +
+      '<td>' + dash(r.goodsType) + '</td>' +
+      '<td title="' + dash(r.goodsName) + '">' + dash(r.goodsName) + '</td>' +
+      '<td title="' + dash(r.packType) + '">' + dash(r.packType) + '</td>' +
+      '<td>' + dash(r.sender) + '</td>' +
+      '<td>' + dash(r.declare) + '</td>' +
+      '<td>' + dash(r.orderSrc) + '</td>' +
+      '<td>' + dash(r.ecommerce) + '</td>' +
+      '<td>' + dash(r.intervalMode) + '</td>' +
+      '<td title="' + dash(r.intervalDims) + '">' + dash(r.intervalDims) + '</td>' +
+      '<td title="' + dash(r.intervalDetail) + '">' + dash(r.intervalDetail) + '</td>' +
+      '<td>' + dash(r.valid) + '</td>' +
+      '<td><span class="tag ' + statusTagClass(r.status) + '">' + r.status + '</span></td>' +
+      '<td title="' + dash(r.remark) + '">' + dash(r.remark) + '</td>' +
+      '<td>' + dash(r.creator) + '</td>' +
+      '<td>' + dash(r.ctime) + '</td></tr>'
+    ).join('');
+    document.getElementById('puhuoTotal').textContent = '共 ' + PUHUO_ROWS.length + ' 条';
+    bindPanelChecks('puhuo-check', updatePuhuoButtons);
+    updatePuhuoButtons();
+  }
+
+  document.getElementById('btnPuhuoAdd').addEventListener('click', resetPuhuoForm);
+  document.getElementById('btnPuhuoEdit').addEventListener('click', () => {
+    const idxs = getSelectedIdxs('puhuo-check');
+    if (idxs.length !== 1) { showToast('请选中单条数据后再编辑'); return; }
+    const row = PUHUO_ROWS[idxs[0]];
+    if (!canEditRow(row)) { showToast('已失效方案不可编辑'); return; }
+    puhuoEditIdx = idxs[0];
+    document.getElementById('puhuoModalTitle').textContent = '编辑按普货计价货';
+    document.getElementById('phDepot').value = row.depot || '';
+    document.getElementById('phOpType').value = row.opType || '移动';
+    document.getElementById('phStart').value = row.start;
+    document.getElementById('phEnd').value = row.end;
+    document.getElementById('phRemark').value = row.remark === '—' ? '' : row.remark;
+    applyPuhuoLock(editLockMode(row));
+    openModal('modalPuhuo');
+  });
+  document.getElementById('btnPuhuoDelete').addEventListener('click', () => {
+    openStrictDelete(getSelectedIdxs('puhuo-check'), PUHUO_ROWS, (idxs) => {
+      const set = new Set(idxs);
+      for (let i = PUHUO_ROWS.length - 1; i >= 0; i--) if (set.has(i)) PUHUO_ROWS.splice(i, 1);
+      renderPuhuoTable();
+    });
+  });
+  document.getElementById('btnPuhuoSave').addEventListener('click', () => {
+    const depot = document.getElementById('phDepot').value;
+    const start = document.getElementById('phStart').value.trim();
+    const end = document.getElementById('phEnd').value.trim();
+    const remark = document.getElementById('phRemark').value.trim() || '—';
+    const opType = document.getElementById('phOpType').value;
+    if (!depot || !opType || !start || !end) { showToast('请完善必填项'); return; }
+    if (!validateMonths(start, end, puhuoLock)) return;
+    if (puhuoEditIdx >= 0) {
+      const row = PUHUO_ROWS[puhuoEditIdx];
+      if (puhuoLock === 'endOnly') {
+        row.end = end;
+        row.valid = row.start + ' ~ ' + end;
+      } else {
+        row.depot = depot;
+        row.opType = opType;
+        row.start = start;
+        row.end = end;
+        row.valid = start + ' ~ ' + end;
+        row.remark = remark;
+      }
+    } else {
+      PUHUO_ROWS.unshift({
+        depot,
+        opType: document.getElementById('phOpType').value,
+        start, end, valid: start + ' ~ ' + end,
+        weightType: '—', taskType: '—', prevStation: '—', nextStation: '—', billOrg: '—',
+        productType: '—', goodsType: '—', goodsName: '—', packType: '—', sender: '—',
+        declare: '—', orderSrc: '—', ecommerce: '—',
+        intervalMode: document.querySelector('input[name="phIntervalMode"]:checked').value === '2' ? '按区间配置' : '不区分',
+        intervalDims: '—', intervalDetail: '—',
+        status: start === CURRENT_MONTH ? '生效中' : '待生效',
+        remark, creator: '当前用户', ctime: '2026-08-19 16:40'
+      });
+    }
+    showToast('保存成功');
+    closeModal('modalPuhuo');
+    resetPuhuoForm();
+    renderPuhuoTable();
+  });
+  document.getElementById('btnPuhuoExport').addEventListener('click', () => showToast('已导出（原型示意）'));
+
+  /* ----- 按普货区间：对齐 adjustRatio（无调整比例、无子托） ----- */
+  const PH_DIMS = [
+    { key: 'ticketWeight', group: 'ticket', label: '票-操作结算重量段' },
+    { key: 'ticketVol', group: 'ticket', label: '票-体积段' },
+    { key: 'pieceWeight', group: 'piece', label: '件-操作结算重量段' },
+    { key: 'pieceVol', group: 'piece', label: '件-体积段' }
+  ];
+  let phUid = 1;
+  const phNextId = () => 'pr' + (phUid++);
+  let phSelectedKeys = [];
+  let phPrevKeys = [];
+  let phTree = [];
+
+  function phSortedDims() {
+    return PH_DIMS.filter(d => phSelectedKeys.includes(d.key));
+  }
+
+  function phCreateRow(depth, dimKeys) {
+    const row = { id: phNextId(), start: '', end: '', children: [] };
+    if (depth < dimKeys.length - 1) row.children = [phCreateRow(depth + 1, dimKeys)];
+    return row;
+  }
+
+  function phInitTree(preserve) {
+    const dimKeys = phSortedDims().map(d => d.key);
+    if (!dimKeys.length) {
+      phTree = [];
+      phPrevKeys = [];
+      return;
+    }
+    if (!preserve || !phTree.length) {
+      phTree = [phCreateRow(0, dimKeys)];
+      phPrevKeys = dimKeys.slice();
+      return;
+    }
+    // 维度变化时简化：重建一棵空树（原型示意，不保留复杂叶子映射）
+    phTree = [phCreateRow(0, dimKeys)];
+    phPrevKeys = dimKeys.slice();
+  }
+
+  function phFlatten(node, dims, depth, sibIndex, siblings, pathIds, acc) {
+    const dim = dims[depth];
+    const isLeaf = depth === dims.length - 1;
+    const ids = pathIds.concat([node.id]);
+    acc.push({ node, dim, depth, sibIndex, siblings, pathIds: ids, pathKey: ids.join('/'), isLeaf });
+    if (!isLeaf && node.children && node.children.length) {
+      node.children.forEach((child, ci) => phFlatten(child, dims, depth + 1, ci, node.children, ids, acc));
+    }
+  }
+
+  function phFlatGroups() {
+    const dims = phSortedDims();
+    if (!dims.length) return [];
+    return phTree.map((root, ri) => {
+      const rows = [];
+      phFlatten(root, dims, 0, ri, phTree, [], rows);
+      return { rootId: root.id, rows };
+    });
+  }
+
+  function phFindParentList(pathIds) {
+    if (pathIds.length === 1) {
+      return { list: phTree, index: phTree.findIndex(n => n.id === pathIds[0]) };
+    }
+    let list = phTree;
+    for (let i = 0; i < pathIds.length - 2; i++) {
+      const node = list.find(n => n.id === pathIds[i]);
+      if (!node) return { list: [], index: -1 };
+      list = node.children;
+    }
+    const parent = list.find(n => n.id === pathIds[pathIds.length - 2]);
+    const id = pathIds[pathIds.length - 1];
+    return {
+      list: parent ? parent.children : [],
+      index: parent ? parent.children.findIndex(n => n.id === id) : -1
+    };
+  }
+
+  function phPaintIntervalTable() {
+    const table = document.getElementById('phIntervalTable');
+    if (!table) return;
+    const dims = phSortedDims();
+    if (!dims.length) {
+      table.innerHTML = '<div class="idc-ep-empty">请先勾选至少 1 个区间纬度</div>';
+      return;
+    }
+    let html = '<div class="idc-ep-table-header"><div class="col-interval">维度区间</div><div class="col-ops">操作</div></div>';
+    phFlatGroups().forEach(group => {
+      html += '<div class="idc-ep-table-group">';
+      group.rows.forEach(row => {
+        const pad = row.depth * 28;
+        html += '<div class="idc-ep-table-row" data-path="' + row.pathKey + '">' +
+          '<div class="col-interval-cell"><div class="row-interval" style="padding-left:' + pad + 'px">' +
+          '<span class="row-label">' + row.dim.label + ' ' + (row.sibIndex + 1) + '</span>' +
+          '<input class="interval-input ph-iv-start" type="text" placeholder="下限" value="' + (row.node.start || '') + '" />' +
+          '<span class="interval-sep">—</span>' +
+          '<input class="interval-input ph-iv-end" type="text" placeholder="上限" value="' + (row.node.end || '') + '" />' +
+          '</div></div>' +
+          '<div class="col-ops-cell">' +
+          '<button type="button" class="circle-btn add ph-iv-add" title="新增同层级行">+</button>' +
+          (row.siblings.length > 1 ? '<button type="button" class="circle-btn remove ph-iv-remove" title="删除当前行">−</button>' : '') +
+          '</div></div>';
+      });
+      html += '</div>';
+    });
+    table.innerHTML = html;
+
+    table.querySelectorAll('.idc-ep-table-row').forEach(el => {
+      const path = el.getAttribute('data-path').split('/');
+      const startInp = el.querySelector('.ph-iv-start');
+      const endInp = el.querySelector('.ph-iv-end');
+      const bindNode = () => {
+        const { list, index } = phFindParentList(path);
+        return index >= 0 ? list[index] : null;
+      };
+      startInp.addEventListener('input', () => {
+        const n = bindNode();
+        if (n) n.start = startInp.value;
+      });
+      endInp.addEventListener('input', () => {
+        const n = bindNode();
+        if (n) n.end = endInp.value;
+      });
+      el.querySelector('.ph-iv-add').addEventListener('click', () => {
+        const { list, index } = phFindParentList(path);
+        if (index < 0) return;
+        const depth = path.length - 1;
+        const dimKeys = phSortedDims().map(d => d.key);
+        list.splice(index + 1, 0, phCreateRow(depth, dimKeys));
+        phPaintIntervalTable();
+      });
+      const rm = el.querySelector('.ph-iv-remove');
+      if (rm) rm.addEventListener('click', () => {
+        const { list, index } = phFindParentList(path);
+        if (index < 0 || list.length <= 1) return;
+        list.splice(index, 1);
+        phPaintIntervalTable();
+      });
+    });
+  }
+
+  function phSyncIntervalMode() {
+    const mode = document.querySelector('input[name="phIntervalMode"]:checked');
+    const isConfig = mode && mode.value === '2';
+    document.getElementById('phIntervalNoneHint').classList.toggle('hidden', isConfig);
+    document.getElementById('phIntervalConfig').classList.toggle('hidden', !isConfig);
+    if (isConfig) {
+      if (!phSelectedKeys.length) {
+        phSelectedKeys = ['ticketWeight'];
+        document.querySelectorAll('.ph-dim').forEach(cb => {
+          cb.checked = phSelectedKeys.includes(cb.value);
+        });
+        phInitTree(false);
+      }
+      phPaintIntervalTable();
+    }
+  }
+
+  function phOnDimChange() {
+    const keys = Array.from(document.querySelectorAll('.ph-dim:checked')).map(cb => cb.value);
+    if (!keys.length) {
+      showToast('至少保留 1 个区间纬度');
+      document.querySelectorAll('.ph-dim').forEach(cb => {
+        cb.checked = phSelectedKeys.includes(cb.value);
+      });
+      return;
+    }
+    // 保持 DIMS 固定顺序
+    phSelectedKeys = PH_DIMS.map(d => d.key).filter(k => keys.includes(k));
+    phInitTree(true);
+    phPaintIntervalTable();
+  }
+
+  function resetPuhuoInterval() {
+    const mode1 = document.querySelector('input[name="phIntervalMode"][value="1"]');
+    if (mode1) mode1.checked = true;
+    phSelectedKeys = [];
+    phPrevKeys = [];
+    phTree = [];
+    phUid = 1;
+    document.querySelectorAll('.ph-dim').forEach(cb => { cb.checked = false; });
+    phSyncIntervalMode();
+  }
+
+  document.querySelectorAll('input[name="phIntervalMode"]').forEach(r => {
+    r.addEventListener('change', phSyncIntervalMode);
+  });
+  document.querySelectorAll('.ph-dim').forEach(cb => {
+    cb.addEventListener('change', phOnDimChange);
+  });
+
+  wireCheckAll('puhuo', updatePuhuoButtons);
+
+  /* ----- 月额度标准 ----- */
+  const MONTH_ROWS = [
+    { dim: '分拨', depot: '金华分拨中心', people: '—', unit: '托', quota: '5000', over: '超出按特殊单价', start: '2026-01', end: '2026-12', valid: '2026-01 ~ 2026-12', status: '生效中', remark: '—', creator: '张三', ctime: '2026-01-06 09:00', editor: '张三', etime: '2026-01-06 09:00' },
+    { dim: '人员', depot: '杭州分拨中心', people: '赵六、钱七', unit: '吨', quota: '120', over: '全部按特殊单价', start: '2026-09', end: '2026-12', valid: '2026-09 ~ 2026-12', status: '待生效', remark: '骨干人员', creator: '李四', ctime: '2026-08-15 10:20', editor: '李四', etime: '2026-08-15 10:20' },
+    { dim: '分拨', depot: '宁波分拨中心', people: '—', unit: '托', quota: '3000', over: '超出按特殊单价', start: '2026-08', end: '2026-12', valid: '2026-08 ~ 2026-12', status: '生效中', remark: '当月新建', creator: '王五', ctime: '2026-08-07 11:00', editor: '王五', etime: '2026-08-07 11:00' },
+    { dim: '人员', depot: '金华分拨中心', people: '孙八', unit: '托', quota: '800', over: '全部按特殊单价', start: '2026-01', end: '2026-05', valid: '2026-01 ~ 2026-05', status: '已失效', remark: '已结束', creator: '张三', ctime: '2026-01-03 08:00', editor: '张三', etime: '2026-06-01 00:00' }
+  ];
+  let monthEditIdx = -1;
+  let monthLock = 'none';
+
+  function updateMonthButtons() {
+    const idxs = getSelectedIdxs('month-check');
+    const rows = idxs.map(i => MONTH_ROWS[i]).filter(Boolean);
+    setBtnState(document.getElementById('btnMonthEdit'), rows.length === 1 && canEditRow(rows[0]));
+    setBtnState(document.getElementById('btnMonthDelete'), rows.length > 0 && rows.every(canDeleteRow));
+  }
+
+  function setRadioValue(name, value) {
+    document.querySelectorAll('input[name="' + name + '"]').forEach(r => {
+      r.checked = r.value === value;
+    });
+  }
+
+  function getRadioValue(name) {
+    const el = document.querySelector('input[name="' + name + '"]:checked');
+    return el ? el.value : '';
+  }
+
+  function resetMonthForm() {
+    monthEditIdx = -1;
+    monthLock = 'none';
+    document.getElementById('monthModalTitle').textContent = '新增月额度标准';
+    document.getElementById('monthEditHint').style.display = 'none';
+    setRadioValue('dim', '分拨');
+    setRadioValue('unit', '托');
+    document.getElementById('moDepot').value = '';
+    clearMultiSelect('moPeopleWrap');
+    document.getElementById('moQuota').value = '';
+    document.getElementById('moOver').value = '全部按特殊单价';
+    document.getElementById('moStart').value = '';
+    document.getElementById('moEnd').value = '';
+    document.getElementById('moRemark').value = '';
+    applyMonthLock('none');
+    syncMonthDim();
+  }
+
+  function applyMonthLock(mode) {
+    monthLock = mode;
+    const endOnly = mode === 'endOnly';
+    document.getElementById('monthEditHint').style.display = endOnly ? '' : 'none';
+    document.querySelectorAll('#monthDimGroup input, #monthUnitGroup input').forEach(el => {
+      el.disabled = endOnly;
+    });
+    ['moDepot', 'moQuota', 'moOver', 'moStart', 'moRemark'].forEach(id => {
+      setFieldLocked(document.getElementById(id), endOnly);
+    });
+    const peopleWrap = document.getElementById('moPeopleWrap');
+    if (peopleWrap) {
+      peopleWrap.style.pointerEvents = endOnly ? 'none' : '';
+      peopleWrap.style.opacity = endOnly ? '0.55' : '';
+    }
+    setFieldLocked(document.getElementById('moEnd'), false);
+    if (!endOnly) syncMonthDim();
+  }
+
+  function syncMonthDim() {
+    if (monthLock === 'endOnly') return;
+    const dim = getRadioValue('dim');
+    const people = document.getElementById('moPeopleWrap');
+    if (dim === '分拨') {
+      clearMultiSelect('moPeopleWrap');
+      if (people) { people.style.pointerEvents = 'none'; people.style.opacity = '0.55'; }
+    } else if (people && monthLock !== 'endOnly') {
+      people.style.pointerEvents = '';
+      people.style.opacity = '';
+    }
+  }
+
+  document.querySelectorAll('input[name="dim"]').forEach(el => {
+    el.addEventListener('change', syncMonthDim);
+  });
+
+  function renderMonthTable() {
+    const tbody = document.getElementById('monthTableBody');
+    tbody.innerHTML = MONTH_ROWS.map((r, idx) =>
+      '<tr data-idx="' + idx + '">' +
+      '<td class="col-checkbox"><input type="checkbox" class="row-check month-check" /></td>' +
+      '<td>' + r.dim + '</td><td>' + r.depot + '</td><td>' + r.people + '</td>' +
+      '<td>' + r.unit + '</td><td>' + r.quota + '</td><td>' + r.over + '</td><td>' + r.valid + '</td>' +
+      '<td><span class="tag ' + statusTagClass(r.status) + '">' + r.status + '</span></td>' +
+      '<td>' + r.remark + '</td><td>' + r.creator + '</td><td>' + r.ctime + '</td>' +
+      '<td>' + r.editor + '</td><td>' + r.etime + '</td></tr>'
+    ).join('');
+    document.getElementById('monthTotal').textContent = '共 ' + MONTH_ROWS.length + ' 条';
+    bindPanelChecks('month-check', updateMonthButtons);
+    updateMonthButtons();
+  }
+
+  document.getElementById('btnMonthAdd').addEventListener('click', resetMonthForm);
+  document.getElementById('btnMonthEdit').addEventListener('click', () => {
+    const idxs = getSelectedIdxs('month-check');
+    if (idxs.length !== 1) { showToast('请选中单条数据后再编辑'); return; }
+    const row = MONTH_ROWS[idxs[0]];
+    if (!canEditRow(row)) { showToast('已失效方案不可编辑'); return; }
+    monthEditIdx = idxs[0];
+    document.getElementById('monthModalTitle').textContent = '编辑月额度标准';
+    setRadioValue('dim', row.dim);
+    setRadioValue('unit', row.unit);
+    document.getElementById('moDepot').value = row.depot;
+    setMultiSelectValues('moPeopleWrap', row.people === '—' ? [] : row.people);
+    document.getElementById('moQuota').value = row.quota;
+    document.getElementById('moOver').value = row.over;
+    document.getElementById('moStart').value = row.start;
+    document.getElementById('moEnd').value = row.end;
+    document.getElementById('moRemark').value = row.remark === '—' ? '' : row.remark;
+    applyMonthLock(editLockMode(row));
+    syncMonthDim();
+    openModal('modalMonth');
+  });
+  document.getElementById('btnMonthDelete').addEventListener('click', () => {
+    openStrictDelete(getSelectedIdxs('month-check'), MONTH_ROWS, (idxs) => {
+      const set = new Set(idxs);
+      for (let i = MONTH_ROWS.length - 1; i >= 0; i--) if (set.has(i)) MONTH_ROWS.splice(i, 1);
+      renderMonthTable();
+    });
+  });
+  document.getElementById('btnMonthSave').addEventListener('click', () => {
+    const dim = getRadioValue('dim');
+    const unit = getRadioValue('unit');
+    const depot = document.getElementById('moDepot').value;
+    const people = getMoPeopleText();
+    const quota = document.getElementById('moQuota').value.trim();
+    const over = document.getElementById('moOver').value;
+    const start = document.getElementById('moStart').value.trim();
+    const end = document.getElementById('moEnd').value.trim();
+    const remark = document.getElementById('moRemark').value.trim() || '—';
+    if (!depot || !quota) { showToast('请完善必填项'); return; }
+    if (dim === '人员' && monthLock !== 'endOnly' && people === '—') {
+      showToast('维度为人员时请填写人员');
+      return;
+    }
+    if (!validateMonths(start, end, monthLock)) return;
+    if (monthEditIdx >= 0) {
+      const row = MONTH_ROWS[monthEditIdx];
+      if (monthLock === 'endOnly') {
+        row.end = end;
+        row.valid = row.start + ' ~ ' + end;
+      } else {
+        Object.assign(row, {
+          dim, depot, people: dim === '分拨' ? '—' : people, unit, quota, over,
+          start, end, valid: start + ' ~ ' + end, remark
+        });
+      }
+      row.editor = '当前用户';
+      row.etime = '2026-08-19 16:40';
+    } else {
+      MONTH_ROWS.unshift({
+        dim, depot, people: dim === '分拨' ? '—' : people, unit, quota, over,
+        start, end, valid: start + ' ~ ' + end,
+        status: start === CURRENT_MONTH ? '生效中' : '待生效',
+        remark, creator: '当前用户', ctime: '2026-08-19 16:40', editor: '当前用户', etime: '2026-08-19 16:40'
+      });
+    }
+    showToast('保存成功');
+    closeModal('modalMonth');
+    resetMonthForm();
+    renderMonthTable();
+  });
+  document.getElementById('btnMonthImport').addEventListener('click', () => showToast('已打开导入（原型示意）'));
+  document.getElementById('btnMonthExport').addEventListener('click', () => showToast('已导出（原型示意）'));
+  wireCheckAll('month', updateMonthButtons);
+
+  renderFenboTable();
+  renderPuhuoTable();
+  renderMonthTable();
+
+  /* 特殊提成单价：网点/干线拆分 + 表单预览（对齐外包移动） */
+  const LINK_SPECIAL = ['网点卸车移动', '干线卸车移动'];
+
+  const SPECIAL_ROWS = [
+    {
+      depot: '金华分拨中心',
+      start: '2026-01',
+      end: '2026-12',
+      valid: '2026-01 ~ 2026-12',
+      status: '生效中',
+      remark: '—',
+      creator: '张三',
+      ctime: '2026-01-07 14:00',
+      editor: '张三',
+      etime: '2026-01-07 14:00',
+      cells: ['统一计价', '统一计价'],
+      blocks: [
+        {
+          links: ['网点卸车移动', '干线卸车移动'],
+          pricing: '统一计价',
+          scheme: '吨托结合',
+          mode: '整体',
+          tonPrice: '18',
+          trayPrice: '25',
+          tiers: []
+        }
+      ]
+    },
+    {
+      depot: '杭州分拨中心',
+      start: '2026-09',
+      end: '2026-12',
+      valid: '2026-09 ~ 2026-12',
+      status: '待生效',
+      remark: '—',
+      creator: '李四',
+      ctime: '2026-08-10 16:30',
+      editor: '李四',
+      etime: '2026-08-10 16:30',
+      cells: ['阶梯计价', '-'],
+      blocks: [
+        {
+          links: ['网点卸车移动'],
+          pricing: '阶梯计价',
+          scheme: '按吨计算',
+          mode: '整体',
+          tonPrice: '',
+          trayPrice: '',
+          tiers: [
+            { end: '50', ton: '15', tray: '' },
+            { end: '100', ton: '12', tray: '' },
+            { end: '∞', ton: '10', tray: '' }
+          ]
+        }
+      ]
+    },
+    {
+      depot: '宁波分拨中心',
+      start: '2026-08',
+      end: '2026-12',
+      valid: '2026-08 ~ 2026-12',
+      status: '生效中',
+      remark: '当月新建',
+      creator: '王五',
+      ctime: '2026-08-05 09:20',
+      editor: '王五',
+      etime: '2026-08-05 09:20',
+      cells: ['统一计价', '统一计价'],
+      blocks: [
+        {
+          links: ['网点卸车移动', '干线卸车移动'],
+          pricing: '统一计价',
+          scheme: '按吨计算',
+          mode: '整体',
+          tonPrice: '16',
+          trayPrice: '',
+          tiers: []
+        }
+      ]
+    },
+    {
+      depot: '金华分拨中心',
+      start: '2026-01',
+      end: '2026-06',
+      valid: '2026-01 ~ 2026-06',
+      status: '已失效',
+      remark: '上半年方案',
+      creator: '张三',
+      ctime: '2025-12-20 11:00',
+      editor: '张三',
+      etime: '2026-07-01 00:00',
+      cells: ['统一计价', '阶梯计价'],
+      blocks: [
+        {
+          links: ['网点卸车移动'],
+          pricing: '统一计价',
+          scheme: '按托计算',
+          mode: '整体',
+          tonPrice: '',
+          trayPrice: '20',
+          tiers: []
+        },
+        {
+          links: ['干线卸车移动'],
+          pricing: '阶梯计价',
+          scheme: '按吨计算',
+          mode: '区间',
+          tonPrice: '',
+          trayPrice: '',
+          tiers: [
+            { end: '80', ton: '14', tray: '' },
+            { end: '∞', ton: '11', tray: '' }
+          ]
+        }
+      ]
+    }
+  ];
+
+  let specialEditIdx = -1;
+  let specialEditLock = 'none'; /* none | full | endOnly */
+  let specialPriceLocked = false;
+  let pendingDeleteIdxs = [];
+
+  function getSelectedSpecialIdxs() {
+    return Array.from(document.querySelectorAll('#specialTableBody .special-check:checked'))
+      .map(cb => Number(cb.closest('tr').dataset.idx))
+      .filter(i => !Number.isNaN(i));
+  }
+
+  function updateSpecialActionButtons() {
+    const idxs = getSelectedSpecialIdxs();
+    const rows = idxs.map(i => SPECIAL_ROWS[i]).filter(Boolean);
+    const editOk = rows.length === 1 && canEditRow(rows[0]);
+    const deleteOk = rows.length > 0 && rows.every(canDeleteRow);
+    setBtnState(document.getElementById('btnSpecialEdit'), editOk);
+    setBtnState(document.getElementById('btnSpecialDelete'), deleteOk);
+  }
+
+  function applySpecialFormLock(mode) {
+    specialEditLock = mode;
+    const hint = document.getElementById('specialEditHint');
+    const endOnly = mode === 'endOnly';
+    if (hint) hint.style.display = endOnly ? '' : 'none';
+    setFieldLocked(document.getElementById('spDepot'), endOnly);
+    setFieldLocked(document.getElementById('spStart'), endOnly);
+    setFieldLocked(document.getElementById('spEnd'), false);
+    setFieldLocked(document.getElementById('spRemark'), endOnly);
+    specialPriceLocked = endOnly;
+  }
+
+  function resetSpecialForm() {
+    specialEditIdx = -1;
+    specialEditLock = 'none';
+    specialPriceLocked = false;
+    document.getElementById('specialModalTitle').textContent = '新增特殊提成单价';
+    document.getElementById('specialEditHint').style.display = 'none';
+    document.getElementById('spDepot').value = '';
+    document.getElementById('spStart').value = '';
+    document.getElementById('spEnd').value = '';
+    document.getElementById('spRemark').value = '';
+    ['spDepot', 'spStart', 'spEnd', 'spRemark'].forEach(id => setFieldLocked(document.getElementById(id), false));
+    specialBlockSeq = 0;
+    specialBlocks = [newSpecialBlock()];
+  }
+
+  function cloneBlocks(blocks) {
+    return (blocks || []).map((b, i) => ({
+      id: i + 1,
+      links: (b.links || []).slice(),
+      pricing: b.pricing || '统一计价',
+      scheme: b.scheme || '按吨计算',
+      mode: b.mode || '整体',
+      tonPrice: b.tonPrice != null ? String(b.tonPrice) : '',
+      trayPrice: b.trayPrice != null ? String(b.trayPrice) : '',
+      tiers: (b.tiers && b.tiers.length)
+        ? b.tiers.map(t => ({ end: t.end, ton: t.ton || '', tray: t.tray || '' }))
+        : [{ end: '', ton: '', tray: '' }, { end: '∞', ton: '', tray: '' }]
+    }));
+  }
+
+  function fillSpecialEdit(row, idx) {
+    specialEditIdx = idx;
+    const mode = editLockMode(row);
+    document.getElementById('specialModalTitle').textContent = '编辑特殊提成单价';
+    document.getElementById('spDepot').value = row.depot;
+    document.getElementById('spStart').value = row.start;
+    document.getElementById('spEnd').value = row.end;
+    document.getElementById('spRemark').value = row.remark === '—' ? '' : row.remark;
+    specialBlocks = cloneBlocks(row.blocks);
+    specialBlockSeq = specialBlocks.length;
+    applySpecialFormLock(mode);
+  }
+
+  function renderSpecialTable() {
+    const tbody = document.getElementById('specialTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = SPECIAL_ROWS.map((r, idx) => {
+      return '<tr data-idx="' + idx + '">' +
+        '<td class="col-checkbox"><input type="checkbox" class="row-check special-check" /></td>' +
+        '<td>' + r.depot + '</td>' +
+        '<td>' + r.cells[0] + '</td>' +
+        '<td>' + r.cells[1] + '</td>' +
+        '<td>' + r.valid + '</td>' +
+        '<td><span class="tag ' + statusTagClass(r.status) + '">' + r.status + '</span></td>' +
+        '<td>' + r.remark + '</td>' +
+        '<td>' + r.creator + '</td>' +
+        '<td>' + r.ctime + '</td>' +
+        '<td>' + r.editor + '</td>' +
+        '<td>' + r.etime + '</td>' +
+        '<td><span class="link js-special-preview" data-idx="' + idx + '">预览</span></td>' +
+        '</tr>';
+    }).join('');
+    const total = document.getElementById('specialTotal');
+    if (total) total.textContent = '共 ' + SPECIAL_ROWS.length + ' 条';
+    document.querySelectorAll('.js-special-preview').forEach(el => {
+      el.addEventListener('click', () => openSpecialPreview(Number(el.dataset.idx)));
+    });
+    tbody.querySelectorAll('.special-check').forEach(cb => {
+      cb.addEventListener('change', updateSpecialActionButtons);
+    });
+    const checkAll = document.querySelector('.check-all[data-target="special"]');
+    if (checkAll) {
+      checkAll.checked = false;
+      checkAll.onchange = function () {
+        document.querySelectorAll('.special-check').forEach(cb => { cb.checked = this.checked; });
+        updateSpecialActionButtons();
+      };
+    }
+    updateSpecialActionButtons();
+  }
+
+  function openSpecialPreview(idx) {
+    const row = SPECIAL_ROWS[idx];
+    if (!row) return;
+    const stamp = document.getElementById('spPreviewStamp');
+    stamp.textContent = row.status;
+    stamp.classList.remove('wait', 'off');
+    if (row.status === '待生效') stamp.classList.add('wait');
+    if (row.status === '已失效') stamp.classList.add('off');
+
+    document.getElementById('spPvDepot').textContent = row.depot;
+    document.getElementById('spPvValid').textContent = row.valid;
+    document.getElementById('spPvStatus').textContent = row.status;
+    document.getElementById('spPvRemark').textContent = row.remark === '—' ? '' : row.remark;
+
+    const links = [];
+    row.blocks.forEach(b => b.links.forEach(l => { if (!links.includes(l)) links.push(l); }));
+    document.getElementById('spPvLinks').innerHTML = links.map(l => '<span>' + l + '</span>').join('');
+
+    const boxes = document.getElementById('spPvPriceBoxes');
+    boxes.innerHTML = '';
+    row.blocks.forEach((b, bi) => {
+      const box = document.createElement('div');
+      box.className = 'preview-price-box';
+      let html = '';
+      html += '<div class="item"><span class="k">详细用途 ' + (bi + 1) + '</span><span>' + (b.links.join('、') || '—') + '</span></div>';
+      html += '<div class="item"><span class="k">计价方式</span><span>' + b.pricing + '</span></div>';
+      html += '<div class="item"><span class="k">方案类型</span><span>' + b.scheme + '</span></div>';
+      if (b.pricing === '阶梯计价') {
+        html += '<div class="item"><span class="k">模式</span><span>' + b.mode + '</span></div>';
+        const unit = b.scheme === '按托计算' ? '托' : '吨';
+        b.tiers.forEach((t, ti) => {
+          const start = ti === 0 ? '0' : b.tiers[ti - 1].end;
+          const end = t.end === '∞' ? '正无穷' : t.end;
+          let priceTxt = '';
+          if (b.scheme === '按吨计算') priceTxt = (t.ton || '—') + ' 元/吨';
+          else if (b.scheme === '按托计算') priceTxt = (t.tray || '—') + ' 元/托';
+          else priceTxt = '每吨 ' + (t.ton || '—') + ' 元；每托 ' + (t.tray || '—') + ' 元';
+          html += '<div class="item"><span class="k">' + unit + '位区间 ' + start + ' ~ ' + end + '</span><span>' + priceTxt + '</span></div>';
+        });
+      } else {
+        if (b.scheme === '按吨计算') {
+          html += '<div class="item"><span class="k">每吨单价</span><span>' + (b.tonPrice || '—') + ' 元/吨</span></div>';
+        } else if (b.scheme === '按托计算') {
+          html += '<div class="item"><span class="k">每托单价</span><span>' + (b.trayPrice || '—') + ' 元/托</span></div>';
+        } else {
+          html += '<div class="item"><span class="k">每吨单价</span><span>' + (b.tonPrice || '—') + ' 元/吨</span></div>';
+          html += '<div class="item"><span class="k">每托单价</span><span>' + (b.trayPrice || '—') + ' 元/托</span></div>';
+        }
+      }
+      box.innerHTML = html;
+      boxes.appendChild(box);
+    });
+    openModal('modalSpecialPreview');
+  }
+
+  let specialBlocks = [];
+  let specialBlockSeq = 1;
+
+  function newSpecialBlock() {
+    specialBlockSeq += 1;
+    return {
+      id: specialBlockSeq,
+      links: [],
+      pricing: '统一计价',
+      scheme: '按吨计算',
+      mode: '整体',
+      tonPrice: '',
+      trayPrice: '',
+      tiers: [{ end: '', ton: '', tray: '' }, { end: '∞', ton: '', tray: '' }]
+    };
+  }
+
+  function usedLinksExcept(blockId) {
+    const set = new Set();
+    specialBlocks.forEach(b => {
+      if (b.id !== blockId) b.links.forEach(l => set.add(l));
+    });
+    return set;
+  }
+
+  function syncSpecialTierEnds(block) {
+    if (!block.tiers.length) {
+      block.tiers = [{ end: '', ton: '', tray: '' }, { end: '∞', ton: '', tray: '' }];
+    }
+    block.tiers[block.tiers.length - 1].end = '∞';
+  }
+
+  function rangeLabel(scheme) {
+    return scheme === '按托计算' ? '托数计价区间' : '吨位计价区间';
+  }
+
+  function renderSpecialPriceList() {
+    const root = document.getElementById('specialPriceList');
+    if (!root) return;
+    root.innerHTML = '';
+    root.style.pointerEvents = specialPriceLocked ? 'none' : '';
+    root.style.opacity = specialPriceLocked ? '0.55' : '';
+    specialBlocks.forEach((block, index) => {
+      const el = document.createElement('div');
+      el.className = 'price-block';
+
+      const head = document.createElement('div');
+      head.className = 'price-block-head';
+      head.innerHTML = '<span>详细用途 ' + (index + 1) + '</span>';
+      const headBtn = document.createElement('button');
+      headBtn.type = 'button';
+      headBtn.className = 'circle-btn ' + (index === 0 ? 'add' : 'remove');
+      headBtn.textContent = index === 0 ? '+' : '−';
+      headBtn.disabled = specialPriceLocked;
+      headBtn.addEventListener('click', () => {
+        if (specialPriceLocked) return;
+        if (index === 0) specialBlocks.push(newSpecialBlock());
+        else specialBlocks = specialBlocks.filter(b => b.id !== block.id);
+        renderSpecialPriceList();
+      });
+      head.appendChild(headBtn);
+      el.appendChild(head);
+
+      const top = document.createElement('div');
+      top.className = 'price-top';
+
+      const linkField = document.createElement('div');
+      linkField.className = 'price-field links-field';
+      linkField.innerHTML = '<span class="pf-label"><span class="req">*</span>操作环节</span>';
+      const ms = document.createElement('div');
+      ms.className = 'ms-wrap pf-ctrl';
+      const trigger = document.createElement('div');
+      trigger.className = 'ms-trigger';
+      const drop = document.createElement('div');
+      drop.className = 'ms-drop';
+      function paintMs() {
+        trigger.innerHTML = '';
+        if (!block.links.length) trigger.innerHTML = '<span class="placeholder">请选择</span>';
+        else {
+          block.links.forEach(name => {
+            const tag = document.createElement('span');
+            tag.className = 'ms-tag';
+            tag.innerHTML = name + (specialPriceLocked ? '' : ' <span class="x">×</span>');
+            const x = tag.querySelector('.x');
+            if (x) x.addEventListener('click', (e) => {
+              e.stopPropagation();
+              block.links = block.links.filter(x => x !== name);
+              renderSpecialPriceList();
+            });
+            trigger.appendChild(tag);
+          });
+        }
+        drop.innerHTML = '';
+        const taken = usedLinksExcept(block.id);
+        LINK_SPECIAL.forEach(opt => {
+          const row = document.createElement('label');
+          row.className = 'ms-opt' + (taken.has(opt) || specialPriceLocked ? ' disabled' : '');
+          const checked = block.links.includes(opt);
+          row.innerHTML = '<input type="checkbox" ' + (checked ? 'checked' : '') + (taken.has(opt) || specialPriceLocked ? ' disabled' : '') + ' /> <span>' + opt + (taken.has(opt) ? '（已在其他详细用途选用）' : '') + '</span>';
+          if (!taken.has(opt) && !specialPriceLocked) {
+            row.querySelector('input').addEventListener('change', (e) => {
+              e.stopPropagation();
+              if (e.target.checked) block.links.push(opt);
+              else block.links = block.links.filter(x => x !== opt);
+              renderSpecialPriceList();
+            });
+          }
+          drop.appendChild(row);
+        });
+      }
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (specialPriceLocked) return;
+        document.querySelectorAll('.ms-drop.open').forEach(d => { if (d !== drop) d.classList.remove('open'); });
+        drop.classList.toggle('open');
+      });
+      ms.appendChild(trigger);
+      ms.appendChild(drop);
+      linkField.appendChild(ms);
+      top.appendChild(linkField);
+      paintMs();
+
+      const pricingField = document.createElement('div');
+      pricingField.className = 'price-field';
+      pricingField.innerHTML = '<span class="pf-label"><span class="req">*</span>计价方式</span>';
+      const pricingWrap = document.createElement('div');
+      pricingWrap.className = 'select-wrap pf-ctrl';
+      pricingWrap.innerHTML = '<select class="form-control"><option value="统一计价">统一计价</option><option value="阶梯计价">阶梯计价</option></select>';
+      const pricingSel = pricingWrap.querySelector('select');
+      pricingSel.value = block.pricing;
+      pricingSel.disabled = specialPriceLocked;
+      pricingSel.addEventListener('change', () => {
+        block.pricing = pricingSel.value;
+        if (block.pricing === '阶梯计价') syncSpecialTierEnds(block);
+        renderSpecialPriceList();
+      });
+      pricingField.appendChild(pricingWrap);
+      top.appendChild(pricingField);
+
+      const schemeField = document.createElement('div');
+      schemeField.className = 'price-field';
+      schemeField.innerHTML = '<span class="pf-label"><span class="req">*</span>方案类型</span>';
+      const schemeWrap = document.createElement('div');
+      schemeWrap.className = 'select-wrap pf-ctrl';
+      schemeWrap.innerHTML = '<select class="form-control"><option value="按吨计算">按吨计算</option><option value="按托计算">按托计算</option><option value="吨托结合">吨托结合</option></select>';
+      const schemeSel = schemeWrap.querySelector('select');
+      schemeSel.value = block.scheme;
+      schemeSel.disabled = specialPriceLocked;
+      schemeSel.addEventListener('change', () => {
+        block.scheme = schemeSel.value;
+        renderSpecialPriceList();
+      });
+      schemeField.appendChild(schemeWrap);
+      top.appendChild(schemeField);
+
+      if (block.pricing === '阶梯计价') {
+        const modeField = document.createElement('div');
+        modeField.className = 'price-field';
+        modeField.innerHTML = '<span class="pf-label"><span class="req">*</span>模式</span>';
+        const modeWrap = document.createElement('div');
+        modeWrap.className = 'select-wrap pf-ctrl';
+        modeWrap.innerHTML = '<select class="form-control"><option value="整体">整体</option><option value="区间">区间</option></select>';
+        const modeSel = modeWrap.querySelector('select');
+        modeSel.value = block.mode;
+        modeSel.disabled = specialPriceLocked;
+        modeSel.addEventListener('change', () => { block.mode = modeSel.value; });
+        modeField.appendChild(modeWrap);
+        top.appendChild(modeField);
+      }
+
+      el.appendChild(top);
+
+      const body = document.createElement('div');
+      if (block.pricing === '阶梯计价') {
+        syncSpecialTierEnds(block);
+        const tierList = document.createElement('div');
+        tierList.className = 'tier-list';
+        block.tiers.forEach((tier, ti) => {
+          const row = document.createElement('div');
+          row.className = 'tier-row';
+          const range = document.createElement('div');
+          range.className = 'tier-range';
+          const startVal = ti === 0 ? '0' : (block.tiers[ti - 1].end === '∞' ? '' : block.tiers[ti - 1].end);
+          const endIsInf = ti === block.tiers.length - 1;
+          range.innerHTML =
+            '<span class="rl"><span class="req">*</span>' + rangeLabel(block.scheme) + '</span>' +
+            '<input class="form-control" type="text" value="' + startVal + '" disabled />' +
+            '<span class="sep">~</span>' +
+            (endIsInf
+              ? '<input class="form-control" type="text" value="正无穷" disabled />'
+              : '<input class="form-control tier-end" type="text" value="' + (tier.end || '') + '" placeholder="请输入" ' + (specialPriceLocked ? 'disabled' : '') + ' />');
+          if (!endIsInf && !specialPriceLocked) {
+            range.querySelector('.tier-end').addEventListener('change', (e) => {
+              tier.end = e.target.value;
+              renderSpecialPriceList();
+            });
+          }
+          row.appendChild(range);
+
+          const prices = document.createElement('div');
+          prices.className = 'tier-prices';
+          function addPrice(key, label, suffix) {
+            if (block.scheme === '按吨计算' && key === 'tray') return;
+            if (block.scheme === '按托计算' && key === 'ton') return;
+            const item = document.createElement('div');
+            item.className = 'tier-price-item';
+            item.innerHTML = '<span class="plabel"><span class="req">*</span>' + label + '</span>' +
+              '<div class="input-suffix"><input type="text" placeholder="请输入" ' + (specialPriceLocked ? 'disabled' : '') + ' /><span class="suffix">' + suffix + '</span></div>';
+            const inp = item.querySelector('input');
+            inp.value = tier[key] || '';
+            if (!specialPriceLocked) inp.addEventListener('input', () => { tier[key] = inp.value; });
+            prices.appendChild(item);
+          }
+          addPrice('ton', '每吨单价', '元/吨');
+          addPrice('tray', '每托单价', '元/托');
+          row.appendChild(prices);
+
+          const act = document.createElement('button');
+          act.type = 'button';
+          if (ti === 0) {
+            act.className = 'circle-btn add';
+            act.textContent = '+';
+            act.disabled = specialPriceLocked;
+            act.addEventListener('click', () => {
+              if (specialPriceLocked) return;
+              const last = block.tiers[block.tiers.length - 1];
+              block.tiers.splice(block.tiers.length - 1, 0, { end: '', ton: '', tray: '' });
+              last.end = '∞';
+              renderSpecialPriceList();
+            });
+          } else {
+            act.className = 'circle-btn remove';
+            act.textContent = '−';
+            act.disabled = specialPriceLocked || block.tiers.length <= 2;
+            act.addEventListener('click', () => {
+              if (specialPriceLocked || block.tiers.length <= 2) return;
+              block.tiers.splice(ti, 1);
+              syncSpecialTierEnds(block);
+              renderSpecialPriceList();
+            });
+          }
+          row.appendChild(act);
+          tierList.appendChild(row);
+        });
+        body.appendChild(tierList);
+      } else {
+        const wrap = document.createElement('div');
+        wrap.className = 'price-top';
+        wrap.style.marginBottom = '0';
+        function addUnit(key, label, suffix) {
+          if (block.scheme === '按吨计算' && key === 'tray') return;
+          if (block.scheme === '按托计算' && key === 'ton') return;
+          const field = document.createElement('div');
+          field.className = 'price-field';
+          field.innerHTML = '<span class="pf-label"><span class="req">*</span>' + label + '</span>';
+          const suf = document.createElement('div');
+          suf.className = 'input-suffix pf-ctrl';
+          suf.innerHTML = '<input type="text" placeholder="请输入" ' + (specialPriceLocked ? 'disabled' : '') + ' /><span class="suffix">' + suffix + '</span>';
+          const inp = suf.querySelector('input');
+          inp.value = block[key] || '';
+          if (!specialPriceLocked) inp.addEventListener('input', () => { block[key] = inp.value; });
+          field.appendChild(suf);
+          wrap.appendChild(field);
+        }
+        addUnit('tonPrice', '每吨单价', '元/吨');
+        addUnit('trayPrice', '每托单价', '元/托');
+        body.appendChild(wrap);
+      }
+      el.appendChild(body);
+      root.appendChild(el);
+    });
+  }
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.ms-drop.open').forEach(d => d.classList.remove('open'));
+  });
+
+  const _openModal = openModal;
+  const _closeModal = closeModal;
+  openModal = function (id) { _openModal(id); };
+  closeModal = function (id) {
+    _closeModal(id);
+    if (id === 'modalSpecial') resetSpecialForm();
+    if (id === 'modalFenbo') resetFenboForm();
+    if (id === 'modalPuhuo') resetPuhuoForm();
+    if (id === 'modalMonth') resetMonthForm();
+  };
+
+  document.getElementById('btnSpecialAdd').addEventListener('click', () => {
+    resetSpecialForm();
+    renderSpecialPriceList();
+  });
+
+  document.getElementById('btnSpecialEdit').addEventListener('click', () => {
+    const idxs = getSelectedSpecialIdxs();
+    if (idxs.length !== 1) { showToast('请选中单条数据后再编辑'); return; }
+    const row = SPECIAL_ROWS[idxs[0]];
+    if (!canEditRow(row)) { showToast('已失效方案不可编辑'); return; }
+    fillSpecialEdit(row, idxs[0]);
+    renderSpecialPriceList();
+    _openModal('modalSpecial');
+  });
+
+  document.getElementById('btnSpecialDelete').addEventListener('click', () => {
+    const idxs = getSelectedSpecialIdxs();
+    if (!idxs.length) { showToast('请先勾选要删除的数据'); return; }
+    const rows = idxs.map(i => SPECIAL_ROWS[i]);
+    if (!rows.every(canDeleteRow)) {
+      showToast('仅待生效，或生效中/已失效且开始月为当月/上月（上月须在补录窗口内）的方案可删除');
+      return;
+    }
+    pendingDeleteIdxs = idxs.slice();
+    document.getElementById('specialDeleteCount').textContent = String(idxs.length);
+    openModal('modalSpecialDelete');
+  });
+
+  document.getElementById('btnSpecialDeleteOk').addEventListener('click', () => {
+    const set = new Set(pendingDeleteIdxs);
+    for (let i = SPECIAL_ROWS.length - 1; i >= 0; i--) {
+      if (set.has(i)) SPECIAL_ROWS.splice(i, 1);
+    }
+    pendingDeleteIdxs = [];
+    closeModal('modalSpecialDelete');
+    renderSpecialTable();
+    showToast('删除成功');
+  });
+
+  document.getElementById('btnSpecialSave').addEventListener('click', () => {
+    const depot = document.getElementById('spDepot').value;
+    const start = document.getElementById('spStart').value.trim();
+    const end = document.getElementById('spEnd').value.trim();
+    const remark = document.getElementById('spRemark').value.trim() || '—';
+    if (!depot || !start || !end) { showToast('请完善必填项'); return; }
+    if (!validateMonths(start, end, specialEditLock)) return;
+
+    function cellsFromBlocks(blocks) {
+      const map = { '网点卸车移动': '-', '干线卸车移动': '-' };
+      blocks.forEach(b => b.links.forEach(l => { map[l] = b.pricing; }));
+      return [map['网点卸车移动'], map['干线卸车移动']];
+    }
+
+    if (specialEditIdx >= 0) {
+      const row = SPECIAL_ROWS[specialEditIdx];
+      if (specialEditLock === 'endOnly') {
+        row.end = end;
+        row.valid = row.start + ' ~ ' + end;
+      } else {
+        row.depot = depot;
+        row.start = start;
+        row.end = end;
+        row.valid = start + ' ~ ' + end;
+        row.remark = remark;
+        row.blocks = cloneBlocks(specialBlocks);
+        row.cells = cellsFromBlocks(row.blocks);
+      }
+      row.editor = '当前用户';
+      row.etime = '2026-08-19 16:30';
+      showToast('保存成功');
+    } else {
+      SPECIAL_ROWS.unshift({
+        depot, start, end,
+        valid: start + ' ~ ' + end,
+        status: start === CURRENT_MONTH ? '生效中' : '待生效',
+        remark,
+        creator: '当前用户',
+        ctime: '2026-08-19 16:30',
+        editor: '当前用户',
+        etime: '2026-08-19 16:30',
+        blocks: cloneBlocks(specialBlocks),
+        cells: cellsFromBlocks(specialBlocks)
+      });
+      showToast('保存成功');
+    }
+    closeModal('modalSpecial');
+    resetSpecialForm();
+    renderSpecialTable();
+  });
+
+  document.getElementById('btnSpecialExport').addEventListener('click', () => {
+    showToast('已导出（原型示意）');
+  });
+
+  renderSpecialTable();
+  updateView();
+</script>
+
+</body>
+</html>
