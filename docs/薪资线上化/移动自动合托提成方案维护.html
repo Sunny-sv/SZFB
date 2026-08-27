@@ -1199,6 +1199,12 @@
                   </div>
                 </div>
                 <div class="filter-item">
+                  <span class="filter-label">方案编号</span>
+                  <div class="filter-control-wrap">
+                    <input class="filter-control" type="text" placeholder="多个编号回车分隔" />
+                  </div>
+                </div>
+                <div class="filter-item">
                   <span class="filter-label">有效月份</span>
                   <div class="filter-control-wrap">
                     <div class="date-range">
@@ -1285,7 +1291,7 @@
                         <label class="multi-select-option"><input type="checkbox" value="物品名称">物品名称</label>
                         <label class="multi-select-option"><input type="checkbox" value="包装类型">包装类型</label>
                         <label class="multi-select-option"><input type="checkbox" value="寄件人">寄件人</label>
-                        <label class="multi-select-option"><input type="checkbox" value="是否申报物品">是否申报物品</label>
+                        <label class="multi-select-option"><input type="checkbox" value="是否审报物品">是否审报物品</label>
                         <label class="multi-select-option"><input type="checkbox" value="订单来源">订单来源</label>
                         <label class="multi-select-option"><input type="checkbox" value="是否电商件">是否电商件</label>
                         <label class="multi-select-option"><input type="checkbox" value="区间纬度">区间纬度</label>
@@ -1390,7 +1396,7 @@
                   </div>
                 </div>
                 <div class="filter-item">
-                  <span class="filter-label">是否申报物品</span>
+                  <span class="filter-label">是否审报物品</span>
                   <div class="filter-control-wrap">
                     <div class="select-wrap">
                       <select class="filter-control"><option selected>全部</option><option>是</option><option>否</option></select>
@@ -1441,6 +1447,12 @@
                         <label class="multi-select-option"><input type="checkbox" value="件-体积段">件-体积段</label>
                       </div>
                     </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">方案编号</span>
+                  <div class="filter-control-wrap">
+                    <input class="filter-control" type="text" placeholder="多个编号回车分隔" />
                   </div>
                 </div>
                 <div class="filter-item">
@@ -1538,6 +1550,12 @@
                   </div>
                 </div>
                 <div class="filter-item">
+                  <span class="filter-label">方案编号</span>
+                  <div class="filter-control-wrap">
+                    <input class="filter-control" type="text" placeholder="多个编号回车分隔" />
+                  </div>
+                </div>
+                <div class="filter-item">
                   <span class="filter-label">有效月份</span>
                   <div class="filter-control-wrap">
                     <div class="date-range">
@@ -1606,6 +1624,7 @@
                       <th>有效期限</th>
                       <th>状态</th>
                       <th>备注</th>
+                      <th>方案编号</th>
                       <th>创建人</th>
                       <th>创建时间</th>
                       <th>修改人</th>
@@ -1647,7 +1666,7 @@
                       <th>物品名称</th>
                       <th>包装类型</th>
                       <th>寄件人</th>
-                      <th>是否申报物品</th>
+                      <th>是否审报物品</th>
                       <th>订单来源</th>
                       <th>是否电商件</th>
                       <th>区间模式</th>
@@ -1656,6 +1675,7 @@
                       <th>有效期限</th>
                       <th>状态</th>
                       <th>备注</th>
+                      <th>方案编号</th>
                       <th>创建人</th>
                       <th>创建时间</th>
                     </tr>
@@ -1689,6 +1709,7 @@
                       <th>有效期限</th>
                       <th>状态</th>
                       <th>备注</th>
+                      <th>方案编号</th>
                       <th>创建人</th>
                       <th>创建时间</th>
                       <th>修改人</th>
@@ -1951,7 +1972,7 @@
             <input class="form-control" type="text" id="phSender" placeholder="请输入内容" />
           </div>
           <div class="form-item">
-            <label>是否申报物品</label>
+            <label>是否审报物品</label>
             <div class="select-wrap">
               <select class="form-control" id="phDeclare">
                 <option value="">请选择</option>
@@ -2454,6 +2475,7 @@
   /* ----- 适用分拨（含分拨月额度 + 特殊提成单价） ----- */
   const FENBO_ROWS = [
     {
+      code: '100001',
       depot: '金华分拨中心', province: '浙中省区', start: '2026-01', end: '2026-12', valid: '2026-01 ~ 2026-12',
       status: '生效中', remark: '移动自动合托试点', creator: '张三', ctime: '2026-01-05 10:20', editor: '张三', etime: '2026-01-05 10:20',
       unit: '托', quota: '5000', over: '超出按特殊单价',
@@ -2461,6 +2483,7 @@
       blocks: [{ links: ['网点卸车移动', '干线卸车移动'], pricing: '统一计价', scheme: '吨托结合', mode: '整体', tonPrice: '18', trayPrice: '25', tiers: [] }]
     },
     {
+      code: '100002',
       depot: '杭州分拨中心', province: '浙北省区', start: '2026-09', end: '2026-12', valid: '2026-09 ~ 2026-12',
       status: '待生效', remark: '—', creator: '李四', ctime: '2026-08-18 14:35', editor: '李四', etime: '2026-08-18 14:35',
       unit: '吨', quota: '2000', over: '全部按特殊单价',
@@ -2468,6 +2491,7 @@
       blocks: [{ links: ['网点卸车移动'], pricing: '阶梯计价', scheme: '按吨计算', mode: '整体', tonPrice: '', trayPrice: '', tiers: [{ end: '50', ton: '15', tray: '' }, { end: '100', ton: '12', tray: '' }, { end: '∞', ton: '10', tray: '' }] }]
     },
     {
+      code: '100003',
       depot: '宁波分拨中心', province: '浙东省区', start: '2026-08', end: '2026-12', valid: '2026-08 ~ 2026-12',
       status: '生效中', remark: '当月启用', creator: '王五', ctime: '2026-08-05 09:15', editor: '王五', etime: '2026-08-05 09:15',
       unit: '托', quota: '3000', over: '超出按特殊单价',
@@ -2475,6 +2499,7 @@
       blocks: [{ links: ['网点卸车移动', '干线卸车移动'], pricing: '统一计价', scheme: '按吨计算', mode: '整体', tonPrice: '16', trayPrice: '', tiers: [] }]
     },
     {
+      code: '100004',
       depot: '杭州分拨中心', province: '浙北省区', start: '2026-07', end: '2026-12', valid: '2026-07 ~ 2026-12',
       status: '生效中', remark: '上月方案（补录窗口内可全改/可删）', creator: '李四', ctime: '2026-07-08 11:20', editor: '李四', etime: '2026-07-08 11:20',
       unit: '托', quota: '4500', over: '超出按特殊单价',
@@ -2482,6 +2507,7 @@
       blocks: [{ links: ['网点卸车移动', '干线卸车移动'], pricing: '统一计价', scheme: '按吨计算', mode: '整体', tonPrice: '17', trayPrice: '', tiers: [] }]
     },
     {
+      code: '100005',
       depot: '金华分拨中心', province: '浙中省区', start: '2026-01', end: '2026-06', valid: '2026-01 ~ 2026-06',
       status: '已失效', remark: '上半年试点', creator: '张三', ctime: '2025-12-20 11:00', editor: '张三', etime: '2026-07-01 00:00',
       unit: '托', quota: '4000', over: '超出按特殊单价',
@@ -2492,6 +2518,7 @@
       ]
     },
     {
+      code: '100006',
       depot: '宁波分拨中心', province: '浙东省区', start: '2026-07', end: '2026-07', valid: '2026-07 ~ 2026-07',
       status: '已失效', remark: '仅上月（补录窗口内可编/可删）', creator: '王五', ctime: '2026-07-28 16:00', editor: '王五', etime: '2026-08-01 00:00',
       unit: '托', quota: '2800', over: '全部按特殊单价',
@@ -2499,6 +2526,7 @@
       blocks: [{ links: ['网点卸车移动'], pricing: '统一计价', scheme: '按吨计算', mode: '整体', tonPrice: '15', trayPrice: '', tiers: [] }]
     }
   ];
+  let fenboCodeSeq = 100006;
   let fenboEditIdx = -1;
   let fenboLock = 'none';
   let specialPriceLocked = false;
@@ -2561,7 +2589,7 @@
       '<td>' + dash(r.cells && r.cells[0]) + '</td><td>' + dash(r.cells && r.cells[1]) + '</td>' +
       '<td>' + r.valid + '</td>' +
       '<td><span class="tag ' + statusTagClass(r.status) + '">' + r.status + '</span></td>' +
-      '<td>' + r.remark + '</td><td>' + r.creator + '</td><td>' + r.ctime + '</td>' +
+      '<td>' + r.remark + '</td><td>' + dash(r.code) + '</td><td>' + r.creator + '</td><td>' + r.ctime + '</td>' +
       '<td>' + r.editor + '</td><td>' + r.etime + '</td>' +
       '<td><span class="link js-fenbo-preview" data-idx="' + idx + '">预览</span></td></tr>'
     ).join('');
@@ -2631,7 +2659,9 @@
       row.editor = '当前用户';
       row.etime = '2026-08-19 16:40';
     } else {
+      fenboCodeSeq += 1;
       FENBO_ROWS.unshift({
+        code: String(fenboCodeSeq),
         depot, province: '—', start, end, valid: start + ' ~ ' + end,
         status: start === CURRENT_MONTH ? '生效中' : '待生效',
         remark, unit, quota, over,
@@ -2652,6 +2682,7 @@
   const MULTI_WAREHOUSE_DEPOTS = ['金华分拨中心', '杭州分拨中心'];
   const PUHUO_ROWS = [
     {
+      code: '200001',
       depot: '金华分拨中心', unloadArea: '出发库', opType: '移动', start: '2026-01', end: '2026-12', valid: '2026-01 ~ 2026-12',
       weightType: '重货', taskType: '分拨,网点', prevStation: '义乌一部', nextStation: '—',
       billOrg: '开单网点：金华一部', productType: '国内件,仓配一体', goodsType: '—', goodsName: '—',
@@ -2660,6 +2691,7 @@
       status: '生效中', remark: '—', creator: '张三', ctime: '2026-01-08 11:00'
     },
     {
+      code: '200002',
       depot: '杭州分拨中心', unloadArea: '', opType: '移动', start: '2026-09', end: '2026-12', valid: '2026-09 ~ 2026-12',
       weightType: '抛货', taskType: '网点', prevStation: '—', nextStation: '杭州转',
       billOrg: '—', productType: '—', goodsType: '包裹', goodsName: '等于：电商件',
@@ -2668,6 +2700,7 @@
       status: '待生效', remark: '电商件专用', creator: '李四', ctime: '2026-08-12 15:30'
     },
     {
+      code: '200003',
       depot: '宁波分拨中心', unloadArea: '', opType: '移动', start: '2026-08', end: '2026-12', valid: '2026-08 ~ 2026-12',
       weightType: '重货', taskType: '分拨', prevStation: '慈溪一部', nextStation: '—',
       billOrg: '开单所属分拨：宁波分拨中心', productType: '普货', goodsType: '—', goodsName: '—',
@@ -2676,6 +2709,7 @@
       status: '生效中', remark: '当月新建', creator: '王五', ctime: '2026-08-06 10:00'
     },
     {
+      code: '200004',
       depot: '金华分拨中心', unloadArea: '出发库', opType: '移动', start: '2026-01', end: '2026-03', valid: '2026-01 ~ 2026-03',
       weightType: '抛货', taskType: '—', prevStation: '—', nextStation: '—',
       billOrg: '—', productType: '—', goodsType: '—', goodsName: '—',
@@ -2765,6 +2799,7 @@
       '<td>' + dash(r.valid) + '</td>' +
       '<td><span class="tag ' + statusTagClass(r.status) + '">' + r.status + '</span></td>' +
       '<td title="' + dash(r.remark) + '">' + dash(r.remark) + '</td>' +
+      '<td>' + dash(r.code) + '</td>' +
       '<td>' + dash(r.creator) + '</td>' +
       '<td>' + dash(r.ctime) + '</td></tr>'
     ).join('');
@@ -2825,7 +2860,9 @@
         row.remark = remark;
       }
     } else {
+      puhuoCodeSeq += 1;
       PUHUO_ROWS.unshift({
+        code: String(puhuoCodeSeq),
         depot,
         unloadArea,
         opType: document.getElementById('phOpType').value,
@@ -3039,12 +3076,14 @@
   });
 
   wireCheckAll('puhuo', updatePuhuoButtons);
+  let puhuoCodeSeq = 200004;
 
   /* ----- 特殊人员额度标准 ----- */
   const MONTH_ROWS = [
-    { depot: '杭州分拨中心', people: '赵六、钱七', unit: '吨', quota: '120', over: '全部按特殊单价', start: '2026-09', end: '2026-12', valid: '2026-09 ~ 2026-12', status: '待生效', remark: '骨干人员', creator: '李四', ctime: '2026-08-15 10:20', editor: '李四', etime: '2026-08-15 10:20' },
-    { depot: '金华分拨中心', people: '孙八', unit: '托', quota: '800', over: '全部按特殊单价', start: '2026-01', end: '2026-05', valid: '2026-01 ~ 2026-05', status: '已失效', remark: '已结束', creator: '张三', ctime: '2026-01-03 08:00', editor: '张三', etime: '2026-06-01 00:00' }
+    { code: '300001', depot: '杭州分拨中心', people: '赵六、钱七', unit: '吨', quota: '120', over: '全部按特殊单价', start: '2026-09', end: '2026-12', valid: '2026-09 ~ 2026-12', status: '待生效', remark: '骨干人员', creator: '李四', ctime: '2026-08-15 10:20', editor: '李四', etime: '2026-08-15 10:20' },
+    { code: '300002', depot: '金华分拨中心', people: '孙八', unit: '托', quota: '800', over: '全部按特殊单价', start: '2026-01', end: '2026-05', valid: '2026-01 ~ 2026-05', status: '已失效', remark: '已结束', creator: '张三', ctime: '2026-01-03 08:00', editor: '张三', etime: '2026-06-01 00:00' }
   ];
+  let monthCodeSeq = 300002;
   let monthEditIdx = -1;
   let monthLock = 'none';
 
@@ -3108,7 +3147,7 @@
       '<td>' + r.depot + '</td><td>' + r.people + '</td>' +
       '<td>' + r.unit + '</td><td>' + r.quota + '</td><td>' + r.over + '</td><td>' + r.valid + '</td>' +
       '<td><span class="tag ' + statusTagClass(r.status) + '">' + r.status + '</span></td>' +
-      '<td>' + r.remark + '</td><td>' + r.creator + '</td><td>' + r.ctime + '</td>' +
+      '<td>' + r.remark + '</td><td>' + (r.code || '—') + '</td><td>' + r.creator + '</td><td>' + r.ctime + '</td>' +
       '<td>' + r.editor + '</td><td>' + r.etime + '</td></tr>'
     ).join('');
     document.getElementById('monthTotal').textContent = '共 ' + MONTH_ROWS.length + ' 条';
@@ -3171,7 +3210,9 @@
       row.editor = '当前用户';
       row.etime = '2026-08-19 16:40';
     } else {
+      monthCodeSeq += 1;
       MONTH_ROWS.unshift({
+        code: String(monthCodeSeq),
         depot, people, unit, quota, over,
         start, end, valid: start + ' ~ ' + end,
         status: start === CURRENT_MONTH ? '生效中' : '待生效',
@@ -3514,8 +3555,8 @@
         wrap.className = 'price-top';
         wrap.style.marginBottom = '0';
         function addUnit(key, label, suffix) {
-          if (block.scheme === '按吨计算' && key === 'tray') return;
-          if (block.scheme === '按托计算' && key === 'ton') return;
+          if (block.scheme === '按吨计算' && key === 'trayPrice') return;
+          if (block.scheme === '按托计算' && key === 'tonPrice') return;
           const field = document.createElement('div');
           field.className = 'price-field';
           field.innerHTML = '<span class="pf-label"><span class="req">*</span>' + label + '</span>';
