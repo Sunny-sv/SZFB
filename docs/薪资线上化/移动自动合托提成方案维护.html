@@ -1161,7 +1161,7 @@
 
           <!-- 1. 筛选区（按面板切换） -->
           <div id="filterContainer">
-            <!-- 适用分拨 -->
+            <!-- 提成方案 -->
             <section class="filter-area panel-filter active" data-panel="fenbo">
               <div class="filter-grid">
                 <div class="filter-item">
@@ -1221,31 +1221,18 @@
               </div>
             </section>
 
-            <!-- 按普货计价货 -->
-            <section class="filter-area panel-filter" data-panel="puhuo">
+            <!-- 按特殊计价货 -->
+            <section class="filter-area panel-filter" data-panel="teshu">
               <div class="filter-grid">
                 <div class="filter-item">
                   <span class="filter-label">分拨中心</span>
                   <div class="filter-control-wrap">
-                    <div class="multi-select-wrap">
+                    <div class="multi-select-wrap" id="teshuFilterDepot">
                       <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
                       <div class="multi-select-dropdown">
                         <label class="multi-select-option"><input type="checkbox" value="金华分拨中心">金华分拨中心</label>
                         <label class="multi-select-option"><input type="checkbox" value="杭州分拨中心">杭州分拨中心</label>
                         <label class="multi-select-option"><input type="checkbox" value="宁波分拨中心">宁波分拨中心</label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="filter-item">
-                  <span class="filter-label">操作类型</span>
-                  <div class="filter-control-wrap">
-                    <div class="multi-select-wrap">
-                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
-                      <div class="multi-select-dropdown">
-                        <label class="multi-select-option"><input type="checkbox" value="卸车">卸车</label>
-                        <label class="multi-select-option"><input type="checkbox" value="移动">移动</label>
-                        <label class="multi-select-option"><input type="checkbox" value="装车">装车</label>
                       </div>
                     </div>
                   </div>
@@ -1294,7 +1281,10 @@
                         <label class="multi-select-option"><input type="checkbox" value="是否审报物品">是否审报物品</label>
                         <label class="multi-select-option"><input type="checkbox" value="订单来源">订单来源</label>
                         <label class="multi-select-option"><input type="checkbox" value="是否电商件">是否电商件</label>
-                        <label class="multi-select-option"><input type="checkbox" value="区间纬度">区间纬度</label>
+                        <label class="multi-select-option"><input type="checkbox" value="票-操作结算重量段">票-操作结算重量段</label>
+                        <label class="multi-select-option"><input type="checkbox" value="票-体积段">票-体积段</label>
+                        <label class="multi-select-option"><input type="checkbox" value="件-操作结算重量段">件-操作结算重量段</label>
+                        <label class="multi-select-option"><input type="checkbox" value="件-体积段">件-体积段</label>
                       </div>
                     </div>
                   </div>
@@ -1424,28 +1414,252 @@
                   </div>
                 </div>
                 <div class="filter-item">
-                  <span class="filter-label">区间模式</span>
+                  <span class="filter-label">方案编号</span>
+                  <div class="filter-control-wrap">
+                    <input class="filter-control" type="text" placeholder="多个编号回车分隔" />
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">有效月份</span>
+                  <div class="filter-control-wrap">
+                    <div class="date-range">
+                      <input class="filter-control" type="text" value="2026-01" readonly />
+                      <span class="sep">~</span>
+                      <input class="filter-control" type="text" value="2026-12" readonly />
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">创建人</span>
                   <div class="filter-control-wrap">
                     <div class="multi-select-wrap">
                       <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
                       <div class="multi-select-dropdown">
-                        <label class="multi-select-option"><input type="checkbox" value="不区分">不区分</label>
-                        <label class="multi-select-option"><input type="checkbox" value="按区间配置">按区间配置</label>
+                        <label class="multi-select-option"><input type="checkbox" value="张三">张三</label>
+                        <label class="multi-select-option"><input type="checkbox" value="李四">李四</label>
+                        <label class="multi-select-option"><input type="checkbox" value="王五">王五</label>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div class="filter-item">
-                  <span class="filter-label">区间纬度</span>
+                  <span class="filter-label">创建时间</span>
+                  <div class="filter-control-wrap">
+                    <div class="date-range">
+                      <input class="filter-control" type="text" placeholder="开始日期" readonly />
+                      <span class="sep">~</span>
+                      <input class="filter-control" type="text" placeholder="结束日期" readonly />
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">卸车库区</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap" id="teshuFilterUnloadArea">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="出发库">出发库</label>
+                        <label class="multi-select-option"><input type="checkbox" value="到达库">到达库</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-actions">
+                <button class="btn">重置</button>
+                <button class="btn btn-primary">查询</button>
+              </div>
+            </section>
+
+            <!-- 按普货计价货 -->
+            <section class="filter-area panel-filter" data-panel="puhuo">
+              <div class="filter-grid">
+                <div class="filter-item">
+                  <span class="filter-label">分拨中心</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap" id="puhuoFilterDepot">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="金华分拨中心">金华分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="杭州分拨中心">杭州分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="宁波分拨中心">宁波分拨中心</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">重/抛货</span>
                   <div class="filter-control-wrap">
                     <div class="multi-select-wrap">
                       <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
                       <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="重货">重货</label>
+                        <label class="multi-select-option"><input type="checkbox" value="抛货">抛货</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">任务类型</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="分拨">分拨</label>
+                        <label class="multi-select-option"><input type="checkbox" value="服务站">服务站</label>
+                        <label class="multi-select-option"><input type="checkbox" value="集配站">集配站</label>
+                        <label class="multi-select-option"><input type="checkbox" value="网点">网点</label>
+                        <label class="multi-select-option"><input type="checkbox" value="智运分拨">智运分拨</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">组合项</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="上一站">上一站</label>
+                        <label class="multi-select-option"><input type="checkbox" value="下一站">下一站</label>
+                        <label class="multi-select-option"><input type="checkbox" value="开单网点/分拨/省区">开单网点/分拨/省区</label>
+                        <label class="multi-select-option"><input type="checkbox" value="产品类型">产品类型</label>
+                        <label class="multi-select-option"><input type="checkbox" value="物品类型">物品类型</label>
+                        <label class="multi-select-option"><input type="checkbox" value="物品名称">物品名称</label>
+                        <label class="multi-select-option"><input type="checkbox" value="包装类型">包装类型</label>
+                        <label class="multi-select-option"><input type="checkbox" value="寄件人">寄件人</label>
+                        <label class="multi-select-option"><input type="checkbox" value="是否审报物品">是否审报物品</label>
+                        <label class="multi-select-option"><input type="checkbox" value="订单来源">订单来源</label>
+                        <label class="multi-select-option"><input type="checkbox" value="是否电商件">是否电商件</label>
                         <label class="multi-select-option"><input type="checkbox" value="票-操作结算重量段">票-操作结算重量段</label>
                         <label class="multi-select-option"><input type="checkbox" value="票-体积段">票-体积段</label>
                         <label class="multi-select-option"><input type="checkbox" value="件-操作结算重量段">件-操作结算重量段</label>
                         <label class="multi-select-option"><input type="checkbox" value="件-体积段">件-体积段</label>
                       </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">状态</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="生效中" checked>生效中</label>
+                        <label class="multi-select-option"><input type="checkbox" value="待生效">待生效</label>
+                        <label class="multi-select-option"><input type="checkbox" value="已失效">已失效</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">上一站</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="义乌一部">义乌一部</label>
+                        <label class="multi-select-option"><input type="checkbox" value="金华分拨中心">金华分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="杭州分拨中心">杭州分拨中心</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">下一站</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="义乌一部">义乌一部</label>
+                        <label class="multi-select-option"><input type="checkbox" value="金华分拨中心">金华分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="杭州分拨中心">杭州分拨中心</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">开单网点/分拨/省区</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="宁波分拨中心">宁波分拨中心</label>
+                        <label class="multi-select-option"><input type="checkbox" value="浙东省区">浙东省区</label>
+                        <label class="multi-select-option"><input type="checkbox" value="慈溪一部">慈溪一部</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">产品类型</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="国内件">国内件</label>
+                        <label class="multi-select-option"><input type="checkbox" value="仓配一体">仓配一体</label>
+                        <label class="multi-select-option"><input type="checkbox" value="普货">普货</label>
+                        <label class="multi-select-option"><input type="checkbox" value="冷链">冷链</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">物品类型</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="文件">文件</label>
+                        <label class="multi-select-option"><input type="checkbox" value="包裹">包裹</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">物品名称</span>
+                  <div class="filter-control-wrap">
+                    <input class="filter-control" type="text" placeholder="请输入物品名称" />
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">包装类型</span>
+                  <div class="filter-control-wrap">
+                    <input class="filter-control" type="text" placeholder="请输入包装类型" />
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">寄件人</span>
+                  <div class="filter-control-wrap">
+                    <input class="filter-control" type="text" placeholder="请输入寄件人" />
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">是否审报物品</span>
+                  <div class="filter-control-wrap">
+                    <div class="select-wrap">
+                      <select class="filter-control"><option selected>全部</option><option>是</option><option>否</option></select>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">订单来源</span>
+                  <div class="filter-control-wrap">
+                    <div class="multi-select-wrap">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="线上">线上</label>
+                        <label class="multi-select-option"><input type="checkbox" value="线下">线下</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">是否电商件</span>
+                  <div class="filter-control-wrap">
+                    <div class="select-wrap">
+                      <select class="filter-control"><option selected>全部</option><option>是</option><option>否</option></select>
                     </div>
                   </div>
                 </div>
@@ -1491,13 +1705,12 @@
                 <div class="filter-item">
                   <span class="filter-label">卸车库区</span>
                   <div class="filter-control-wrap">
-                    <div class="select-wrap">
-                      <select class="filter-control">
-                        <option selected>全部</option>
-                        <option>出发库</option>
-                        <option>到达库</option>
-                        <option>空（不限）</option>
-                      </select>
+                    <div class="multi-select-wrap" id="puhuoFilterUnloadArea">
+                      <div class="multi-select-box"><span class="multi-select-placeholder">请选择</span><span class="multi-select-tags"></span><span class="multi-select-arrow">▼</span></div>
+                      <div class="multi-select-dropdown">
+                        <label class="multi-select-option"><input type="checkbox" value="出发库">出发库</label>
+                        <label class="multi-select-option"><input type="checkbox" value="到达库">到达库</label>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1575,7 +1788,8 @@
 
           <!-- 2. 主 Tab -->
           <nav class="content-tabs" id="mainTabs">
-            <div class="content-tab active" data-main="fenbo">适用分拨</div>
+            <div class="content-tab active" data-main="fenbo">提成方案</div>
+            <div class="content-tab" data-main="teshu">按特殊计价货</div>
             <div class="content-tab" data-main="puhuo">按普货计价货</div>
             <div class="content-tab" data-main="person">特殊人员额度标准</div>
           </nav>
@@ -1587,6 +1801,13 @@
               <button class="btn-action" type="button" id="btnFenboEdit" disabled>编辑</button>
               <button class="btn-action" type="button" id="btnFenboDelete" disabled>删除</button>
               <button class="btn-action" type="button" id="btnFenboExport">导出</button>
+            </section>
+            <section class="action-bar panel-action" data-panel="teshu">
+              <button class="btn-action primary" type="button" id="btnTeshuAdd">新增</button>
+              <button class="btn-action" type="button" id="btnTeshuEdit" disabled>编辑</button>
+              <button class="btn-action" type="button" id="btnTeshuDelete" disabled>删除</button>
+              <button class="btn-action" type="button" id="btnTeshuImport">导入</button>
+              <button class="btn-action" type="button" id="btnTeshuExport">导出</button>
             </section>
             <section class="action-bar panel-action" data-panel="puhuo">
               <button class="btn-action primary" data-modal="modalPuhuo" id="btnPuhuoAdd">新增</button>
@@ -1607,7 +1828,7 @@
           <!-- 4. 表格区 -->
           <div id="tableContainer" style="flex:1;min-height:0;display:flex;flex-direction:column;">
 
-            <!-- 适用分拨表格 -->
+            <!-- 提成方案表格 -->
             <section class="table-area panel-table active" data-panel="fenbo">
               <div class="table-scroll">
                 <table class="data-table data-table-wide">
@@ -1646,15 +1867,14 @@
               </div>
             </section>
 
-            <!-- 按普货计价货表格 -->
-            <section class="table-area panel-table" data-panel="puhuo">
+            <!-- 按特殊计价货表格 -->
+            <section class="table-area panel-table" data-panel="teshu">
               <div class="table-scroll">
                 <table class="data-table data-table-wide">
                   <thead>
                     <tr>
-                      <th class="col-checkbox"><input type="checkbox" class="check-all" data-target="puhuo" /></th>
+                      <th class="col-checkbox"><input type="checkbox" class="check-all" data-target="teshu" /></th>
                       <th>分拨中心</th>
-                      <th>操作类型</th>
                       <th>重/抛货</th>
                       <th>任务类型</th>
                       <th>上一站</th>
@@ -1669,9 +1889,58 @@
                       <th>是否审报物品</th>
                       <th>订单来源</th>
                       <th>是否电商件</th>
-                      <th>区间模式</th>
-                      <th>区间纬度</th>
-                      <th>区间明细</th>
+                      <th>票-操作结算重量段</th>
+                      <th>票-体积段</th>
+                      <th>件-操作结算重量段</th>
+                      <th>件-体积段</th>
+                      <th>有效期限</th>
+                      <th>状态</th>
+                      <th>备注</th>
+                      <th>方案编号</th>
+                      <th>创建人</th>
+                      <th>创建时间</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teshuTableBody">
+                    <!-- 由脚本渲染 -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <span class="total" id="teshuTotal">共 2 条</span>
+                <button class="page-btn disabled">&lt;</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn disabled">&gt;</button>
+                <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+              </div>
+            </section>
+
+            <!-- 按普货计价货表格 -->
+            <section class="table-area panel-table" data-panel="puhuo">
+              <div class="table-scroll">
+                <table class="data-table data-table-wide">
+                  <thead>
+                    <tr>
+                      <th class="col-checkbox"><input type="checkbox" class="check-all" data-target="puhuo" /></th>
+                      <th>分拨中心</th>
+                      <th>重/抛货</th>
+                      <th>任务类型</th>
+                      <th>上一站</th>
+                      <th>下一站</th>
+                      <th>开单网点/分拨/省区</th>
+                      <th>卸车库区</th>
+                      <th>产品类型</th>
+                      <th>物品类型</th>
+                      <th>物品名称</th>
+                      <th>包装类型</th>
+                      <th>寄件人</th>
+                      <th>是否审报物品</th>
+                      <th>订单来源</th>
+                      <th>是否电商件</th>
+                      <th>票-操作结算重量段</th>
+                      <th>票-体积段</th>
+                      <th>件-操作结算重量段</th>
+                      <th>件-体积段</th>
                       <th>有效期限</th>
                       <th>状态</th>
                       <th>备注</th>
@@ -1738,11 +2007,11 @@
   </div>
 </div>
 
-<!-- 适用分拨 新增/编辑弹框（含分拨月额度 + 特殊提成单价） -->
+<!-- 提成方案 新增/编辑弹框（含分拨月额度 + 特殊提成单价） -->
 <div class="modal-mask" id="modalFenbo">
   <div class="modal modal-wide">
     <div class="modal-header">
-      <span id="fenboModalTitle">新增适用分拨</span>
+      <span id="fenboModalTitle">新增提成方案</span>
       <span class="modal-close" data-close="modalFenbo">×</span>
     </div>
     <div class="modal-body">
@@ -1824,17 +2093,6 @@
             <label><span class="req">*</span>分拨中心</label>
             <div class="select-wrap">
               <select class="form-control" id="phDepot"><option value="">请选择</option><option>金华分拨中心</option><option>杭州分拨中心</option><option>宁波分拨中心</option></select>
-            </div>
-          </div>
-          <div class="form-item">
-            <label><span class="req">*</span>操作类型</label>
-            <div class="select-wrap">
-              <select class="form-control" id="phOpType">
-                <option value="">请选择</option>
-                <option value="卸车">卸车</option>
-                <option value="移动" selected>移动</option>
-                <option value="装车">装车</option>
-              </select>
             </div>
           </div>
           <div class="form-item">
@@ -2111,10 +2369,10 @@
   </div>
 </div>
 
-<!-- 特殊提成单价独立弹框已并入适用分拨，保留预览弹框 -->
+<!-- 特殊提成单价独立弹框已并入提成方案，保留预览弹框 -->
 <div class="modal-mask" id="modalSpecial" style="display:none;" aria-hidden="true"></div>
 
-<!-- 共用删除确认（适用分拨 / 按普货 / 月额度） -->
+<!-- 共用删除确认（提成方案 / 按普货 / 月额度） -->
 <div class="modal-mask" id="modalStrictDelete">
   <div class="modal" style="width: 480px;">
     <div class="modal-header">
@@ -2472,7 +2730,7 @@
     return true;
   }
 
-  /* ----- 适用分拨（含分拨月额度 + 特殊提成单价） ----- */
+  /* ----- 提成方案（含分拨月额度 + 特殊提成单价） ----- */
   const FENBO_ROWS = [
     {
       code: '100001',
@@ -2548,7 +2806,7 @@
     fenboEditIdx = -1;
     fenboLock = 'none';
     specialPriceLocked = false;
-    document.getElementById('fenboModalTitle').textContent = '新增适用分拨';
+    document.getElementById('fenboModalTitle').textContent = '新增提成方案';
     document.getElementById('fenboEditHint').style.display = 'none';
     document.getElementById('fbDepot').value = '';
     document.getElementById('fbStart').value = '';
@@ -2611,7 +2869,7 @@
     const row = FENBO_ROWS[idxs[0]];
     if (!canEditRow(row)) { showToast('已失效方案不可编辑'); return; }
     fenboEditIdx = idxs[0];
-    document.getElementById('fenboModalTitle').textContent = '编辑适用分拨';
+    document.getElementById('fenboModalTitle').textContent = '编辑提成方案';
     document.getElementById('fbDepot').value = row.depot;
     document.getElementById('fbStart').value = row.start;
     document.getElementById('fbEnd').value = row.end;
@@ -2678,43 +2936,67 @@
   document.getElementById('btnFenboExport').addEventListener('click', () => showToast('已导出（原型示意）'));
   wireCheckAll('fenbo', updateFenboButtons);
 
+  var screenGoodsMode = 'puhuo'; // puhuo | teshu，共用 modalPuhuo
+
   /* ----- 按普货计价货 ----- */
   const MULTI_WAREHOUSE_DEPOTS = ['金华分拨中心', '杭州分拨中心'];
+  const EMPTY_INTERVAL = {
+    ticketWeight: '—', ticketVol: '—',
+    pieceWeight: '—', pieceVol: '—'
+  };
   const PUHUO_ROWS = [
     {
       code: '200001',
-      depot: '金华分拨中心', unloadArea: '出发库', opType: '移动', start: '2026-01', end: '2026-12', valid: '2026-01 ~ 2026-12',
+      depot: '金华分拨中心', unloadArea: '出发库', start: '2026-01', end: '2026-12', valid: '2026-01 ~ 2026-12',
       weightType: '重货', taskType: '分拨,网点', prevStation: '义乌一部', nextStation: '—',
       billOrg: '开单网点：金华一部', productType: '国内件,仓配一体', goodsType: '—', goodsName: '—',
       packType: '—', sender: '—', declare: '—', orderSrc: '—', ecommerce: '—',
-      intervalMode: '按区间配置', intervalDims: '票-操作结算重量段', intervalDetail: '0—50；50—100',
+      ticketWeight: '0.00~50.00', ticketVol: '—', pieceWeight: '—', pieceVol: '—',
+      status: '生效中', remark: '—', creator: '张三', ctime: '2026-01-08 11:00'
+    },
+    {
+      code: '200001',
+      depot: '金华分拨中心', unloadArea: '出发库', start: '2026-01', end: '2026-12', valid: '2026-01 ~ 2026-12',
+      weightType: '重货', taskType: '分拨,网点', prevStation: '义乌一部', nextStation: '—',
+      billOrg: '开单网点：金华一部', productType: '国内件,仓配一体', goodsType: '—', goodsName: '—',
+      packType: '—', sender: '—', declare: '—', orderSrc: '—', ecommerce: '—',
+      ticketWeight: '50.00~100.00', ticketVol: '—', pieceWeight: '—', pieceVol: '—',
       status: '生效中', remark: '—', creator: '张三', ctime: '2026-01-08 11:00'
     },
     {
       code: '200002',
-      depot: '杭州分拨中心', unloadArea: '', opType: '移动', start: '2026-09', end: '2026-12', valid: '2026-09 ~ 2026-12',
+      depot: '杭州分拨中心', unloadArea: '', start: '2026-09', end: '2026-12', valid: '2026-09 ~ 2026-12',
       weightType: '抛货', taskType: '网点', prevStation: '—', nextStation: '杭州转',
       billOrg: '—', productType: '—', goodsType: '包裹', goodsName: '等于：电商件',
       packType: '—', sender: '—', declare: '否', orderSrc: '线上', ecommerce: '是',
-      intervalMode: '按区间配置', intervalDims: '件-体积段', intervalDetail: '0—0.5；0.5—1',
+      ticketWeight: '—', ticketVol: '—', pieceWeight: '—', pieceVol: '0.00~0.50',
+      status: '待生效', remark: '电商件专用', creator: '李四', ctime: '2026-08-12 15:30'
+    },
+    {
+      code: '200002',
+      depot: '杭州分拨中心', unloadArea: '', start: '2026-09', end: '2026-12', valid: '2026-09 ~ 2026-12',
+      weightType: '抛货', taskType: '网点', prevStation: '—', nextStation: '杭州转',
+      billOrg: '—', productType: '—', goodsType: '包裹', goodsName: '等于：电商件',
+      packType: '—', sender: '—', declare: '否', orderSrc: '线上', ecommerce: '是',
+      ticketWeight: '—', ticketVol: '—', pieceWeight: '—', pieceVol: '0.50~1.00',
       status: '待生效', remark: '电商件专用', creator: '李四', ctime: '2026-08-12 15:30'
     },
     {
       code: '200003',
-      depot: '宁波分拨中心', unloadArea: '', opType: '移动', start: '2026-08', end: '2026-12', valid: '2026-08 ~ 2026-12',
+      depot: '宁波分拨中心', unloadArea: '', start: '2026-08', end: '2026-12', valid: '2026-08 ~ 2026-12',
       weightType: '重货', taskType: '分拨', prevStation: '慈溪一部', nextStation: '—',
       billOrg: '开单所属分拨：宁波分拨中心', productType: '普货', goodsType: '—', goodsName: '—',
       packType: '包含：纸箱', sender: '—', declare: '—', orderSrc: '—', ecommerce: '否',
-      intervalMode: '按区间配置', intervalDims: '票-操作结算重量段,票-体积段', intervalDetail: '重量 0—80 / 体积 0—1',
+      ticketWeight: '0.00~80.00', ticketVol: '0.00~1.00', pieceWeight: '—', pieceVol: '—',
       status: '生效中', remark: '当月新建', creator: '王五', ctime: '2026-08-06 10:00'
     },
     {
       code: '200004',
-      depot: '金华分拨中心', unloadArea: '出发库', opType: '移动', start: '2026-01', end: '2026-03', valid: '2026-01 ~ 2026-03',
+      depot: '金华分拨中心', unloadArea: '出发库', start: '2026-01', end: '2026-03', valid: '2026-01 ~ 2026-03',
       weightType: '抛货', taskType: '—', prevStation: '—', nextStation: '—',
       billOrg: '—', productType: '—', goodsType: '—', goodsName: '—',
       packType: '—', sender: '张三商贸', declare: '是', orderSrc: '线下', ecommerce: '—',
-      intervalMode: '不区分', intervalDims: '—', intervalDetail: '—',
+      ticketWeight: '—', ticketVol: '—', pieceWeight: '—', pieceVol: '—',
       status: '已失效', remark: '已停用', creator: '张三', ctime: '2026-01-02 09:00'
     }
   ];
@@ -2749,11 +3031,10 @@
     document.getElementById('puhuoEditHint').style.display = 'none';
     document.getElementById('phDepot').value = '';
     document.getElementById('phUnloadArea').value = '';
-    document.getElementById('phOpType').value = '移动';
     document.getElementById('phStart').value = '';
     document.getElementById('phEnd').value = '';
     document.getElementById('phRemark').value = '';
-    ['phDepot', 'phOpType', 'phStart', 'phEnd', 'phRemark'].forEach(id => setFieldLocked(document.getElementById(id), false));
+    ['phDepot', 'phStart', 'phEnd', 'phRemark'].forEach(id => setFieldLocked(document.getElementById(id), false));
     setAreaLocked(document.getElementById('puhuoBasicSection'), false);
     setAreaLocked(document.getElementById('puhuoExtraSection'), false);
     syncPuhuoUnloadArea(true);
@@ -2771,6 +3052,14 @@
     else setFieldLocked(document.getElementById('phUnloadArea'), true);
   }
 
+  function intervalTdHtml(r, dash) {
+    const keys = ['ticketWeight','ticketVol','pieceWeight','pieceVol'];
+    return keys.map(k => {
+      const v = dash(r[k]);
+      return '<td title="' + v + '">' + v + '</td>';
+    }).join('');
+  }
+
   function renderPuhuoTable() {
     const tbody = document.getElementById('puhuoTableBody');
     const dash = (v) => (v == null || v === '' ? '—' : v);
@@ -2778,7 +3067,6 @@
       '<tr data-idx="' + idx + '">' +
       '<td class="col-checkbox"><input type="checkbox" class="row-check puhuo-check" /></td>' +
       '<td title="' + dash(r.depot) + '">' + dash(r.depot) + '</td>' +
-      '<td>' + dash(r.opType) + '</td>' +
       '<td>' + dash(r.weightType) + '</td>' +
       '<td title="' + dash(r.taskType) + '">' + dash(r.taskType) + '</td>' +
       '<td title="' + dash(r.prevStation) + '">' + dash(r.prevStation) + '</td>' +
@@ -2793,9 +3081,7 @@
       '<td>' + dash(r.declare) + '</td>' +
       '<td>' + dash(r.orderSrc) + '</td>' +
       '<td>' + dash(r.ecommerce) + '</td>' +
-      '<td>' + dash(r.intervalMode) + '</td>' +
-      '<td title="' + dash(r.intervalDims) + '">' + dash(r.intervalDims) + '</td>' +
-      '<td title="' + dash(r.intervalDetail) + '">' + dash(r.intervalDetail) + '</td>' +
+      intervalTdHtml(r, dash) +
       '<td>' + dash(r.valid) + '</td>' +
       '<td><span class="tag ' + statusTagClass(r.status) + '">' + r.status + '</span></td>' +
       '<td title="' + dash(r.remark) + '">' + dash(r.remark) + '</td>' +
@@ -2820,7 +3106,6 @@
     document.getElementById('puhuoModalTitle').textContent = '编辑按普货计价货';
     document.getElementById('phDepot').value = row.depot || '';
     document.getElementById('phUnloadArea').value = row.unloadArea || '';
-    document.getElementById('phOpType').value = row.opType || '移动';
     document.getElementById('phStart').value = row.start;
     document.getElementById('phEnd').value = row.end;
     document.getElementById('phRemark').value = row.remark === '—' ? '' : row.remark;
@@ -2841,10 +3126,34 @@
     const start = document.getElementById('phStart').value.trim();
     const end = document.getElementById('phEnd').value.trim();
     const remark = document.getElementById('phRemark').value.trim() || '—';
-    const opType = document.getElementById('phOpType').value;
     const unloadArea = MULTI_WAREHOUSE_DEPOTS.includes(depot) ? (document.getElementById('phUnloadArea').value || '') : '';
-    if (!depot || !opType || !start || !end) { showToast('请完善必填项'); return; }
+    if (!depot || !start || !end) { showToast('请完善必填项'); return; }
     if (!validateMonths(start, end, puhuoLock)) return;
+
+    if (typeof screenGoodsMode !== 'undefined' && screenGoodsMode === 'teshu') {
+      if (teshuEditIdx >= 0) {
+        const row = TESHU_ROWS[teshuEditIdx];
+        if (puhuoLock === 'endOnly') { row.end = end; row.valid = row.start + ' ~ ' + end; }
+        else { row.depot = depot; row.unloadArea = unloadArea; row.start = start; row.end = end; row.valid = start + ' ~ ' + end; row.remark = remark; }
+        teshuEditIdx = -1;
+      } else {
+        TESHU_ROWS.unshift({
+          code: String(Date.now()).slice(-6), depot, unloadArea, start, end, valid: start + ' ~ ' + end,
+          weightType: '—', taskType: '—', prevStation: '—', nextStation: '—', billOrg: '—',
+          productType: '—', goodsType: '—', goodsName: '—', packType: '—', sender: '—',
+          declare: '—', orderSrc: '—', ecommerce: '—',
+          ...EMPTY_INTERVAL,
+          status: start === CURRENT_MONTH ? '生效中' : '待生效', remark, creator: '当前用户', ctime: '2026-08-31 16:40'
+        });
+      }
+      showToast('保存成功');
+      closeModal('modalPuhuo');
+      resetPuhuoForm();
+      renderTeshuTable();
+      screenGoodsMode = 'puhuo';
+      return;
+    }
+
     if (puhuoEditIdx >= 0) {
       const row = PUHUO_ROWS[puhuoEditIdx];
       if (puhuoLock === 'endOnly') {
@@ -2853,7 +3162,6 @@
       } else {
         row.depot = depot;
         row.unloadArea = unloadArea;
-        row.opType = opType;
         row.start = start;
         row.end = end;
         row.valid = start + ' ~ ' + end;
@@ -2865,13 +3173,11 @@
         code: String(puhuoCodeSeq),
         depot,
         unloadArea,
-        opType: document.getElementById('phOpType').value,
         start, end, valid: start + ' ~ ' + end,
         weightType: '—', taskType: '—', prevStation: '—', nextStation: '—', billOrg: '—',
         productType: '—', goodsType: '—', goodsName: '—', packType: '—', sender: '—',
         declare: '—', orderSrc: '—', ecommerce: '—',
-        intervalMode: document.querySelector('input[name="phIntervalMode"]:checked').value === '2' ? '按区间配置' : '不区分',
-        intervalDims: '—', intervalDetail: '—',
+        ...EMPTY_INTERVAL,
         status: start === CURRENT_MONTH ? '生效中' : '待生效',
         remark, creator: '当前用户', ctime: '2026-08-19 16:40'
       });
@@ -3228,11 +3534,99 @@
   document.getElementById('btnMonthExport').addEventListener('click', () => showToast('已导出（原型示意）'));
   wireCheckAll('month', updateMonthButtons);
 
+
+  /* ----- 按特殊计价货：配置与按普货相同，原型共用弹框与样例结构 ----- */
+  const TESHU_ROWS = PUHUO_ROWS.map(r => Object.assign({}, r));
+  let teshuEditIdx = -1;
+
+  function renderTeshuTable() {
+    const tbody = document.getElementById('teshuTableBody');
+    if (!tbody) return;
+    const dash = (v) => (v == null || v === '' ? '—' : v);
+    tbody.innerHTML = TESHU_ROWS.map((r, idx) =>
+      '<tr data-idx="' + idx + '">' +
+      '<td class="col-checkbox"><input type="checkbox" class="row-check teshu-check" /></td>' +
+      '<td title="' + dash(r.depot) + '">' + dash(r.depot) + '</td>' +
+      '<td>' + dash(r.weightType) + '</td>' +
+      '<td title="' + dash(r.taskType) + '">' + dash(r.taskType) + '</td>' +
+      '<td title="' + dash(r.prevStation) + '">' + dash(r.prevStation) + '</td>' +
+      '<td title="' + dash(r.nextStation) + '">' + dash(r.nextStation) + '</td>' +
+      '<td title="' + dash(r.billOrg) + '">' + dash(r.billOrg) + '</td>' +
+      '<td>' + dash(r.unloadArea) + '</td>' +
+      '<td title="' + dash(r.productType) + '">' + dash(r.productType) + '</td>' +
+      '<td>' + dash(r.goodsType) + '</td>' +
+      '<td title="' + dash(r.goodsName) + '">' + dash(r.goodsName) + '</td>' +
+      '<td title="' + dash(r.packType) + '">' + dash(r.packType) + '</td>' +
+      '<td>' + dash(r.sender) + '</td>' +
+      '<td>' + dash(r.declare) + '</td>' +
+      '<td>' + dash(r.orderSrc) + '</td>' +
+      '<td>' + dash(r.ecommerce) + '</td>' +
+      intervalTdHtml(r, dash) +
+      '<td>' + dash(r.valid) + '</td>' +
+      '<td><span class="tag ' + statusTagClass(r.status) + '">' + r.status + '</span></td>' +
+      '<td title="' + dash(r.remark) + '">' + dash(r.remark) + '</td>' +
+      '<td>' + dash(r.code) + '</td>' +
+      '<td>' + dash(r.creator) + '</td>' +
+      '<td>' + dash(r.ctime) + '</td></tr>'
+    ).join('');
+    const total = document.getElementById('teshuTotal');
+    if (total) total.textContent = '共 ' + TESHU_ROWS.length + ' 条';
+    bindPanelChecks('teshu-check', updateTeshuButtons);
+    updateTeshuButtons();
+  }
+
+  function updateTeshuButtons() {
+    const idxs = getSelectedIdxs('teshu-check');
+    const rows = idxs.map(i => TESHU_ROWS[i]).filter(Boolean);
+    setBtnState(document.getElementById('btnTeshuEdit'), rows.length === 1 && canEditRow(rows[0]));
+    setBtnState(document.getElementById('btnTeshuDelete'), rows.length > 0 && rows.every(canDeleteRow));
+  }
+
+  document.getElementById('btnTeshuAdd').addEventListener('click', () => {
+    screenGoodsMode = 'teshu';
+    resetPuhuoForm();
+    document.getElementById('puhuoModalTitle').textContent = '新增按特殊计价货';
+    openModal('modalPuhuo');
+  });
+  document.getElementById('btnTeshuEdit').addEventListener('click', () => {
+    const idxs = getSelectedIdxs('teshu-check');
+    if (idxs.length !== 1) { showToast('请选中单条数据后再编辑'); return; }
+    screenGoodsMode = 'teshu';
+    teshuEditIdx = idxs[0];
+    // reuse puhuo edit path by temporarily pointing
+    const row = TESHU_ROWS[idxs[0]];
+    puhuoEditIdx = -1;
+    document.getElementById('puhuoModalTitle').textContent = '编辑按特殊计价货';
+    document.getElementById('phDepot').value = row.depot || '';
+    document.getElementById('phUnloadArea').value = row.unloadArea || '';
+    document.getElementById('phStart').value = row.start;
+    document.getElementById('phEnd').value = row.end;
+    document.getElementById('phRemark').value = row.remark === '—' ? '' : row.remark;
+    applyPuhuoLock(editLockMode(row));
+    syncPuhuoUnloadArea(false);
+    if (row.unloadArea) document.getElementById('phUnloadArea').value = row.unloadArea;
+    openModal('modalPuhuo');
+  });
+  document.getElementById('btnTeshuDelete').addEventListener('click', () => {
+    openStrictDelete(getSelectedIdxs('teshu-check'), TESHU_ROWS, (idxs) => {
+      const set = new Set(idxs);
+      for (let i = TESHU_ROWS.length - 1; i >= 0; i--) if (set.has(i)) TESHU_ROWS.splice(i, 1);
+      renderTeshuTable();
+    });
+  });
+  document.getElementById('btnTeshuImport').addEventListener('click', () => showToast('已打开导入（原型示意，模版：按特殊计价货_导入模版）'));
+  document.getElementById('btnTeshuExport').addEventListener('click', () => showToast('已导出（原型示意）'));
+
+  const _btnPuhuoAdd = document.getElementById('btnPuhuoAdd');
+  _btnPuhuoAdd.addEventListener('click', () => { screenGoodsMode = 'puhuo'; }, true);
+
+
   renderFenboTable();
   renderPuhuoTable();
+  renderTeshuTable();
   renderMonthTable();
 
-  /* 特殊提成单价交互（并入适用分拨弹框）+ 表单预览 */
+  /* 特殊提成单价交互（并入提成方案弹框）+ 表单预览 */
   const LINK_SPECIAL = ['网点卸车移动', '干线卸车移动'];
 
   function cloneBlocks(blocks) {
