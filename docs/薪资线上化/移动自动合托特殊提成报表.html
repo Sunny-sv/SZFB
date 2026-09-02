@@ -386,13 +386,13 @@
                   </div>
                 </div>
                 <div class="filter-item">
-                  <span class="filter-label">托状态</span>
+                  <span class="filter-label">移动自动合托类型</span>
                   <div class="filter-control-wrap">
                     <div class="select-wrap">
-                      <select class="filter-control">
-                        <option value="">全部</option>
-                        <option>有效</option>
-                        <option>无效</option>
+                      <select class="filter-control" id="filterDetailAutoType">
+                        <option value="" selected>全部</option>
+                        <option>常规合托</option>
+                        <option>专项合托</option>
                       </select>
                     </div>
                   </div>
@@ -561,9 +561,28 @@
                     <th>支援分拨</th>
                     <th>交接单号</th>
                     <th>上一站</th>
+                    <th>下一站</th>
                     <th>操作类型</th>
                     <th>操作结算重量（吨）</th>
-                    <th>托状态</th>
+                    <th>移动自动合托类型</th>
+                    <th>重/抛货</th>
+                    <th>任务类型</th>
+                    <th>开单网点</th>
+                    <th>卸车库区</th>
+                    <th>产品类型</th>
+                    <th>物品类型</th>
+                    <th>物品名称</th>
+                    <th>包装类型</th>
+                    <th>寄件人</th>
+                    <th>是否审报物品</th>
+                    <th>订单来源</th>
+                    <th>是否电商件</th>
+                    <th>票-操作结算重量</th>
+                    <th>票-体积</th>
+                    <th>件-操作结算重量</th>
+                    <th>件-体积</th>
+                    <th>按特殊计价方案编号</th>
+                    <th>按普货计价方案编号</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -581,9 +600,28 @@
                     <td>-</td>
                     <td>JJ20260815001</td>
                     <td>金华网点A</td>
+                    <td>金华分拨中心</td>
                     <td>网点卸车移动</td>
                     <td>0.28</td>
-                    <td>有效</td>
+                    <td>专项合托</td>
+                    <td>重货</td>
+                    <td>网点</td>
+                    <td>某某电商网点</td>
+                    <td>库区1</td>
+                    <td>标准快运</td>
+                    <td>日用品</td>
+                    <td>洗衣液</td>
+                    <td>纸箱</td>
+                    <td>张某</td>
+                    <td>否</td>
+                    <td>EC01</td>
+                    <td>是</td>
+                    <td>25.60</td>
+                    <td>0.120</td>
+                    <td>0.28</td>
+                    <td>0.010</td>
+                    <td>10086</td>
+                    <td>-</td>
                   </tr>
                   <tr>
                     <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
@@ -599,9 +637,28 @@
                     <td>杭州分拨中心</td>
                     <td>JJ20260818002</td>
                     <td>杭州分拨中心</td>
+                    <td>萧山分拨中心</td>
                     <td>干线卸车移动</td>
                     <td>0.35</td>
-                    <td>有效</td>
+                    <td>常规合托</td>
+                    <td>抛货</td>
+                    <td>分拨</td>
+                    <td>杭州网点B</td>
+                    <td>库区2</td>
+                    <td>标准快运</td>
+                    <td>服装</td>
+                    <td>衣服</td>
+                    <td>编织袋</td>
+                    <td>李某</td>
+                    <td>否</td>
+                    <td>EC02</td>
+                    <td>是</td>
+                    <td>18.00</td>
+                    <td>0.450</td>
+                    <td>0.35</td>
+                    <td>0.080</td>
+                    <td>10086</td>
+                    <td>20011</td>
                   </tr>
                   <tr>
                     <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
@@ -617,9 +674,28 @@
                     <td>-</td>
                     <td>-</td>
                     <td>-</td>
+                    <td>金华分拨中心</td>
                     <td>网点卸车移动</td>
                     <td>0.22</td>
-                    <td>无效</td>
+                    <td>常规合托</td>
+                    <td>重货</td>
+                    <td>网点</td>
+                    <td>杭州网点C</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>否</td>
+                    <td>12.00</td>
+                    <td>0.080</td>
+                    <td>0.22</td>
+                    <td>0.015</td>
+                    <td>-</td>
+                    <td>-</td>
                   </tr>
                 </tbody>
               </table>
@@ -737,6 +813,8 @@
         if (sel) sel.value = depot;
         const n = document.getElementById('filterDetailName');
         if (n) n.value = name;
+        const typ = document.getElementById('filterDetailAutoType');
+        if (typ) typ.value = '专项合托';
       }
     });
   });
