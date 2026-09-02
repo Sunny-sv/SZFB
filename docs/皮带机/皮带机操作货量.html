@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>皮带机操作货量</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0659d9;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 48px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+    .top-header { height: var(--header-height); display: flex; flex-shrink: 0; z-index: 10; }
+    .brand-area {
+      width: var(--sidebar-width); background: var(--sidebar-bg); color: #fff;
+      display: flex; align-items: center; padding: 0 16px; font-size: 15px; font-weight: 500;
+      white-space: nowrap; flex-shrink: 0; transition: width .2s; letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area { width: var(--sidebar-collapsed); padding: 0 8px; justify-content: center; font-size: 12px; }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+    .top-tabs {
+      flex: 1; min-width: 0; height: 100%; background: var(--header-blue);
+      display: flex; align-items: flex-end; padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn, .top-tabs .home-btn {
+      width: 36px; height: 36px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center;
+      color: #fff; cursor: pointer; border-radius: 4px; font-size: 18px; flex-shrink: 0; opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover, .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+    .page-tabs { display: flex; align-items: flex-end; flex: 1; overflow-x: auto; gap: 4px; padding: 0 4px; height: 100%; }
+    .page-tab {
+      display: flex; align-items: center; gap: 8px; padding: 0 14px; height: 36px;
+      border-radius: 6px 6px 0 0; color: rgba(255,255,255,.95); cursor: pointer; white-space: nowrap;
+      font-size: 13px; background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active { background: #fff; color: var(--header-blue); font-weight: 500; }
+    .page-tab .tab-close { opacity: .6; font-size: 14px; }
+    .top-right { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; margin-left: 8px; flex-shrink: 0; }
+    .icon-btn { color: #fff; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; position: relative; }
+    .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .icon-btn .badge {
+      position: absolute; top: 0; right: 0; background: #ff4d4f; color: #fff; font-size: 10px;
+      border-radius: 8px; padding: 0 4px; line-height: 14px;
+    }
+    .user-info { display: flex; align-items: center; gap: 6px; color: #fff; padding: 4px 8px; cursor: pointer; border-radius: 4px; }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,.3);
+      display: flex; align-items: center; justify-content: center; font-size: 12px;
+    }
+    .user-name { font-size: 13px; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+    .body-row { display: flex; flex: 1; min-height: 0; }
+    .sidebar {
+      width: var(--sidebar-width); background: var(--sidebar-bg); display: flex; flex-direction: column;
+      flex-shrink: 0; transition: width .2s; overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .menu-item {
+      display: flex; align-items: center; padding: 0 16px; height: 40px; color: var(--sidebar-text);
+      cursor: pointer; white-space: nowrap; gap: 10px; font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .layout.sidebar-collapsed .menu-label, .layout.sidebar-collapsed .menu-arrow { display: none; }
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .content-area {
+      flex: 1; min-height: 0; overflow: hidden; padding: 16px;
+      display: flex; flex-direction: column;
+    }
+    .content-card {
+      background: var(--card); border-radius: 4px; padding: 16px; flex: 1; min-height: 0;
+      display: flex; flex-direction: column; gap: 16px; overflow: hidden;
+    }
+    .filter-area { display: flex; align-items: flex-end; gap: 16px; flex-shrink: 0; }
+    .filter-grid {
+      flex: 1; display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px; align-items: center;
+    }
+    .filter-item { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+    .filter-item .filter-label {
+      flex: 0 0 96px; text-align: right; font-size: 14px; color: var(--text); white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 16px; }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range { width: 100%; }
+    .filter-control {
+      width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 11px; font-size: 14px; color: var(--text); background: #fff; outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control { appearance: none; padding-right: 28px; cursor: pointer; }
+    .select-wrap::after {
+      content: "▼"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-secondary); pointer-events: none;
+    }
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+    .filter-check { display: flex; align-items: center; gap: 6px; height: 32px; font-size: 14px; }
+    .filter-check input { width: 16px; height: 16px; accent-color: var(--primary); }
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px; padding: 0 16px; border-radius: 4px; font-size: 14px; cursor: pointer;
+      border: 1px solid var(--border); background: #fff; color: var(--text); white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .content-tab {
+      padding: 8px 16px; cursor: pointer; color: var(--text); font-size: 14px;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+    .btn-action {
+      height: 32px; padding: 0 15px; border-radius: 4px; font-size: 14px; cursor: pointer;
+      border: 1px solid var(--border); background: #fff; color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+    .table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .table-scroll { flex: 1; min-height: 0; overflow: auto; }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th, .data-table td {
+      border: 1px solid var(--border); padding: 8px 10px; text-align: center; white-space: nowrap;
+    }
+    .data-table th { background: #fafafa; font-weight: 500; color: var(--text); white-space: nowrap; }
+    .data-table th.th-dim { padding: 4px 8px; min-width: 120px; vertical-align: middle; overflow: visible; position: relative; }
+    .dim-th {
+      position: relative; display: inline-flex; align-items: center; justify-content: space-between;
+      gap: 8px; min-width: 108px; height: 28px; padding: 0 8px; border: 1px solid transparent;
+      border-radius: 2px; cursor: pointer; box-sizing: border-box; background: #fff;
+    }
+    .dim-th:hover, .dim-th.open { border-color: var(--primary); }
+    .dim-th-label { font-size: 13px; color: var(--text); font-weight: 500; }
+    .dim-th-arrow {
+      width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent;
+      border-top: 5px solid #bfbfbf; flex-shrink: 0;
+    }
+    .dim-th.open .dim-th-arrow { border-top: none; border-bottom: 5px solid #bfbfbf; }
+    .dim-menu {
+      display: none; position: absolute; left: 0; top: calc(100% + 2px); z-index: 20;
+      min-width: 120px; padding: 4px 0; background: #fff; border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    .dim-th.open .dim-menu { display: block; }
+    .dim-menu-item {
+      padding: 6px 12px; font-size: 13px; color: var(--text); text-align: left; cursor: pointer;
+    }
+    .dim-menu-item:hover { background: #f5f5f5; }
+    .dim-menu-item.active { color: var(--primary); }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .row-summary { background: #fafafa; font-weight: 500; }
+    .pagination {
+      display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+      margin-top: auto; padding-top: 16px; flex-shrink: 0; font-size: 13px; color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      background: #fff; cursor: pointer; font-size: 13px; color: var(--text);
+      display: flex; align-items: center; justify-content: center; padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      text-align: center; font-size: 13px; outline: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
+    </div>
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active">皮带机操作货量 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="文档">📄</span>
+        <span class="icon-btn" title="下载">⬇</span>
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔<span class="badge">3</span></span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+        <div class="menu-item active">
+          <span class="menu-icon">☰</span><span class="menu-label">货量提成</span><span class="menu-arrow">▼</span>
+        </div>
+        <div class="menu-sub">
+          <div class="menu-item">货量查询</div>
+          <div class="menu-item">操作货量查询</div>
+          <div class="menu-item active">皮带机操作货量</div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+      <main class="content-area">
+        <div class="content-card">
+
+          <section class="filter-area">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <span class="filter-label">交接单号</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="多个用英文逗号或回车分隔" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">分拨中心</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>请选择</option>
+                      <option>临沂分拨中心</option>
+                      <option>天津分拨中心</option>
+                      <option>石家庄分拨中心</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">扫描时间</span>
+                <div class="filter-control-wrap">
+                  <div class="date-range">
+                    <input class="filter-control" type="text" value="2026-08-27 15:00:00" readonly />
+                    <span class="sep">~</span>
+                    <input class="filter-control" type="text" value="2026-08-28 14:59:59" readonly />
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">皮带机编号</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>皮带机A</option>
+                      <option>皮带机B</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">人员</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请输入人员" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">操作类型</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>请选择</option>
+                      <option>卸车</option>
+                      <option>码货</option>
+                      <option>移动</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">未归属货量</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>包含</option>
+                      <option>不包含</option>
+                      <option>仅查询</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">是否支援</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>是</option>
+                      <option>否</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">岗位</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>请选择</option>
+                      <option>装卸工</option>
+                      <option>分拨外包工</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">是否外包</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>是</option>
+                      <option>否</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">外包公司</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>示例外包公司</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label"></span>
+                <div class="filter-control-wrap">
+                  <label class="filter-check"><input type="checkbox" id="chkVolumeCfg" /> 货量配置</label>
+                  <label class="filter-check"><input type="checkbox" id="chkCommission" checked /> 提成货量</label>
+                </div>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn">重置</button>
+              <button class="btn btn-primary">查询</button>
+            </div>
+          </section>
+
+          <nav class="content-tabs" id="contentTabs">
+            <div class="content-tab active" data-ctab="summary">数据汇总</div>
+            <div class="content-tab" data-ctab="person">人员汇总</div>
+            <div class="content-tab" data-ctab="ewb">交接单明细</div>
+            <div class="content-tab" data-ctab="chute">下货编号汇总</div>
+            <div class="content-tab" data-ctab="hewb">子单明细</div>
+          </nav>
+
+          <section class="action-bar">
+            <button class="btn-action primary">导出</button>
+          </section>
+
+          <section class="table-area">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total" id="pageTotal">共 3 条</span>
+              <button class="page-btn disabled">&lt;</button>
+              <button class="page-btn active">1</button>
+              <button class="page-btn disabled">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<script>
+  const tonnageCols = [
+    '卸车吨位', '干线卸车吨位', '网点卸车吨位',
+    '码货吨位', '干线码货吨位', '网点码货吨位',
+    '无归属人员码货吨位', '无归属人员干线码货吨位', '无归属人员网点码货吨位',
+    '移动吨位', '干线移动吨位', '网点移动吨位',
+    '无归属人员移动吨位', '无归属人员干线移动吨位', '无归属人员网点移动吨位',
+    '卸车件数', '干线卸车件数', '网点卸车件数',
+    '卸车票数', '干线卸车票数', '网点卸车票数'
+  ];
+
+  const sampleTon = ['128.56', '40.12', '88.44', '128.56', '40.12', '88.44', '12.00', '0', '12.00', '110.20', '30.00', '80.20', '8.05', '0', '8.05', '33584', '0', '33584', '20758', '0', '20758'];
+
+  function isVolumeCfgOn() {
+    const el = document.getElementById('chkVolumeCfg');
+    return el && el.checked;
+  }
+
+  /** 数据汇总列：勾选「货量配置」时在卸车/码货/移动吨位后插入原始操作结算重量 */
+  function summaryMetricCols() {
+    const cols = [];
+    const vals = [];
+    tonnageCols.forEach((c, i) => {
+      cols.push(c);
+      vals.push(sampleTon[i]);
+      if (!isVolumeCfgOn()) return;
+      if (c === '卸车吨位') {
+        cols.push('原始卸车操作结算重量');
+        vals.push('130.00');
+      } else if (c === '码货吨位') {
+        cols.push('原始码货操作结算重量');
+        vals.push('130.00');
+      } else if (c === '移动吨位') {
+        cols.push('原始移动操作结算重量');
+        vals.push('112.50');
+      }
+    });
+    return { cols, vals };
+  }
+
+  function tonCells(values) {
+    return (values || sampleTon).map(v => '<td>' + v + '</td>').join('');
+  }
+
+  /** 按规则合并：rules = [{ col, parents: [父列下标...] }]，父列值相同且本列连续相同才 rowspan */
+  function buildMergedRows(rows, rules) {
+    const skip = rows.map(() => ({}));
+    const span = rows.map(() => ({}));
+    rules.forEach(rule => {
+      const col = rule.col;
+      const parents = rule.parents || [];
+      let i = 0;
+      while (i < rows.length) {
+        let j = i + 1;
+        while (j < rows.length) {
+          const sameParents = parents.every(p => rows[j][p] === rows[i][p]);
+          if (!sameParents || rows[j][col] !== rows[i][col]) break;
+          j++;
+        }
+        const n = j - i;
+        if (n > 1) {
+          span[i][col] = n;
+          for (let k = i + 1; k < j; k++) skip[k][col] = true;
+        }
+        i = j;
+      }
+    });
+    return rows.map((r, i) => {
+      let html = '<tr>';
+      r.forEach((cell, c) => {
+        if (skip[i][c]) return;
+        const rs = span[i][c];
+        html += '<td' + (rs && rs > 1 ? ' rowspan="' + rs + '"' : '') + '>' + cell + '</td>';
+      });
+      return html + '</tr>';
+    }).join('');
+  }
+
+  const dimOptions = [
+    { value: 'site', label: '分拨中心' },
+    { value: 'os', label: '外包公司' },
+    { value: 'belt', label: '皮带机' }
+  ];
+  let currentDim = 'site';
+
+  function dimHeadHtml(dim) {
+    const cur = dimOptions.find(d => d.value === dim) || dimOptions[0];
+    const items = dimOptions.map(d =>
+      '<div class="dim-menu-item' + (d.value === dim ? ' active' : '') + '" data-dim="' + d.value + '">' + d.label + '</div>'
+    ).join('');
+    return '<th class="th-dim">' +
+      '<div class="dim-th" id="dimTh" title="切换维度">' +
+      '<span class="dim-th-label">' + cur.label + '</span>' +
+      '<span class="dim-th-arrow"></span>' +
+      '<div class="dim-menu">' + items + '</div>' +
+      '</div></th>';
+  }
+
+  function renderSummary(dim) {
+    currentDim = dim || currentDim;
+    let extraHeads = '';
+    let rows = [];
+    if (currentDim === 'os') {
+      extraHeads = '<th>分拨中心</th>';
+      rows = [
+        ['汇总', '—'],
+        ['示例外包A', '临沂分拨中心'],
+        ['—', '天津分拨中心']
+      ];
+    } else if (currentDim === 'belt') {
+      extraHeads = '<th>皮带机编号</th>';
+      rows = [
+        ['汇总', '—'],
+        ['临沂分拨中心', 'A'],
+        ['临沂分拨中心', 'B'],
+        ['天津分拨中心', 'A']
+      ];
+    } else {
+      rows = [['汇总'], ['临沂分拨中心'], ['天津分拨中心']];
+    }
+    const metrics = summaryMetricCols();
+    document.getElementById('tableHead').innerHTML =
+      '<tr>' + dimHeadHtml(currentDim) + extraHeads + metrics.cols.map(c => '<th>' + c + '</th>').join('') + '</tr>';
+    document.getElementById('tableBody').innerHTML = rows.map((r, i) =>
+      '<tr' + (i === 0 ? ' class="row-summary"' : '') + '>' +
+      r.map(x => '<td>' + x + '</td>').join('') + tonCells(metrics.vals) + '</tr>'
+    ).join('');
+    document.getElementById('pageTotal').textContent = '共 ' + rows.length + ' 条';
+  }
+
+  function renderPerson() {
+    const tonLabels = tonnageCols.filter(c => !c.startsWith('无归属'));
+    const tonVals = sampleTon.filter((_, i) => !tonnageCols[i].startsWith('无归属'));
+    const heads = ['分拨中心', '员工姓名', '人事工号', '岗位', '外包公司', '是否支援', '支援分拨'].concat(tonLabels);
+    document.getElementById('tableHead').innerHTML =
+      '<tr>' + heads.map(c => '<th>' + c + '</th>').join('') + '</tr>';
+    document.getElementById('tableBody').innerHTML = [
+      ['临沂分拨中心', '张三', 'P10001', '装卸工', '—', '非支援', '—'],
+      ['临沂分拨中心', '李四', 'P10002', '分拨外包工', '示例外包A', '非支援', '—'],
+      ['临沂分拨中心', '—', '—', '—', '—', '—', '—']
+    ].map(r => '<tr>' + r.map(x => '<td>' + x + '</td>').join('') +
+      tonVals.map(v => '<td>' + v + '</td>').join('') + '</tr>').join('');
+    document.getElementById('pageTotal').textContent = '共 3 条';
+  }
+
+  function renderChute() {
+    const heads = [
+      '分拨中心', '皮带机编号', '下货编号', '路由下一站', '货区编号',
+      '卸车吨位', '码货吨位', '移动吨位',
+      '干线卸车吨位', '网点卸车吨位', '干线码货吨位', '网点码货吨位',
+      '干线移动吨位', '网点移动吨位',
+      '卸车件数', '干线卸车件数', '网点卸车件数',
+      '卸车票数', '干线卸车票数', '网点卸车票数'
+    ];
+    document.getElementById('tableHead').innerHTML =
+      '<tr>' + heads.map(c => '<th>' + c + '</th>').join('') + '</tr>';
+    // 样例：同一分拨+皮带机A 下，下货编号0 对应两个路由下一站 → 合并皮带机编号、合并下货编号
+    const rows = [
+      ['临沂分拨中心', 'A', '0', '金华分拨中心', 'H01', '25.20', '25.20', '20.10', '5.00', '20.20', '5.00', '20.20', '4.00', '16.10', '600', '0', '600', '400', '0', '400'],
+      ['临沂分拨中心', 'A', '0', '萧山分拨中心', 'H02', '20.00', '20.00', '18.00', '5.00', '15.00', '5.00', '15.00', '4.00', '14.00', '600', '0', '600', '400', '0', '400'],
+      ['临沂分拨中心', 'A', '1', '金华分拨中心', 'H01', '30.10', '30.10', '28.00', '0', '30.10', '0', '30.10', '0', '28.00', '900', '0', '900', '600', '0', '600'],
+      ['临沂分拨中心', 'B', '0', '金华分拨中心', 'H01', '22.00', '22.00', '20.50', '5.00', '17.00', '5.00', '17.00', '4.00', '16.50', '700', '100', '600', '450', '50', '400']
+    ];
+    // 分拨中心+皮带机编号相同 → 两列一起合并；同一下货编号多路由下一站 → 再合并下货编号
+    document.getElementById('tableBody').innerHTML = buildMergedRows(rows, [
+      { col: 0, parents: [0, 1] },
+      { col: 1, parents: [0, 1] },
+      { col: 2, parents: [0, 1] }
+    ]);
+    document.getElementById('pageTotal').textContent = '共 4 条';
+  }
+
+  function renderEwb() {
+    const heads = [
+      '分拨中心', '员工姓名', '人事工号', '岗位', '外包公司', '是否支援', '支援分拨', '交接单号', '上一站', '皮带机编号',
+      '卸车吨位', '干线卸车吨位', '网点卸车吨位',
+      '码货吨位', '干线码货吨位', '网点码货吨位',
+      '移动吨位', '干线移动吨位', '网点移动吨位',
+      '卸车件数', '干线卸车件数', '网点卸车件数',
+      '卸车票数', '干线卸车票数', '网点卸车票数'
+    ];
+    document.getElementById('tableHead').innerHTML =
+      '<tr>' + heads.map(c => '<th>' + c + '</th>').join('') + '</tr>';
+    document.getElementById('tableBody').innerHTML =
+      '<tr>' +
+      ['临沂分拨中心', '张三', 'P10001', '装卸工', '—', '非支援', '—', 'JD202608280001', '某某网点', 'A,B',
+        '12.50', '0', '12.50', '12.50', '0', '12.50', '11.00', '0', '11.00',
+        '320', '0', '320', '210', '0', '210'
+      ].map(x => '<td>' + x + '</td>').join('') + '</tr>';
+    document.getElementById('pageTotal').textContent = '共 1 条';
+  }
+
+  function renderHewb() {
+    const heads = [
+      '分拨中心', '员工姓名', '人事工号', '岗位', '外包公司', '是否支援', '支援分拨',
+      '子单号', '运单号', '交接单号', '上一站', '扫描时间', '目的网点',
+      '皮带机编号', '下货编号', '路由下一站', '分拣方案', '目的分拨', '货区编号',
+      'SN码', '货量类型', '体积(m³)',
+      '操作结算重量(KG)', '分配操作结算重量(KG)', '是否人工分配', '操作类型'
+    ];
+    document.getElementById('tableHead').innerHTML =
+      '<tr>' + heads.map(c => '<th>' + c + '</th>').join('') + '</tr>';
+    document.getElementById('tableBody').innerHTML =
+      '<tr>' +
+      ['临沂分拨中心', '张三', 'P10001', '装卸工', '—', '非支援', '—',
+        'HEWB001', 'EWB001', 'JD202608280001', '某某网点', '2026-08-28 10:12:33', '金华某网点',
+        'A', '0', '金华分拨中心', '临沂到达方案01', '金华分拨中心', 'H01',
+        'SN88661234', '普货', '0.120',
+        '25.60', '0', '否', '网点卸车'
+      ].map(x => '<td>' + x + '</td>').join('') + '</tr>' +
+      '<tr>' +
+      ['临沂分拨中心', '王五', 'P10003', '装卸工', '—', '非支援', '—',
+        'HEWB002', 'EWB002', 'JD202608280001', '某某网点', '2026-08-28 10:13:01', '萧山某网点',
+        'A', '1', '萧山分拨中心', '临沂到达方案01', '萧山分拨中心', 'H02',
+        'SN88661234', '空笼', '0.080',
+        '18.20', '0', '否', '网点码货'
+      ].map(x => '<td>' + x + '</td>').join('') + '</tr>';
+    document.getElementById('pageTotal').textContent = '共 2 条';
+  }
+
+  function render(tab) {
+    if (tab === 'summary') renderSummary(currentDim);
+    else if (tab === 'person') renderPerson();
+    else if (tab === 'chute') renderChute();
+    else if (tab === 'ewb') renderEwb();
+    else renderHewb();
+  }
+
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    render(tab.dataset.ctab);
+  });
+
+  document.getElementById('tableHead').addEventListener('click', (e) => {
+    const item = e.target.closest('.dim-menu-item');
+    if (item) {
+      e.stopPropagation();
+      renderSummary(item.dataset.dim);
+      return;
+    }
+    const th = e.target.closest('.dim-th');
+    if (th) {
+      e.stopPropagation();
+      th.classList.toggle('open');
+    }
+  });
+
+  document.addEventListener('click', () => {
+    const th = document.getElementById('dimTh');
+    if (th) th.classList.remove('open');
+  });
+
+  document.getElementById('chkVolumeCfg').addEventListener('change', () => {
+    const active = document.querySelector('.content-tab.active');
+    if (active && active.dataset.ctab === 'summary') renderSummary(currentDim);
+  });
+
+  render('summary');
+</script>
+</body>
+</html>
