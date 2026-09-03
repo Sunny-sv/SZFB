@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>时段操作货量与提成报表</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1890ff; --primary-hover: #40a9ff; --header-blue: #0659d9;
+      --sidebar-bg: #001529; --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65); --sidebar-text-active: #fff;
+      --bg: #f0f2f5; --card: #fff; --border: #e8e8e8;
+      --text: rgba(0,0,0,.85); --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px; --sidebar-collapsed: 64px; --header-height: 48px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px; color: var(--text); background: var(--bg); overflow: hidden;
+    }
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+    .top-header { height: var(--header-height); display: flex; flex-shrink: 0; z-index: 10; }
+    .brand-area {
+      width: var(--sidebar-width); background: var(--sidebar-bg); color: #fff;
+      display: flex; align-items: center; padding: 0 16px; font-size: 15px; font-weight: 500;
+      white-space: nowrap; flex-shrink: 0; transition: width .2s; letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area { width: var(--sidebar-collapsed); padding: 0 8px; justify-content: center; font-size: 12px; }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+    .top-tabs {
+      flex: 1; min-width: 0; height: 100%; background: var(--header-blue);
+      display: flex; align-items: flex-end; padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn, .top-tabs .home-btn {
+      width: 36px; height: 36px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center;
+      color: #fff; cursor: pointer; border-radius: 4px; font-size: 18px; flex-shrink: 0; opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover, .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+    .page-tabs { display: flex; align-items: flex-end; flex: 1; overflow-x: auto; gap: 4px; padding: 0 4px; height: 100%; }
+    .page-tab {
+      display: flex; align-items: center; gap: 8px; padding: 0 14px; height: 36px;
+      border-radius: 6px 6px 0 0; color: rgba(255,255,255,.95); cursor: pointer;
+      white-space: nowrap; font-size: 13px; background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active { background: #fff; color: var(--text); font-weight: 500; }
+    .page-tab .tab-close { font-size: 14px; line-height: 1; opacity: .7; }
+    .top-right {
+      display: flex; align-items: center; gap: 4px; padding: 0 8px 6px 12px;
+      color: #fff; flex-shrink: 0; align-self: flex-end; height: 42px;
+    }
+    .top-right .icon-btn {
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border-radius: 4px; font-size: 16px; position: relative;
+    }
+    .top-right .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .top-right .icon-btn .badge {
+      position: absolute; top: 2px; right: 2px; min-width: 14px; height: 14px; padding: 0 3px;
+      border-radius: 7px; background: #ff4d4f; color: #fff; font-size: 10px; line-height: 14px; text-align: center;
+    }
+    .user-info { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding: 0 4px 0 8px; cursor: pointer; border-radius: 4px; height: 32px; }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px; height: 28px; border-radius: 50%; background: #722ed1;
+      display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff;
+    }
+    .user-name { font-size: 13px; color: #fff; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+    .body-row { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+    .sidebar {
+      width: var(--sidebar-width); background: var(--sidebar-bg); flex-shrink: 0;
+      transition: width .2s; overflow: hidden; display: flex; flex-direction: column;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+    .layout.sidebar-collapsed .menu-label, .layout.sidebar-collapsed .menu-arrow { display: none; }
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .menu-item {
+      display: flex; align-items: center; padding: 0 16px; height: 40px;
+      color: var(--sidebar-text); cursor: pointer; white-space: nowrap; gap: 10px; font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-arrow { margin-left: auto; font-size: 10px; opacity: .6; }
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .content-area { flex: 1; overflow: hidden; padding: 16px; }
+    .content-card {
+      background: var(--card); border-radius: 4px; padding: 16px; height: 100%;
+      min-height: 0; display: flex; flex-direction: column; gap: 16px; overflow: hidden;
+    }
+    .filter-area { display: flex; align-items: flex-end; gap: 16px; flex-shrink: 0; }
+    .filter-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 24px; align-items: center; }
+    .filter-item { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+    #hourFilterItem { align-items: flex-start; }
+    #hourFilterItem .filter-label { padding-top: 6px; }
+    .filter-item .filter-label { flex: 0 0 100px; text-align: right; font-size: 14px; color: var(--text); white-space: nowrap; }
+    .filter-item .filter-control-wrap { flex: 1; min-width: 0; }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range,
+    .filter-item .filter-control-wrap > .check-group { width: 100%; }
+    .filter-control {
+      width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 11px; font-size: 14px; color: var(--text); outline: none; background: #fff;
+    }
+    .filter-control:focus { border-color: var(--primary); }
+    .select-wrap { position: relative; width: 100%; }
+    .select-wrap select {
+      width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 28px 0 11px; font-size: 14px; color: var(--text); background: #fff;
+      appearance: none; outline: none; cursor: pointer;
+    }
+    .select-wrap::after {
+      content: "▼"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-secondary); pointer-events: none;
+    }
+    .date-range { display: flex; align-items: center; gap: 8px; width: 100%; }
+    .date-range .filter-control { flex: 1; }
+    .date-range .sep { color: var(--text-secondary); flex-shrink: 0; }
+    .check-group { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; min-height: 32px; }
+    .check-group label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; font-size: 13px; }
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 0; }
+    .btn {
+      height: 32px; padding: 0 16px; border: 1px solid var(--border); border-radius: 4px;
+      background: #fff; cursor: pointer; font-size: 14px; color: var(--text);
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+    .measure-only { display: none; }
+    .layout.is-measure .filter-item.measure-only { display: flex; }
+    .layout.is-measure .btn-action.measure-only { display: inline-flex; }
+    .layout.is-measure .btn-action.measure-only.is-hidden { display: none; }
+    .layout.is-measure .filter-item.measure-only.is-hidden { display: none; }
+    .formal-only { display: table-cell; }
+    .layout.is-measure .formal-only { display: none; }
+    .measure-col { display: none; }
+    .layout.is-measure .measure-col { display: table-cell; }
+    .measure-summary {
+      display: none; align-items: center; gap: 24px; flex-shrink: 0; flex-wrap: wrap;
+      padding: 8px 0 12px; font-size: 13px; border-bottom: 1px solid var(--border); margin-bottom: 0;
+    }
+    .layout.is-measure .measure-summary { display: flex; }
+    .measure-summary .sum-label { color: var(--text-secondary); }
+    .measure-summary .sum-value { font-weight: 600; font-size: 15px; color: var(--text); }
+    .link { color: var(--primary); cursor: pointer; }
+    .tab-block { display: flex; flex-direction: column; gap: 0; flex-shrink: 0; }
+    .content-tabs {
+      display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .content-tab {
+      padding: 10px 16px; cursor: pointer; color: var(--text-secondary); font-size: 14px;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+    .action-bar { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px; padding: 0 15px; border: 1px solid var(--border); border-radius: 4px;
+      background: #fff; cursor: pointer; font-size: 14px; color: var(--text);
+    }
+    .btn-action:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action.primary:hover { background: var(--primary-hover); }
+    .table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+    .table-scroll { flex: 1; min-height: 0; overflow: auto; }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 14px; }
+    .data-table th, .data-table td {
+      border: 1px solid var(--border); padding: 10px 12px; text-align: center;
+      font-size: 14px; white-space: nowrap; color: var(--text);
+    }
+    .data-table th {
+      background: #fafafa; font-weight: 500; white-space: nowrap;
+    }
+    .data-table th.th-group { background: #fafafa; font-weight: 600; }
+    .data-table th.th-type { background: #fafafa; font-weight: 500; }
+    .data-table th.th-sub { background: #fafafa; font-weight: 500; }
+    .data-table .col-checkbox { width: 48px; text-align: center; }
+    .data-table .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .num-neg { color: #cf1322; }
+    .num-pos { color: #389e0d; }
+    .pagination {
+      display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+      margin-top: auto; padding-top: 16px; flex-shrink: 0; font-size: 13px; color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      background: #fff; cursor: pointer; font-size: 13px; color: var(--text);
+      display: flex; align-items: center; justify-content: center; padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      text-align: center; font-size: 13px; outline: none;
+    }
+    .modal-mask {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      width: 720px; max-width: 92vw; max-height: 86vh; background: #fff; border-radius: 4px;
+      display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
+    .modal-header {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; font-size: 16px; font-weight: 500;
+    }
+    .modal-close { cursor: pointer; font-size: 18px; color: var(--text-secondary); border: none; background: none; }
+    .modal-body { padding: 16px 20px; overflow: auto; flex: 1; }
+    .modal-footer {
+      padding: 12px 20px; border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .form-row .filter-label { flex: 0 0 88px; text-align: right; }
+    .adj-grid {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px 12px; margin-top: 8px;
+    }
+    .adj-cell { display: flex; flex-direction: row; align-items: center; gap: 6px; }
+    .adj-cell span { flex: 0 0 36px; text-align: right; font-size: 13px; color: var(--text-secondary); }
+    .adj-cell input {
+      flex: 1; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 8px; font-size: 13px; text-align: center; outline: none;
+    }
+    .adj-cell input:focus { border-color: var(--primary); }
+    .th-pair { background: #fafafa; }
+    .hour-filter { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+    .hour-toolbar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 32px;
+    }
+    .hour-seg {
+      display: inline-flex; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      overflow: hidden; flex-shrink: 0; background: #fff;
+    }
+    .hour-seg-item {
+      border: none; background: transparent; padding: 0 14px; margin: 0;
+      font-size: 13px; color: var(--text); cursor: pointer; line-height: 30px;
+      border-right: 1px solid var(--border);
+    }
+    .hour-seg-item:last-child { border-right: none; }
+    .hour-seg-item:hover { color: var(--primary); }
+    .hour-seg-item.active {
+      background: #e6f7ff; color: var(--primary); font-weight: 500;
+    }
+    .hour-range-panel {
+      display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; min-height: 32px;
+    }
+    .hour-range-pair {
+      display: inline-flex; align-items: center; height: 32px;
+      border: 1px solid var(--border); border-radius: 4px; background: #fff; overflow: hidden;
+    }
+    .hour-range-pair:focus-within { border-color: var(--primary); }
+    .hour-range-pair .select-wrap {
+      width: 76px; position: relative;
+    }
+    .hour-range-pair .select-wrap select {
+      height: 30px; border: none; border-radius: 0; padding: 0 22px 0 10px;
+      background: transparent; box-shadow: none;
+    }
+    .hour-range-pair .select-wrap::after {
+      right: 8px;
+    }
+    .hour-range-pair .sep {
+      color: var(--text-secondary); padding: 0 2px; flex-shrink: 0; font-size: 13px;
+    }
+    .hour-range-hint {
+      color: var(--text-secondary); font-size: 12px; line-height: 1.4; white-space: nowrap;
+    }
+    .hour-check-group {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px; background: #fafafa;
+    }
+    .hour-check-group label {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0;
+      min-width: 40px; height: 28px; padding: 0 8px; border-radius: 4px;
+      border: 1px solid var(--border); background: #fff; cursor: pointer;
+      font-size: 12px; color: var(--text); white-space: nowrap; user-select: none;
+    }
+    .hour-check-group label:hover { border-color: var(--primary); color: var(--primary); }
+    .hour-check-group input {
+      position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
+    }
+    .hour-check-group label:has(input:checked) {
+      background: #e6f7ff; border-color: var(--primary); color: var(--primary); font-weight: 500;
+    }
+    .hour-filter .is-hidden { display: none !important; }
+    .table-view { display: none; width: max-content; min-width: 100%; }
+    .layout.dim-person.grain-split #tablePersonSplit { display: table; }
+    .layout.dim-person.grain-sum #tablePersonSum { display: table; }
+    .layout.dim-fenbo.grain-split #tableFenboSplit { display: table; }
+    .layout.dim-fenbo.grain-sum #tableFenboSum { display: table; }
+
+    .btn-danger { color: #ff4d4f; border-color: #ff4d4f; }
+    .sub-tabs {
+      display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 0;
+    }
+    .sub-tab {
+      height: auto; padding: 8px 16px; border-radius: 0; border: none; border-bottom: 2px solid transparent;
+      background: transparent; cursor: pointer; font-size: 13px; color: var(--text-secondary); margin-bottom: -1px;
+    }
+    .sub-tab:hover { color: var(--primary); }
+    .sub-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: transparent; font-weight: 500; }
+    .data-table tbody tr.is-selected { background: #e6f7ff; }
+    .tag {
+      display: inline-block; padding: 0 8px; height: 22px; line-height: 20px;
+      border-radius: 2px; font-size: 12px; border: 1px solid transparent;
+    }
+    .tag-draft { background: #fafafa; color: rgba(0,0,0,.65); border-color: #d9d9d9; }
+    .tag-wait { background: #fff7e6; color: #d46b08; border-color: #ffd591; }
+    .tag-reject { background: #fff1f0; color: #cf1322; border-color: #ffa39e; }
+    .tag-active { background: #f6ffed; color: #389e0d; border-color: #b7eb8f; }
+    .tag-pending { background: #e6f7ff; color: #096dd9; border-color: #91d5ff; }
+    .tag-off { background: #f5f5f5; color: rgba(0,0,0,.45); border-color: #d9d9d9; }
+    .modal.modal-sm { width: 480px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px; }
+    .form-item { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+    .form-item.span-2 { grid-column: 1 / -1; }
+    .form-item > label:first-child {
+      flex: 0 0 96px; text-align: right; font-size: 14px; white-space: nowrap;
+    }
+    .form-item > label:first-child .req { color: #ff4d4f; margin-right: 2px; }
+    .form-item > .filter-control,
+    .form-item > .select-wrap,
+    .form-item > .date-range,
+    .form-item > .form-text,
+    .form-item > textarea { flex: 1; min-width: 0; }
+    .form-text { font-size: 14px; color: var(--text); }
+    .form-section-title {
+      font-weight: 500; margin: 16px 0 10px; padding-left: 8px; border-left: 3px solid var(--primary);
+    }
+    .form-section-title:first-child { margin-top: 0; }
+    .snapshot-box {
+      background: #fafafa; border: 1px solid var(--border); border-radius: 4px; padding: 12px 14px; font-size: 13px;
+    }
+    .snapshot-box.empty { color: var(--text-secondary); }
+    .snapshot-row { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 6px; }
+    .emp-only { display: none; }
+    .layout.is-emp .emp-only { display: flex; }
+    .page-panel { display: none; height: 100%; min-height: 0; }
+    .page-panel.active { display: flex; flex-direction: column; min-height: 0; }
+    .page-panel .content-card { flex: 1; min-height: 0; overflow: hidden; }
+    .menu-item[data-page] { cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
+    </div>
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active" data-page="report">时段操作货量与提成报表 <span class="tab-close">×</span></div>
+        <div class="page-tab" data-page="maintain">时段加减单价维护 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="通知">🔔<span class="badge">2</span></span>
+        <div class="user-info">
+          <div class="avatar">胡</div>
+          <span class="user-name">胡绵飞</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">工作台</span></div>
+        <div class="menu-item active">
+          <span class="menu-icon">☰</span><span class="menu-label">薪资线上化</span><span class="menu-arrow">▼</span>
+        </div>
+        <div class="menu-sub">
+          <div class="menu-item">基础提成方案维护</div>
+          <div class="menu-item">交接单人员提成</div>
+          <div class="menu-item">转运人员薪资</div>
+          <div class="menu-item active" data-page="report">时段操作货量与提成报表</div>
+          <div class="menu-item" data-page="maintain">时段加减单价维护</div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+      <main class="content-area">
+        <div class="page-panel active" id="pageReport">
+          <div class="content-card">
+
+
+          <section class="filter-area">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <span class="filter-label">查询模式</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control" id="queryMode">
+                      <option value="formal" selected>正式查询</option>
+                      <option value="measure">测算</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">分拨中心</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请选择分拨中心" value="" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">人员</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="姓名 / 工号" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">岗位</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option selected>装卸工</option>
+                      <option>装卸组长</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">日期</span>
+                <div class="filter-control-wrap">
+                  <div class="date-range">
+                    <input class="filter-control" type="text" value="2026-08-16" readonly />
+                    <span class="sep">~</span>
+                    <input class="filter-control" type="text" value="2026-08-16" readonly />
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">操作类型</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>网点装车</option>
+                      <option>干线装车</option>
+                      <option>网点卸车</option>
+                      <option>干线卸车</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">货量提成展示</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control" id="metricGrain">
+                      <option value="split" selected>按操作类型拆分</option>
+                      <option value="sum">汇总为一份</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item" style="grid-column: 1 / -1;" id="hourFilterItem">
+                <span class="filter-label">显示小时段</span>
+                <div class="filter-control-wrap">
+                  <div class="hour-filter" id="hourFilter">
+                    <div class="hour-toolbar">
+                      <div class="hour-seg" id="hourModeSeg" role="tablist">
+                        <button type="button" class="hour-seg-item active" data-mode="range">区间选择</button>
+                        <button type="button" class="hour-seg-item" data-mode="custom">自定义勾选</button>
+                      </div>
+                      <div class="hour-range-panel" id="hourRangePanel">
+                        <div class="hour-range-pair">
+                          <div class="select-wrap">
+                            <select class="filter-control" id="hourStart" aria-label="开始小时"></select>
+                          </div>
+                          <span class="sep">~</span>
+                          <div class="select-wrap">
+                            <select class="filter-control" id="hourEnd" aria-label="结束小时"></select>
+                          </div>
+                        </div>
+                        <span class="hour-range-hint" id="hourRangeHint">15～14点 · 24小时</span>
+                      </div>
+                    </div>
+                    <div class="hour-check-group is-hidden" id="hourCheckGroup">
+                      <label><input type="checkbox" class="hour-check" data-hour="15" checked /> 15点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="16" checked /> 16点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="17" checked /> 17点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="18" checked /> 18点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="19" checked /> 19点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="20" checked /> 20点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="21" checked /> 21点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="22" checked /> 22点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="23" checked /> 23点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="0" checked /> 0点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="1" checked /> 1点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="2" checked /> 2点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="3" checked /> 3点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="4" checked /> 4点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="5" checked /> 5点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="6" checked /> 6点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="7" checked /> 7点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="8" checked /> 8点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="9" checked /> 9点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="10" checked /> 10点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="11" checked /> 11点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="12" checked /> 12点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="13" checked /> 13点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="14" checked /> 14点</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item measure-only">
+                <span class="filter-label">加减来源</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control" id="adjSource">
+                      <option value="manual" selected>手工填写拟用加减</option>
+                      <option value="scheme">引用维护方案</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item measure-only is-hidden" id="schemePickRow">
+                <span class="filter-label">引用方案</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>萧山-装卸-通用-草稿（2026.09～2026.12）</option>
+                      <option>萧山-装卸-装网点-待确认（2026.10～）</option>
+                      <option>萧山-装卸-通用-生效中（2026.07～2026.08）</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item measure-only">
+                <span class="filter-label">测算类型</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>通用</option>
+                      <option selected>装网点</option>
+                      <option>卸网点</option>
+                      <option>装干线</option>
+                      <option>卸干线</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn" type="button">重置</button>
+              <button class="btn btn-primary" type="button" id="btnQuery">查询</button>
+            </div>
+          </section>
+
+          <div class="tab-block">
+            <nav class="content-tabs" id="reportBizTabs">
+              <div class="content-tab active" data-ctab="load">装卸</div>
+              <div class="content-tab" data-ctab="move">移动</div>
+              <div class="content-tab" data-ctab="u">流水线卸货</div>
+              <div class="content-tab" data-ctab="s">流水线码货</div>
+              <div class="content-tab" data-ctab="z">流水线直装</div>
+            </nav>
+            <div class="sub-tabs" id="reportDimTabs">
+              <button type="button" class="sub-tab active" data-dim="fenbo">分拨维度</button>
+              <button type="button" class="sub-tab" data-dim="person">人员维度</button>
+            </div>
+          </div>
+
+          <section class="action-bar">
+            <button class="btn-action" type="button">导出</button>
+            <button class="btn-action primary measure-only" type="button" id="btnOpenAdj">配置拟用加减</button>
+            <button class="btn-action primary measure-only" type="button" id="btnGenDraft">生成方案草稿</button>
+          </section>
+
+          <section class="table-area">
+            <div class="measure-summary" id="measureSummary">
+              <span><span class="sum-label">测算类型：</span>装网点</span>
+              <span><span class="sum-label">本区间增减合计：</span><span class="sum-value num-pos" id="intervalSum">+19.20</span></span>
+              <span><span class="sum-label">人数：</span>3</span>
+            </div>
+            <div class="table-scroll">
+              <!-- 各业务线×维度×拆分/汇总由 JS 生成 -->
+            </div>
+            <div class="pagination">
+              <span class="total" id="reportPageTotal">共 3 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+
+          </div>
+        </div>
+        <div class="page-panel" id="pageMaintain">
+          <div class="content-card">
+
+
+          <section class="filter-area">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <span class="filter-label">分拨中心</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请选择分拨中心" value="" />
+                </div>
+              </div>
+              <div class="filter-item emp-only">
+                <span class="filter-label">员工</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="姓名 / 工号" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">类型</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>通用</option>
+                      <option selected>装网点</option>
+                      <option>卸网点</option>
+                      <option>装干线</option>
+                      <option>卸干线</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">状态</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>草稿</option>
+                      <option selected>待确认</option>
+                      <option>已驳回</option>
+                      <option>待生效</option>
+                      <option>生效中</option>
+                      <option>已失效</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">有效期间</span>
+                <div class="filter-control-wrap">
+                  <div class="date-range">
+                    <input class="filter-control" type="text" value="2026-10-01" />
+                    <span class="sep">~</span>
+                    <input class="filter-control" type="text" value="2026-12-31" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn" type="button">重置</button>
+              <button class="btn btn-primary" type="button">查询</button>
+            </div>
+          </section>
+
+          <div class="tab-block">
+            <nav class="content-tabs" id="bizTabs">
+              <div class="content-tab active">装卸</div>
+              <div class="content-tab">移动</div>
+              <div class="content-tab">流水线卸货</div>
+              <div class="content-tab">流水线码货</div>
+              <div class="content-tab">流水线直装</div>
+            </nav>
+            <div class="sub-tabs" id="layerTabs">
+              <button type="button" class="sub-tab active" data-layer="fenbo">分拨方案</button>
+              <button type="button" class="sub-tab" data-layer="emp">员工方案</button>
+            </div>
+          </div>
+
+          <section class="action-bar">
+            <button class="btn-action primary" type="button" id="btnAdd">新增</button>
+            <button class="btn-action" type="button" id="btnEdit">编辑</button>
+            <button class="btn-action" type="button" id="btnDelete">删除</button>
+            <button class="btn-action" type="button" id="btnSubmit">提交确认</button>
+            <button class="btn-action primary" type="button" id="btnConfirm">确认生效</button>
+            <button class="btn-action" type="button" id="btnReject">驳回</button>
+            <button class="btn-action" type="button" id="btnMeasure">去测算</button>
+            <button class="btn-action" type="button" id="btnViewMeasure">查看测算</button>
+            <button class="btn-action" type="button" id="btnLog">变更记录</button>
+            <button class="btn-action" type="button">下载模板</button>
+            <button class="btn-action" type="button">导入</button>
+          </section>
+
+          <section class="table-area">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="col-checkbox"><input type="checkbox" id="maintainCheckAll" /></th>
+                    <th>分拨中心</th>
+                    <th class="col-emp">员工</th>
+                    <th>类型</th>
+                    <th>有效期间</th>
+                    <th>状态</th>
+                    <th>测算快照</th>
+                    <th>创建人</th>
+                    <th>创建时间</th>
+                    <th>最后修改人</th>
+                    <th>最后修改时间</th>
+                    <th>确认人</th>
+                    <th>确认时间</th>
+                    <th>意见</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="maintainTableBody">
+                  <tr class="is-selected" data-status="wait" data-snap="1">
+                    <td class="col-checkbox"><input type="checkbox" class="row-check maintain-row-check" checked /></td>
+                    <td>萧山分拨中心</td>
+                    <td class="col-emp">-</td>
+                    <td>装网点</td>
+                    <td>2026-10-01 ~ 2026-12-31</td>
+                    <td><span class="tag tag-wait">待确认</span></td>
+                    <td><span class="num-pos">+19.20</span>（3人 · 2026-08-16）</td>
+                    <td>张分拨</td>
+                    <td>2026-09-01 14:20</td>
+                    <td>张分拨</td>
+                    <td>2026-09-02 09:10</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>
+                      <span class="link" data-open="detail">详情</span>
+                      <span class="link" data-open="adj">查看加减</span>
+                    </td>
+                  </tr>
+                  <tr data-status="wait" data-snap="0">
+                    <td class="col-checkbox"><input type="checkbox" class="row-check maintain-row-check" /></td>
+                    <td>萧山分拨中心</td>
+                    <td class="col-emp">-</td>
+                    <td>卸干线</td>
+                    <td>2026-10-01 ~ 2026-12-31</td>
+                    <td><span class="tag tag-wait">待确认</span></td>
+                    <td>-</td>
+                    <td>张分拨</td>
+                    <td>2026-09-02 11:05</td>
+                    <td>张分拨</td>
+                    <td>2026-09-02 11:05</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>
+                      <span class="link" data-open="detail">详情</span>
+                      <span class="link" data-open="adj">查看加减</span>
+                    </td>
+                  </tr>
+                  <tr data-status="draft" data-snap="0">
+                    <td class="col-checkbox"><input type="checkbox" class="row-check maintain-row-check" /></td>
+                    <td>萧山分拨中心</td>
+                    <td class="col-emp">-</td>
+                    <td>通用</td>
+                    <td>2026-11-01 ~ 2026-12-31</td>
+                    <td><span class="tag tag-draft">草稿</span></td>
+                    <td>-</td>
+                    <td>张分拨</td>
+                    <td>2026-09-02 16:40</td>
+                    <td>张分拨</td>
+                    <td>2026-09-02 16:40</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>
+                      <span class="link" data-open="edit">编辑</span>
+                      <span class="link" data-open="adj">查看加减</span>
+                    </td>
+                  </tr>
+                  <tr data-status="reject" data-snap="1">
+                    <td class="col-checkbox"><input type="checkbox" class="row-check maintain-row-check" /></td>
+                    <td>萧山分拨中心</td>
+                    <td class="col-emp">-</td>
+                    <td>装干线</td>
+                    <td>2026-09-01 ~ 2026-09-30</td>
+                    <td><span class="tag tag-reject">已驳回</span></td>
+                    <td><span class="num-neg">-3.50</span>（2人 · 2026-08-01~08-07）</td>
+                    <td>张分拨</td>
+                    <td>2026-08-20 10:00</td>
+                    <td>张分拨</td>
+                    <td>2026-08-28 15:22</td>
+                    <td>李总部</td>
+                    <td>2026-08-28 17:01</td>
+                    <td>装干线加减偏高，请下调</td>
+                    <td>
+                      <span class="link" data-open="edit">编辑</span>
+                      <span class="link" data-open="adj">查看加减</span>
+                    </td>
+                  </tr>
+                  <tr data-status="active" data-snap="1">
+                    <td class="col-checkbox"><input type="checkbox" class="row-check maintain-row-check" /></td>
+                    <td>萧山分拨中心</td>
+                    <td class="col-emp">-</td>
+                    <td>装网点</td>
+                    <td>2026-07-01 ~ 2026-09-30</td>
+                    <td><span class="tag tag-active">生效中</span></td>
+                    <td><span class="num-pos">+12.40</span>（提交时）</td>
+                    <td>李总部</td>
+                    <td>2026-06-25 09:00</td>
+                    <td>李总部</td>
+                    <td>2026-06-25 09:00</td>
+                    <td>李总部</td>
+                    <td>2026-06-25 09:00</td>
+                    <td>总部自维生效</td>
+                    <td>
+                      <span class="link" data-open="detail">详情</span>
+                      <span class="link" data-open="adj">查看加减</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total">共 5 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="adjModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span>配置拟用加减（装卸 · 装网点 · 元/吨）</span>
+      <button type="button" class="modal-close" id="adjClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <span class="filter-label">适用说明</span>
+        <span style="color:rgba(0,0,0,.45);font-size:13px;">仅本次测算使用，不写入正式方案、不进【转运人员薪资】</span>
+      </div>
+      <div class="adj-grid" id="adjGrid"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="adjCancel">取消</button>
+      <button type="button" class="btn btn-primary" id="adjOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="draftModal">
+  <div class="modal" style="width:520px;">
+    <div class="modal-header">
+      <span>生成方案草稿</span>
+      <button type="button" class="modal-close" id="draftClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row"><span class="filter-label">分拨中心</span><span>萧山分拨中心</span></div>
+      <div class="form-row"><span class="filter-label">业务线</span><span>装卸</span></div>
+      <div class="form-row"><span class="filter-label">类型</span><span>装网点</span></div>
+      <div class="form-row"><span class="filter-label">加减</span><span>带入当前拟用 24 小时加减</span></div>
+      <div class="form-row"><span class="filter-label">有效期间</span><input class="filter-control" style="flex:1;" type="text" value="2026-10-01 ~ 2026-12-31" /></div>
+      <div class="form-row"><span class="filter-label">测算快照</span><span>本区间增减合计 +19.20（3 人 · 2026-08-16）</span></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="draftCancel">取消</button>
+      <button type="button" class="btn btn-primary" id="draftOk">保存为草稿</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新增 / 编辑 -->
+<div class="modal-mask" id="modalEdit">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="editTitle">新增分拨方案（装卸）</span>
+      <button type="button" class="modal-close" data-close="modalEdit">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section-title">基本信息</div>
+      <div class="form-grid">
+        <div class="form-item">
+          <label><span class="req">*</span>分拨中心</label>
+          <input class="filter-control" type="text" value="萧山分拨中心" />
+        </div>
+        <div class="form-item emp-only">
+          <label><span class="req">*</span>员工</label>
+          <input class="filter-control" type="text" placeholder="姓名 / 工号" />
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>类型</label>
+          <div class="select-wrap">
+            <select>
+              <option>通用</option>
+              <option selected>装网点</option>
+              <option>卸网点</option>
+              <option>装干线</option>
+              <option>卸干线</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>有效期间</label>
+          <div class="date-range">
+            <input class="filter-control" type="text" value="2026-10-01" />
+            <span class="sep">~</span>
+            <input class="filter-control" type="text" value="2026-12-31" />
+          </div>
+        </div>
+        <div class="form-item span-2">
+          <label>备注</label>
+          <input class="filter-control" type="text" placeholder="选填" />
+        </div>
+      </div>
+      <div class="form-section-title">15～14 点加减（元/吨，可为负，业务日序）</div>
+      <div class="adj-grid" id="editAdjGrid"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalEdit">取消</button>
+      <button type="button" class="btn btn-primary" data-close="modalEdit">保存草稿</button>
+      <button type="button" class="btn btn-primary" data-close="modalEdit">保存并生效</button>
+    </div>
+  </div>
+</div>
+
+<!-- 详情（含快照） -->
+<div class="modal-mask" id="modalDetail">
+  <div class="modal">
+    <div class="modal-header">
+      <span>方案详情</span>
+      <button type="button" class="modal-close" data-close="modalDetail">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section-title">基本信息</div>
+      <div class="form-grid">
+        <div class="form-item"><label>分拨中心</label><div class="form-text">萧山分拨中心</div></div>
+        <div class="form-item"><label>类型</label><div class="form-text">装网点</div></div>
+        <div class="form-item"><label>有效期间</label><div class="form-text">2026-10-01 ~ 2026-12-31</div></div>
+        <div class="form-item"><label>状态</label><div class="form-text"><span class="tag tag-wait">待确认</span></div></div>
+        <div class="form-item"><label>提交人</label><div class="form-text">张分拨</div></div>
+        <div class="form-item"><label>提交时间</label><div class="form-text">2026-09-02 09:10</div></div>
+      </div>
+      <div class="form-section-title">测算快照</div>
+      <div class="snapshot-box" id="detailSnap">
+        <div>提交时固化的汇总快照（明细以「查看测算」重算为准）</div>
+        <div class="snapshot-row">
+          <span>测算日期：2026-08-16</span>
+          <span>业务线：装卸</span>
+          <span>类型：装网点</span>
+          <span>人数：3</span>
+          <span>本区间增减合计：<strong class="num-pos">+19.20</strong></span>
+        </div>
+      </div>
+      <div class="form-section-title">15～14 点加减（业务日序）</div>
+      <div class="adj-grid" id="detailAdjGrid"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="btnDetailMeasure">查看测算</button>
+      <button type="button" class="btn" data-close="modalDetail">关闭</button>
+      <button type="button" class="btn btn-danger" id="btnDetailReject">驳回</button>
+      <button type="button" class="btn btn-primary" id="btnDetailConfirm">确认生效</button>
+    </div>
+  </div>
+</div>
+
+<!-- 查看加减 -->
+<div class="modal-mask" id="modalAdj">
+  <div class="modal">
+    <div class="modal-header">
+      <span>查看加减（装网点 · 元/吨）</span>
+      <button type="button" class="modal-close" data-close="modalAdj">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="adj-grid" id="viewAdjGrid"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalAdj">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 确认生效 -->
+<div class="modal-mask" id="modalConfirm">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>确认生效</span>
+      <button type="button" class="modal-close" data-close="modalConfirm">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item span-2" style="align-items:flex-start;">
+        <label style="padding-top:6px;">意见</label>
+        <textarea class="filter-control" style="height:88px;padding:8px 11px;" placeholder="选填">同意，按装网点时段政策生效</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalConfirm">取消</button>
+      <button type="button" class="btn btn-primary" data-close="modalConfirm">确认生效</button>
+    </div>
+  </div>
+</div>
+
+<!-- 驳回 -->
+<div class="modal-mask" id="modalReject">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>驳回</span>
+      <button type="button" class="modal-close" data-close="modalReject">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item span-2" style="align-items:flex-start;">
+        <label style="padding-top:6px;"><span class="req" style="color:#ff4d4f;">*</span>意见</label>
+        <textarea class="filter-control" style="height:88px;padding:8px 11px;" placeholder="请填写驳回原因">2～4 点加减请再评估</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalReject">取消</button>
+      <button type="button" class="btn btn-danger" data-close="modalReject">驳回</button>
+    </div>
+  </div>
+</div>
+
+<!-- 变更记录 -->
+<div class="modal-mask" id="modalLog">
+  <div class="modal">
+    <div class="modal-header">
+      <span>变更记录</span>
+      <button type="button" class="modal-close" data-close="modalLog">×</button>
+    </div>
+    <div class="modal-body">
+      <table class="data-table" style="width:100%;min-width:0;">
+        <thead>
+          <tr>
+            <th>时间</th>
+            <th>操作人</th>
+            <th>动作</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2026-09-02 09:10</td>
+            <td>张分拨</td>
+            <td>提交确认</td>
+            <td>草稿 → 待确认；固化测算快照 +19.20</td>
+          </tr>
+          <tr>
+            <td>2026-09-01 14:20</td>
+            <td>张分拨</td>
+            <td>保存</td>
+            <td>新建草稿；2～4点 +1、5点 -1</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalLog">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  const layout = document.getElementById('layout');
+
+  function showPage(page) {
+    const isReport = page === 'report';
+    document.getElementById('pageReport').classList.toggle('active', isReport);
+    document.getElementById('pageMaintain').classList.toggle('active', !isReport);
+    document.querySelectorAll('#pageTabs .page-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.page === page);
+    });
+    document.querySelectorAll('.menu-sub .menu-item[data-page]').forEach(item => {
+      item.classList.toggle('active', item.dataset.page === page);
+    });
+    document.title = isReport ? '时段操作货量与提成报表' : '时段加减单价维护';
+    try {
+      const nextHash = isReport ? '' : '#maintain';
+      if ((location.hash || '') !== nextHash) {
+        history.replaceState(null, '', (location.pathname || '') + (location.search || '') + nextHash);
+      }
+    } catch (e) {}
+    if (!isReport) layout.classList.remove('is-measure');
+    else if (typeof syncMode === 'function') syncMode();
+  }
+  function goReportMeasure() {
+    showPage('report');
+    const qm = document.getElementById('queryMode');
+    if (qm) { qm.value = 'measure'; }
+    if (typeof syncMode === 'function') syncMode();
+  }
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.page-tab');
+    if (!tab || !tab.dataset.page) return;
+    if (e.target.classList.contains('tab-close')) return;
+    showPage(tab.dataset.page);
+  });
+  document.querySelectorAll('.menu-sub .menu-item[data-page]').forEach(item => {
+    item.addEventListener('click', () => showPage(item.dataset.page));
+  });
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    layout.classList.toggle('sidebar-collapsed');
+  });
+
+  const queryMode = document.getElementById('queryMode');
+  const btnOpenAdj = document.getElementById('btnOpenAdj');
+  const schemePickRow = document.getElementById('schemePickRow');
+  const adjSource = document.getElementById('adjSource');
+  const adjModal = document.getElementById('adjModal');
+  const draftModal = document.getElementById('draftModal');
+
+  const defaultAdj = {};
+  for (let h = 0; h < 24; h++) defaultAdj[h] = 0;
+  defaultAdj[2] = 1; defaultAdj[3] = 1; defaultAdj[4] = 1; defaultAdj[5] = -1;
+  let draftAdj = { ...defaultAdj };
+
+  function syncMode() {
+    const isMeasure = queryMode.value === 'measure';
+    layout.classList.toggle('is-measure', isMeasure);
+    btnOpenAdj.classList.toggle('is-hidden', !(isMeasure && adjSource.value === 'manual'));
+    schemePickRow.classList.toggle('is-hidden', !(isMeasure && adjSource.value === 'scheme'));
+    const sumGroups = document.querySelectorAll('th.th-group.th-pair[data-formal-span]');
+    sumGroups.forEach(sumGroup => {
+      sumGroup.colSpan = isMeasure
+        ? Number(sumGroup.dataset.measureSpan || 3)
+        : Number(sumGroup.dataset.formalSpan || 2);
+    });
+    applyTableAmts(isMeasure);
+  }
+
+
+  /** 业务日小时序：当日 15 点起至次日 14 点 */
+  const BIZ_HOURS = [15,16,17,18,19,20,21,22,23,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+  function bizHourIndex(h) { return BIZ_HOURS.indexOf(Number(h)); }
+
+  const BIZ_TABS = {
+    load: {
+      key: 'load', label: '装卸',
+      types: ['装网点', '卸网点', '装干线', '卸干线'],
+      posts: ['装卸工', '装卸组长'],
+      opTypes: ['全部', '网点装车', '干线装车', '网点卸车', '干线卸车'],
+      volLabel: '操作货量', unit: '吨', isMove: false,
+      people: [
+        { name: '起正成', emp: '00621257', post: '装卸组长', fenbo: '萧山分拨中心' },
+        { name: '王磊', emp: '00630821', post: '装卸工', fenbo: '萧山分拨中心' },
+        { name: '李强', emp: '00640112', post: '装卸工', fenbo: '萧山分拨中心' }
+      ]
+    },
+    move: {
+      key: 'move', label: '移动',
+      types: ['移网点', '移干线'],
+      posts: ['电叉司机', '叉车组长', '机叉司机'],
+      opTypes: ['全部', '网点移动', '干线移动'],
+      volLabel: '移动货量', trayLabel: '移动托数', unit: '吨', isMove: true,
+      people: [
+        { name: '陈涛', emp: '00651001', post: '电叉司机', fenbo: '萧山分拨中心' },
+        { name: '赵敏', emp: '00651022', post: '叉车组长', fenbo: '萧山分拨中心' },
+        { name: '周杰', emp: '00651108', post: '机叉司机', fenbo: '萧山分拨中心' }
+      ]
+    },
+    u: {
+      key: 'u', label: '流水线卸货',
+      types: ['网点卸货', '干线卸货'],
+      posts: ['L卸货员', 'L卸货组长'],
+      opTypes: ['全部', '网点卸货', '干线卸货'],
+      volLabel: '卸货货量', unit: '吨', isMove: false,
+      people: [
+        { name: '孙悦', emp: '00662011', post: 'L卸货组长', fenbo: '萧山分拨中心' },
+        { name: '吴芳', emp: '00662045', post: 'L卸货员', fenbo: '萧山分拨中心' },
+        { name: '郑浩', emp: '00662103', post: 'L卸货员', fenbo: '萧山分拨中心' }
+      ]
+    },
+    s: {
+      key: 's', label: '流水线码货',
+      types: ['网点码货', '干线码货'],
+      posts: ['L码货员', 'L码货组长'],
+      opTypes: ['全部', '网点码货', '干线码货'],
+      volLabel: '码货货量', unit: '吨', isMove: false,
+      people: [
+        { name: '冯琳', emp: '00673012', post: 'L码货组长', fenbo: '萧山分拨中心' },
+        { name: '曹磊', emp: '00673088', post: 'L码货员', fenbo: '萧山分拨中心' },
+        { name: '韩雪', emp: '00673155', post: 'L码货员', fenbo: '萧山分拨中心' }
+      ]
+    },
+    z: {
+      key: 'z', label: '流水线直装',
+      types: ['网点直装', '干线直装'],
+      posts: ['装卸工', '装卸组长'],
+      opTypes: ['全部', '网点直装', '干线直装'],
+      volLabel: '直装货量', unit: '吨', isMove: false,
+      people: [
+        { name: '邓凯', emp: '00684001', post: '装卸组长', fenbo: '萧山分拨中心' },
+        { name: '彭博', emp: '00684066', post: '装卸工', fenbo: '萧山分拨中心' },
+        { name: '袁静', emp: '00684120', post: '装卸工', fenbo: '萧山分拨中心' }
+      ]
+    }
+  };
+  const FENBO_ROWS = [
+    { fenbo: '萧山分拨中心' },
+    { fenbo: '金华分拨中心' }
+  ];
+
+  function getActiveBizKey() {
+    const tab = document.querySelector('#reportBizTabs .content-tab.active');
+    return (tab && tab.dataset.ctab) || 'load';
+  }
+
+  function nfix(seed, i) {
+    const x = Math.abs(Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453);
+    return x - Math.floor(x);
+  }
+
+  function sampleVol(seed, h, ti) {
+    const base = 0.4 + nfix(seed + ti, h) * 2.2;
+    return (base + (h >= 2 && h <= 5 ? 0.8 : 0)).toFixed(2);
+  }
+  function sampleTray(seed, h, ti) {
+    return Math.max(1, Math.round(8 + nfix(seed + 9 + ti, h) * 40 + (h >= 2 && h <= 5 ? 12 : 0)));
+  }
+  function sampleTip(seed, h, ti, vol) {
+    const adj = (h >= 2 && h <= 4) ? 1 : (h === 5 ? -1 : 0);
+    const formal = (parseFloat(vol) * adj * 0.35).toFixed(2);
+    const measure = (parseFloat(vol) * (adj === 0 ? 0.2 : adj) * 0.35).toFixed(2);
+    return { formal: formal, measure: measure };
+  }
+
+  function tipTd(formal, measure, hour) {
+    const className = hour == null ? 'cell-amt cell-tip' : 'cell-amt cell-tip hour-col';
+    const dh = hour == null ? '' : (' data-hour="' + hour + '"');
+    return '<td class="' + className + '"' + dh + ' data-formal="' + formal + '" data-measure="' + measure + '">' + formal + '</td>';
+  }
+  function volTd(val, hour) {
+    if (hour == null) return '<td>' + val + '</td>';
+    return '<td class="hour-col" data-hour="' + hour + '">' + val + '</td>';
+  }
+
+  function buildSplitMetrics(biz, seed) {
+    // returns { summaryCellsHtml, hourCellsHtml(h) } as functions producing cell html
+    const types = biz.types;
+    const perType = biz.isMove ? 3 : 2;
+    function block(h) {
+      let html = '';
+      types.forEach((t, ti) => {
+        const vol = sampleVol(seed, h == null ? 99 : h, ti);
+        const tip = sampleTip(seed, h == null ? 3 : h, ti, vol);
+        html += volTd(vol, h);
+        if (biz.isMove) html += volTd(sampleTray(seed, h == null ? 99 : h, ti), h);
+        html += tipTd(tip.formal, tip.measure, h);
+      });
+      return html;
+    }
+    return {
+      colspan: types.length * perType,
+      summary: block(null),
+      hour: function (h) { return block(h); }
+    };
+  }
+
+  function buildSumMetrics(biz, seed) {
+    let totalVol = 0, totalTray = 0, tipF = 0, tipM = 0;
+    const hourBlocks = [];
+    for (let h = 0; h < 24; h++) {
+      let v = 0, tr = 0, f = 0, m = 0;
+      biz.types.forEach((_, ti) => {
+        const vol = parseFloat(sampleVol(seed, h, ti));
+        const tip = sampleTip(seed, h, ti, vol);
+        v += vol; f += parseFloat(tip.formal); m += parseFloat(tip.measure);
+        if (biz.isMove) tr += sampleTray(seed, h, ti);
+      });
+      totalVol += v; totalTray += tr; tipF += f; tipM += m;
+      hourBlocks.push({ v: v.toFixed(2), tr: tr, f: f.toFixed(2), m: m.toFixed(2) });
+    }
+    return {
+      totalVol: totalVol.toFixed(2),
+      totalTray: totalTray,
+      tipF: tipF.toFixed(2),
+      tipM: tipM.toFixed(2),
+      hourBlocks: hourBlocks,
+      formalSpan: biz.isMove ? 3 : 2,
+      measureSpan: biz.isMove ? 4 : 3
+    };
+  }
+
+  function renderSplitTable(id, biz, dim) {
+    const types = biz.types;
+    const perType = biz.isMove ? 3 : 2;
+    const groupSpan = types.length * perType;
+    const rows = dim === 'person' ? biz.people : FENBO_ROWS;
+    const baseCols = dim === 'person'
+      ? '<th class="col-checkbox" rowspan="3"><input type="checkbox" class="reportCheckAll" /></th>' +
+        '<th rowspan="3">员工姓名</th><th rowspan="3">工号</th><th rowspan="3">岗位</th><th rowspan="3">分拨</th><th rowspan="3">日期</th>'
+      : '<th class="col-checkbox" rowspan="3"><input type="checkbox" class="reportCheckAll" /></th>' +
+        '<th rowspan="3">分拨中心</th><th rowspan="3">日期</th>';
+
+    let r1 = '<tr>' + baseCols +
+      '<th class="th-group th-pair" colspan="' + groupSpan + '">汇总</th>';
+    BIZ_HOURS.forEach(h => {
+      r1 += '<th class="th-group hour-col" data-hour="' + h + '" colspan="' + groupSpan + '">' + h + '点</th>';
+    });
+    r1 += '</tr>';
+
+    let r2 = '<tr>';
+    // summary types
+    types.forEach(t => { r2 += '<th class="th-type" colspan="' + perType + '">' + t + '</th>'; });
+    BIZ_HOURS.forEach(h => {
+      types.forEach(t => {
+        r2 += '<th class="th-type hour-col" data-hour="' + h + '" colspan="' + perType + '">' + t + '</th>';
+      });
+    });
+    r2 += '</tr>';
+
+    let r3 = '<tr>';
+    function subHeads2(hour) {
+      let s = '';
+      types.forEach(() => {
+        if (hour == null) {
+          s += '<th class="th-sub">货量</th>';
+          if (biz.isMove) s += '<th class="th-sub">托数</th>';
+          s += '<th class="th-sub">提成</th>';
+        } else {
+          s += '<th class="th-sub hour-col" data-hour="' + hour + '">货量</th>';
+          if (biz.isMove) s += '<th class="th-sub hour-col" data-hour="' + hour + '">托数</th>';
+          s += '<th class="th-sub hour-col" data-hour="' + hour + '">提成</th>';
+        }
+      });
+      return s;
+    }
+    r3 += subHeads2(null);
+    BIZ_HOURS.forEach(h => { r3 += subHeads2(h); });
+    r3 += '</tr>';
+
+    let body = '';
+    rows.forEach((row, ri) => {
+      const seed = (biz.key.charCodeAt(0) || 1) * 17 + ri * 31 + (dim === 'person' ? 3 : 7);
+      const metrics = buildSplitMetrics(biz, seed);
+      body += '<tr>';
+      body += '<td class="col-checkbox"><input type="checkbox" class="row-check report-row-check" /></td>';
+      if (dim === 'person') {
+        body += '<td>' + row.name + '</td><td>' + row.emp + '</td><td>' + row.post + '</td><td>' + row.fenbo + '</td><td>2026-08-16</td>';
+      } else {
+        body += '<td>' + row.fenbo + '</td><td>2026-08-16</td>';
+      }
+      body += metrics.summary;
+      BIZ_HOURS.forEach(h => { body += metrics.hour(h); });
+      body += '</tr>';
+    });
+
+    return '<table class="data-table table-view" id="' + id + '"><thead>' + r1 + r2 + r3 + '</thead><tbody>' + body + '</tbody></table>';
+  }
+
+  function renderSumTable(id, biz, dim) {
+    const rows = dim === 'person' ? biz.people : FENBO_ROWS;
+    const rowspan = 2;
+    const baseCols = dim === 'person'
+      ? '<th class="col-checkbox" rowspan="2"><input type="checkbox" class="reportCheckAll" /></th>' +
+        '<th rowspan="2">员工姓名</th><th rowspan="2">工号</th><th rowspan="2">岗位</th><th rowspan="2">分拨</th><th rowspan="2">日期</th>'
+      : '<th class="col-checkbox" rowspan="2"><input type="checkbox" class="reportCheckAll" /></th>' +
+        '<th rowspan="2">分拨中心</th><th rowspan="2">日期</th>';
+
+    // formal colspan uses data attributes; default show formal span, syncMode adjusts
+    const sample = buildSumMetrics(biz, 1);
+    const formalSpan = sample.formalSpan;
+    const measureSpan = sample.measureSpan;
+    // For header group colspan we use measureSpan max so both fit; syncMode sets actual
+    // Actually existing code sets colSpan on th with data-formal-span. Use formal as initial.
+    const hourSpanFormal = formalSpan;
+    // hour groups only have vol+tip (+tray), no measure split on hours - same formal columns
+    const hourColSpan = formalSpan;
+
+    let r1 = '<tr>' + baseCols +
+      '<th class="th-group th-pair" colspan="' + formalSpan + '" data-formal-span="' + formalSpan + '" data-measure-span="' + measureSpan + '"' +
+      (id.indexOf('Person') >= 0 && id.indexOf('Sum') >= 0 ? ' id="thSumGroup"' : '') + '>汇总</th>';
+    BIZ_HOURS.forEach(h => {
+      r1 += '<th class="th-group hour-col" data-hour="' + h + '" colspan="' + hourColSpan + '">' + h + '点</th>';
+    });
+    r1 += '</tr>';
+
+    let r2 = '<tr>';
+    r2 += '<th class="th-sub th-pair">' + biz.volLabel + '</th>';
+    if (biz.isMove) r2 += '<th class="th-sub th-pair">' + (biz.trayLabel || '移动托数') + '</th>';
+    r2 += '<th class="th-sub th-pair formal-only">提成</th>';
+    r2 += '<th class="th-sub th-pair measure-col">调整前差额</th>';
+    r2 += '<th class="th-sub th-pair measure-col">调整后差额</th>';
+    BIZ_HOURS.forEach(h => {
+      r2 += '<th class="th-sub hour-col" data-hour="' + h + '">' + biz.volLabel + '</th>';
+      if (biz.isMove) r2 += '<th class="th-sub hour-col" data-hour="' + h + '">' + (biz.trayLabel || '移动托数') + '</th>';
+      r2 += '<th class="th-sub hour-col" data-hour="' + h + '">提成</th>';
+    });
+    r2 += '</tr>';
+
+    let body = '';
+    rows.forEach((row, ri) => {
+      const seed = (biz.key.charCodeAt(0) || 1) * 19 + ri * 41 + (dim === 'person' ? 5 : 11);
+      const m = buildSumMetrics(biz, seed);
+      body += '<tr>';
+      body += '<td class="col-checkbox"><input type="checkbox" class="row-check report-row-check" /></td>';
+      if (dim === 'person') {
+        body += '<td>' + row.name + '</td><td>' + row.emp + '</td><td>' + row.post + '</td><td>' + row.fenbo + '</td><td>2026-08-16</td>';
+      } else {
+        body += '<td>' + row.fenbo + '</td><td>2026-08-16</td>';
+      }
+      body += '<td>' + m.totalVol + '</td>';
+      if (biz.isMove) body += '<td>' + m.totalTray + '</td>';
+      body += '<td class="cell-amt formal-only">' + m.tipF + '</td>';
+      body += '<td class="cell-amt measure-col">0.00</td>';
+      body += '<td class="cell-amt measure-col cell-after">' + m.tipM + '</td>';
+      BIZ_HOURS.forEach(h => {
+        const hb = m.hourBlocks[h];
+        body += '<td class="hour-col" data-hour="' + h + '">' + hb.v + '</td>';
+        if (biz.isMove) body += '<td class="hour-col" data-hour="' + h + '">' + hb.tr + '</td>';
+        body += tipTd(hb.f, hb.m, h);
+      });
+      body += '</tr>';
+    });
+
+    return '<table class="data-table table-view" id="' + id + '"><thead>' + r1 + r2 + '</thead><tbody>' + body + '</tbody></table>';
+  }
+
+  function syncBizFilters(biz) {
+    const postSel = document.querySelector('#pageReport .filter-item .filter-label');
+    // update 岗位 select: find by label
+    document.querySelectorAll('#pageReport .filter-item').forEach(item => {
+      const label = item.querySelector('.filter-label');
+      if (!label) return;
+      if (label.textContent.trim() === '岗位') {
+        const sel = item.querySelector('select');
+        if (!sel) return;
+        sel.innerHTML = '<option>全部</option>' + biz.posts.map(p => '<option>' + p + '</option>').join('');
+      }
+      if (label.textContent.trim() === '操作类型') {
+        const sel = item.querySelector('select');
+        if (!sel) return;
+        sel.innerHTML = biz.opTypes.map((o, i) => '<option' + (i === 0 ? ' selected' : '') + '>' + o + '</option>').join('');
+      }
+    });
+    const measureType = document.querySelector('#pageReport .filter-item.measure-only .filter-label');
+    document.querySelectorAll('#pageReport .filter-item.measure-only').forEach(item => {
+      const label = item.querySelector('.filter-label');
+      if (label && label.textContent.trim() === '测算类型') {
+        const sel = item.querySelector('select');
+        if (!sel) return;
+        const opts = ['通用'].concat(biz.types);
+        sel.innerHTML = opts.map((o, i) => '<option' + (i === 1 ? ' selected' : '') + '>' + o + '</option>').join('');
+      }
+    });
+    const sumType = document.querySelector('#measureSummary span:first-child');
+    if (sumType) sumType.innerHTML = '<span class="sum-label">测算类型：</span>' + (biz.types[0] || '');
+  }
+
+  function renderReportTables() {
+    const biz = BIZ_TABS[getActiveBizKey()] || BIZ_TABS.load;
+    const host = document.querySelector('#pageReport .table-scroll');
+    if (!host) return;
+    host.innerHTML =
+      renderSplitTable('tablePersonSplit', biz, 'person') +
+      renderSumTable('tablePersonSum', biz, 'person') +
+      renderSplitTable('tableFenboSplit', biz, 'fenbo') +
+      renderSumTable('tableFenboSum', biz, 'fenbo');
+    syncBizFilters(biz);
+    document.querySelectorAll('.reportCheckAll').forEach(el => {
+      el.addEventListener('change', function () {
+        const checked = this.checked;
+        document.querySelectorAll('.reportCheckAll').forEach(x => { x.checked = checked; });
+        document.querySelectorAll('.report-row-check').forEach(cb => { cb.checked = checked; });
+      });
+    });
+  }
+
+  function syncGrain() {
+    const grain = document.getElementById('metricGrain').value;
+    const dimTab = document.querySelector('#reportDimTabs .sub-tab.active');
+    const dim = dimTab ? dimTab.dataset.dim : 'fenbo';
+    layout.classList.toggle('grain-split', grain === 'split');
+    layout.classList.toggle('grain-sum', grain === 'sum');
+    layout.classList.toggle('dim-person', dim === 'person');
+    layout.classList.toggle('dim-fenbo', dim === 'fenbo');
+    const total = document.getElementById('reportPageTotal');
+    if (total) total.textContent = dim === 'fenbo' ? '共 2 条' : '共 3 条';
+    const sumSpans = document.querySelectorAll('#measureSummary > span');
+    if (sumSpans.length >= 3) {
+      sumSpans[2].innerHTML = dim === 'fenbo'
+        ? '<span class="sum-label">分拨数：</span>2'
+        : '<span class="sum-label">人数：</span>3';
+    }
+    syncHours();
+    syncMode();
+  }
+
+  function hoursFromRange(start, end) {
+    const out = [];
+    let i = bizHourIndex(start);
+    const endI = bizHourIndex(end);
+    if (i < 0 || endI < 0) return out;
+    for (;;) {
+      out.push(BIZ_HOURS[i]);
+      if (i === endI) break;
+      i = (i + 1) % 24;
+    }
+    return out;
+  }
+
+  function readCheckedHours() {
+    return new Set(
+      Array.from(document.querySelectorAll('.hour-check:checked')).map(el => Number(el.dataset.hour))
+    );
+  }
+
+  function writeCheckedHours(hours) {
+    const on = new Set(Array.from(hours).map(Number));
+    document.querySelectorAll('.hour-check').forEach(el => {
+      el.checked = on.has(Number(el.dataset.hour));
+    });
+  }
+
+  function rangeFromHours(set) {
+    const arr = Array.from(set).map(Number);
+    if (!arr.length) return { start: 15, end: 14, exact: true };
+    if (arr.length === 24) return { start: 15, end: 14, exact: true };
+    const setObj = new Set(arr);
+    const idxs = arr.map(bizHourIndex).filter(i => i >= 0).sort((a, b) => a - b);
+    for (let n = 0; n < idxs.length; n++) {
+      const startI = idxs[n];
+      const rebuilt = [];
+      for (let k = 0; k < arr.length; k++) rebuilt.push(BIZ_HOURS[(startI + k) % 24]);
+      if (rebuilt.every(h => setObj.has(h))) {
+        return { start: rebuilt[0], end: rebuilt[rebuilt.length - 1], exact: true };
+      }
+    }
+    let best = null;
+    for (let s = 0; s < 24; s++) {
+      for (let len = arr.length; len <= 24; len++) {
+        const covered = new Set();
+        for (let k = 0; k < len; k++) covered.add(BIZ_HOURS[(s + k) % 24]);
+        if (arr.every(h => covered.has(h))) {
+          if (!best || len < best.len) {
+            best = { start: BIZ_HOURS[s], end: BIZ_HOURS[(s + len - 1) % 24], len: len };
+          }
+          break;
+        }
+      }
+    }
+    return best
+      ? { start: best.start, end: best.end, exact: false }
+      : { start: 15, end: 14, exact: false };
+  }
+
+  function formatHourHint(start, end) {
+    const list = hoursFromRange(start, end);
+    const si = bizHourIndex(start);
+    const ei = bizHourIndex(end);
+    const wrap = list.length > 1 && si > ei;
+    if (wrap) {
+      return start + '～14、15～' + end + '点 · ' + list.length + '小时 · 跨业务日起点';
+    }
+    return start + '～' + end + '点 · ' + list.length + '小时';
+  }
+
+  function getHourMode() {
+    const active = document.querySelector('#hourModeSeg .hour-seg-item.active');
+    return active ? active.dataset.mode : 'range';
+  }
+
+  function applyRangeToChecks() {
+    const start = Number(document.getElementById('hourStart').value);
+    const end = Number(document.getElementById('hourEnd').value);
+    writeCheckedHours(hoursFromRange(start, end));
+    document.getElementById('hourRangeHint').textContent = formatHourHint(start, end);
+    syncHours();
+  }
+
+  function syncHourModePanels() {
+    const mode = getHourMode();
+    const rangePanel = document.getElementById('hourRangePanel');
+    const checkGroup = document.getElementById('hourCheckGroup');
+    rangePanel.classList.toggle('is-hidden', mode !== 'range');
+    checkGroup.classList.toggle('is-hidden', mode !== 'custom');
+    if (mode === 'range') {
+      const derived = rangeFromHours(readCheckedHours());
+      document.getElementById('hourStart').value = String(derived.start);
+      document.getElementById('hourEnd').value = String(derived.end);
+      applyRangeToChecks();
+    } else {
+      syncHours();
+    }
+  }
+
+  function initHourFilter() {
+    const startSel = document.getElementById('hourStart');
+    const endSel = document.getElementById('hourEnd');
+    startSel.innerHTML = '';
+    endSel.innerHTML = '';
+    BIZ_HOURS.forEach(h => {
+      startSel.appendChild(new Option(h + '点', String(h)));
+      endSel.appendChild(new Option(h + '点', String(h)));
+    });
+    startSel.value = '15';
+    endSel.value = '14';
+    applyRangeToChecks();
+    document.getElementById('hourModeSeg').addEventListener('click', (e) => {
+      const btn = e.target.closest('.hour-seg-item');
+      if (!btn) return;
+      document.querySelectorAll('#hourModeSeg .hour-seg-item').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      syncHourModePanels();
+    });
+    startSel.addEventListener('change', applyRangeToChecks);
+    endSel.addEventListener('change', applyRangeToChecks);
+    document.getElementById('hourCheckGroup').addEventListener('change', () => {
+      if (getHourMode() === 'custom') syncHours();
+    });
+    // 芯片点击切换勾选（隐藏原生 checkbox）
+    document.getElementById('hourCheckGroup').addEventListener('click', (e) => {
+      const label = e.target.closest('label');
+      if (!label || getHourMode() !== 'custom') return;
+      const input = label.querySelector('.hour-check');
+      if (!input) return;
+      e.preventDefault();
+      input.checked = !input.checked;
+      syncHours();
+    });
+    syncHourModePanels();
+  }
+
+  function syncHours() {
+    const on = new Set(
+      Array.from(document.querySelectorAll('.hour-check:checked')).map(el => String(el.dataset.hour))
+    );
+    document.querySelectorAll('.hour-col').forEach(el => {
+      const show = on.has(String(el.dataset.hour));
+      el.style.display = show ? '' : 'none';
+    });
+  }
+
+  function paintAmt(el, text, forcePos) {
+    const v = parseFloat(text);
+    el.textContent = text;
+    el.classList.remove('num-neg', 'num-pos');
+    if (v < 0) el.classList.add('num-neg');
+    else if (forcePos && v > 0) el.classList.add('num-pos');
+  }
+
+  function applyTableAmts(isMeasure) {
+    document.querySelectorAll('#pageReport td.cell-tip[data-formal]').forEach(el => {
+      const text = isMeasure ? el.dataset.measure : el.dataset.formal;
+      paintAmt(el, text, isMeasure && parseFloat(text) > 0);
+    });
+    document.querySelectorAll('#pageReport td.cell-after').forEach(el => {
+      paintAmt(el, el.textContent, true);
+    });
+    const sumEl = document.getElementById('intervalSum');
+    if (sumEl) {
+      sumEl.textContent = isMeasure ? '+19.20' : '';
+      sumEl.className = 'sum-value num-pos';
+    }
+  }
+
+  function buildAdjGrid() {
+    const grid = document.getElementById('adjGrid');
+    grid.innerHTML = '';
+    BIZ_HOURS.forEach(h => {
+      const cell = document.createElement('div');
+      cell.className = 'adj-cell';
+      cell.innerHTML = '<span>' + h + '点</span><input type="number" step="0.1" data-h="' + h + '" value="' + draftAdj[h] + '" />';
+      grid.appendChild(cell);
+    });
+  }
+
+  document.getElementById('reportBizTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('#reportBizTabs .content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    renderReportTables();
+    syncGrain();
+  });
+  // reportCheckAll 在 renderReportTables 内绑定
+
+  queryMode.addEventListener('change', syncMode);
+  adjSource.addEventListener('change', syncMode);
+  document.getElementById('metricGrain').addEventListener('change', syncGrain);
+  document.getElementById('reportDimTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.sub-tab');
+    if (!tab) return;
+    document.querySelectorAll('#reportDimTabs .sub-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    syncGrain();
+  });
+  initHourFilter();
+  btnOpenAdj.addEventListener('click', () => {
+    buildAdjGrid();
+    adjModal.classList.add('show');
+  });
+  function closeAdj() { adjModal.classList.remove('show'); }
+  document.getElementById('adjClose').addEventListener('click', closeAdj);
+  document.getElementById('adjCancel').addEventListener('click', closeAdj);
+  document.getElementById('adjOk').addEventListener('click', () => {
+    document.querySelectorAll('#adjGrid input').forEach(inp => {
+      draftAdj[Number(inp.dataset.h)] = Number(inp.value) || 0;
+    });
+    closeAdj();
+  });
+  adjModal.addEventListener('click', (e) => { if (e.target === adjModal) closeAdj(); });
+
+  function closeDraft() { draftModal.classList.remove('show'); }
+  document.getElementById('btnGenDraft').addEventListener('click', () => draftModal.classList.add('show'));
+  document.getElementById('draftClose').addEventListener('click', closeDraft);
+  document.getElementById('draftCancel').addEventListener('click', closeDraft);
+  document.getElementById('draftOk').addEventListener('click', () => {
+    closeDraft();
+    showPage('maintain');
+  });
+  draftModal.addEventListener('click', (e) => { if (e.target === draftModal) closeDraft(); });
+
+  renderReportTables();
+  syncGrain();
+
+
+  const sampleAdj = {};
+  for (let h = 0; h < 24; h++) sampleAdj[h] = 0;
+  sampleAdj[2] = 1; sampleAdj[3] = 1; sampleAdj[4] = 1; sampleAdj[5] = -1;
+
+  function fillAdj(gridId, editable) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+    grid.innerHTML = '';
+    BIZ_HOURS.forEach(h => {
+      const cell = document.createElement('div');
+      cell.className = 'adj-cell';
+      if (editable) {
+        cell.innerHTML = '<span>' + h + '点</span><input type="number" step="0.1" value="' + sampleAdj[h] + '" />';
+      } else {
+        const v = sampleAdj[h];
+        const cls = v < 0 ? 'num-neg' : (v > 0 ? 'num-pos' : '');
+        cell.innerHTML = '<span>' + h + '点</span><div class="form-text ' + cls + '" style="flex:1;text-align:center;">' + v + '</div>';
+      }
+      grid.appendChild(cell);
+    });
+  }
+
+  function openModal(id) {
+    document.getElementById(id).classList.add('show');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+
+  document.getElementById('bizTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('#bizTabs .content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+
+  document.getElementById('layerTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.sub-tab');
+    if (!tab) return;
+    document.querySelectorAll('#layerTabs .sub-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    layout.classList.toggle('is-emp', tab.dataset.layer === 'emp');
+  });
+
+  document.getElementById('maintainCheckAll').addEventListener('change', function () {
+    document.querySelectorAll('.maintain-row-check').forEach(cb => { cb.checked = this.checked; });
+  });
+
+  document.getElementById('maintainTableBody').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr');
+    if (!tr) return;
+    if (!e.target.classList.contains('link') && e.target.type !== 'checkbox') {
+      document.querySelectorAll('#maintainTableBody tr').forEach(r => r.classList.remove('is-selected'));
+      tr.classList.add('is-selected');
+      const cb = tr.querySelector('.maintain-row-check');
+      if (cb) cb.checked = true;
+    }
+    const open = e.target.dataset.open;
+    if (open === 'detail') {
+      const hasSnap = tr.dataset.snap === '1';
+      const box = document.getElementById('detailSnap');
+      if (hasSnap) {
+        box.className = 'snapshot-box';
+        box.innerHTML = '<div>提交时固化的汇总快照（明细以「查看测算」重算为准）</div>' +
+          '<div class="snapshot-row">' +
+          '<span>测算日期：2026-08-16</span><span>业务线：装卸</span><span>类型：装网点</span>' +
+          '<span>人数：3</span><span>本区间增减合计：<strong class="num-pos">+19.20</strong></span></div>';
+      } else {
+        box.className = 'snapshot-box empty';
+        box.textContent = '无测算快照（允许无测算提交；总部可自行查看测算）';
+      }
+      fillAdj('detailAdjGrid', false);
+      openModal('modalDetail');
+    }
+    if (open === 'adj') {
+      fillAdj('viewAdjGrid', false);
+      openModal('modalAdj');
+    }
+    if (open === 'edit') {
+      document.getElementById('editTitle').textContent = '编辑分拨方案（装卸）';
+      fillAdj('editAdjGrid', true);
+      openModal('modalEdit');
+    }
+  });
+
+  document.getElementById('btnAdd').addEventListener('click', () => {
+    document.getElementById('editTitle').textContent = layout.classList.contains('is-emp')
+      ? '新增员工方案（装卸）' : '新增分拨方案（装卸）';
+    fillAdj('editAdjGrid', true);
+    openModal('modalEdit');
+  });
+  document.getElementById('btnEdit').addEventListener('click', () => {
+    document.getElementById('editTitle').textContent = '编辑分拨方案（装卸）';
+    fillAdj('editAdjGrid', true);
+    openModal('modalEdit');
+  });
+  document.getElementById('btnConfirm').addEventListener('click', () => openModal('modalConfirm'));
+  document.getElementById('btnReject').addEventListener('click', () => openModal('modalReject'));
+  document.getElementById('btnLog').addEventListener('click', () => openModal('modalLog'));
+  document.getElementById('btnDetailConfirm').addEventListener('click', () => {
+    closeModal('modalDetail');
+    openModal('modalConfirm');
+  });
+  document.getElementById('btnDetailReject').addEventListener('click', () => {
+    closeModal('modalDetail');
+    openModal('modalReject');
+  });
+  document.getElementById('btnDetailMeasure').addEventListener('click', () => {
+    closeModal('modalDetail');
+    goReportMeasure();
+  });
+  document.getElementById('btnViewMeasure').addEventListener('click', () => {
+    goReportMeasure();
+  });
+  document.getElementById('btnMeasure').addEventListener('click', () => {
+    goReportMeasure();
+  });
+
+  document.querySelectorAll('[data-close]').forEach(el => {
+    el.addEventListener('click', () => closeModal(el.dataset.close));
+  });
+  document.querySelectorAll('.modal-mask').forEach(mask => {
+    mask.addEventListener('click', (e) => {
+      if (e.target === mask) mask.classList.remove('show');
+    });
+  });
+
+  fillAdj('editAdjGrid', true);
+
+  const hashPage = (location.hash || '').replace(/^#/, '');
+  showPage(hashPage === 'maintain' ? 'maintain' : 'report');
+  window.addEventListener('hashchange', () => {
+    const h = (location.hash || '').replace(/^#/, '');
+    showPage(h === 'maintain' ? 'maintain' : 'report');
+  });
+
+</script>
+</body>
+</html>
