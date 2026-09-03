@@ -278,7 +278,7 @@
                 <div class="filter-item">
                   <span class="filter-label">月份</span>
                   <div class="filter-control-wrap">
-                    <input class="filter-control" type="text" value="2026-08" readonly />
+                    <input class="filter-control" type="text" id="filterPersonMonth" value="2026-08" readonly />
                   </div>
                 </div>
                 <div class="filter-item">
@@ -320,6 +320,7 @@
                         <select class="filter-control" id="filterDetailIdType">
                           <option value="子托号" selected>子托号</option>
                           <option value="运单号">运单号</option>
+                          <option value="子单号">子单号</option>
                         </select>
                       </div>
                       <input class="filter-control" type="text" id="filterDetailIdValue" placeholder="支持批量，逗号分隔" />
@@ -333,9 +334,13 @@
                   </div>
                 </div>
                 <div class="filter-item">
-                  <span class="filter-label">月份</span>
+                  <span class="filter-label">移动时间</span>
                   <div class="filter-control-wrap">
-                    <input class="filter-control" type="text" value="2026-08" readonly />
+                    <div class="date-range">
+                      <input class="filter-control" type="text" id="filterDetailTimeStart" value="2026-09-01 15:00:00" readonly />
+                      <span class="sep">~</span>
+                      <input class="filter-control" type="text" id="filterDetailTimeEnd" value="2026-10-01 14:59:59" readonly />
+                    </div>
                   </div>
                 </div>
                 <div class="filter-item">
@@ -554,6 +559,7 @@
                     <th>子单号</th>
                     <th>移动时间</th>
                     <th>操作分拨</th>
+                    <th>省区</th>
                     <th>操作人</th>
                     <th>人事工号</th>
                     <th>岗位</th>
@@ -591,8 +597,9 @@
                     <td>ZT202608210001</td>
                     <td>YD20260821088</td>
                     <td>YD20260821088-01</td>
-                    <td>2026-08-15 16:22:10</td>
+                    <td>2026-09-05 16:22:10</td>
                     <td>金华分拨中心</td>
+                    <td>浙江</td>
                     <td>张三</td>
                     <td>100861</td>
                     <td>电叉司机</td>
@@ -628,8 +635,9 @@
                     <td>ZT202608210002</td>
                     <td>YD20260821099</td>
                     <td>YD20260821099-01</td>
-                    <td>2026-08-18 09:05:33</td>
+                    <td>2026-09-08 09:05:33</td>
                     <td>金华分拨中心</td>
+                    <td>浙江</td>
                     <td>张三</td>
                     <td>100861</td>
                     <td>电叉司机</td>
@@ -665,8 +673,9 @@
                     <td>ZT202608210003</td>
                     <td>YD20260821110</td>
                     <td>YD20260821110-01</td>
-                    <td>2026-08-20 14:41:02</td>
+                    <td>2026-09-12 14:41:02</td>
                     <td>杭州分拨中心</td>
+                    <td>浙江</td>
                     <td>王五</td>
                     <td>100863</td>
                     <td>电叉司机</td>
@@ -815,6 +824,21 @@
         if (n) n.value = name;
         const typ = document.getElementById('filterDetailAutoType');
         if (typ) typ.value = '专项合托';
+        const monthEl = document.getElementById('filterPersonMonth');
+        const startEl = document.getElementById('filterDetailTimeStart');
+        const endEl = document.getElementById('filterDetailTimeEnd');
+        if (monthEl && startEl && endEl && monthEl.value) {
+          const parts = monthEl.value.split('-');
+          if (parts.length === 2) {
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10);
+            const pad = (n) => (n < 10 ? '0' + n : '' + n);
+            const nextY = m === 12 ? y + 1 : y;
+            const nextM = m === 12 ? 1 : m + 1;
+            startEl.value = y + '-' + pad(m) + '-01 15:00:00';
+            endEl.value = nextY + '-' + pad(nextM) + '-01 14:59:59';
+          }
+        }
       }
     });
   });
