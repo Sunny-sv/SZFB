@@ -35,9 +35,9 @@
     .page-tab { display: flex; align-items: center; gap: 6px; padding: 0 12px; height: 32px; border-radius: 4px; color: var(--text-secondary); cursor: pointer; white-space: nowrap; font-size: 13px; }
     .page-tab:hover { color: var(--text); background: #fafafa; }
     .page-tab.active { color: var(--primary); background: #e6f7ff; }
-    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
-    .content-card { background: var(--card); border-radius: 4px; padding: 16px; min-height: calc(100vh - var(--header-height) - 32px); display: flex; flex-direction: column; gap: 16px; }
-    .filter-area { display: flex; align-items: flex-end; gap: 16px; }
+    .content-area { flex: 1; overflow: hidden; padding: 16px; display: flex; flex-direction: column; min-height: 0; }
+    .content-card { background: var(--card); border-radius: 4px; padding: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
+    .filter-area { display: flex; align-items: flex-end; gap: 16px; flex-shrink: 0; }
     .filter-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 24px; align-items: center; }
     .filter-item { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
     .filter-item .filter-label { flex: 0 0 96px; text-align: right; font-size: 14px; color: var(--text); white-space: nowrap; }
@@ -56,29 +56,36 @@
     .btn:hover { color: var(--primary); border-color: var(--primary); }
     .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
-
-    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .action-hint { font-size: 13px; color: var(--text-secondary); margin-left: auto; }
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .content-tab {
+      padding: 10px 16px; cursor: pointer; color: var(--text-secondary); font-size: 14px;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
     .btn-action { height: 32px; padding: 0 15px; border-radius: 4px; font-size: 14px; cursor: pointer; border: 1px solid var(--border); background: #fff; color: var(--text); }
     .btn-action:hover { color: var(--primary); border-color: var(--primary); }
-    .table-area { flex: 1; display: flex; flex-direction: column; }
-    .table-wrap { overflow-x: auto; }
-    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1400px; }
-    .data-table th, .data-table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; white-space: nowrap; }
-    .data-table th { background: #fafafa; font-weight: 500; }
+    .table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+    .table-scroll { flex: 1; min-height: 0; overflow: auto; }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th, .data-table td { border: 1px solid var(--border); padding: 8px 10px; text-align: center; white-space: nowrap; }
+    .data-table th { background: #fafafa; font-weight: 500; white-space: nowrap; }
     .data-table tbody tr:hover { background: #fafafa; }
     .col-checkbox { width: 40px; text-align: center !important; }
-    .col-num { text-align: right !important; }
-    .col-month { text-align: center !important; }
     .tag { display: inline-block; padding: 0 8px; border-radius: 2px; font-size: 12px; }
     .tag-blue { background: #e6f7ff; color: var(--primary); border: 1px solid #91d5ff; }
     .tag-orange { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
     .num-up { color: #52c41a; }
     .num-down { color: #ff4d4f; }
     .num-zero { color: var(--text-secondary); }
-    .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 16px; font-size: 13px; color: var(--text-secondary); }
+    .pagination {
+      display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+      margin-top: auto; padding-top: 16px; flex-shrink: 0; font-size: 13px; color: var(--text-secondary);
+    }
     .page-btn { min-width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; font-size: 13px; color: var(--text); display: flex; align-items: center; justify-content: center; padding: 0 8px; }
     .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -137,7 +144,7 @@
                 <input class="filter-control" type="text" placeholder="姓名或工号模糊查询" />
               </div>
             </div>
-            <div class="filter-item">
+            <div class="filter-item" id="filterJob">
               <span class="filter-label">岗位</span>
               <div class="filter-control-wrap">
                 <div class="select-wrap">
@@ -151,43 +158,77 @@
             </div>
           </div>
           <div class="filter-actions">
-            <button class="btn">重置</button>
-            <button class="btn btn-primary">查询</button>
+            <button class="btn" type="button">重置</button>
+            <button class="btn btn-primary" type="button">查询</button>
           </div>
         </section>
 
-        <section class="action-bar">
-          <button class="btn-action">导出</button>
-          <span class="action-hint">本页仅展示绩效标准，实发金额见「转运人员薪资」</span>
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-tab="standard">绩效标准</div>
+          <div class="content-tab" data-tab="import">破损件数导入</div>
+        </nav>
+
+        <section class="action-bar" id="actionStandard">
+          <button class="btn-action" type="button">导出</button>
+        </section>
+        <section class="action-bar hidden" id="actionImport">
+          <button class="btn-action" type="button">下载模板</button>
+          <button class="btn-action" type="button">导入</button>
+          <button class="btn-action" type="button">导出</button>
         </section>
 
-        <section class="table-area">
-          <div class="table-wrap">
+        <section class="table-area" id="tableStandard">
+          <div class="table-scroll">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>
+                  <th class="col-checkbox"><input type="checkbox" id="checkAllStandard" /></th>
                   <th>分拨中心</th>
                   <th>人员姓名</th>
                   <th>人事工号</th>
                   <th>岗位名称</th>
                   <th>入职日期</th>
-                  <th class="col-month">绩效月份</th>
-                  <th class="col-num">保底绩效</th>
-                  <th class="col-num">绩效下限</th>
-                  <th class="col-num">绩效上限</th>
-                  <th class="col-num">破损件数</th>
-                  <th class="col-num">质量绩效</th>
-                  <th class="col-num">合计绩效</th>
+                  <th>绩效月份</th>
+                  <th>保底绩效</th>
+                  <th>绩效下限</th>
+                  <th>绩效上限</th>
+                  <th>破损件数</th>
+                  <th>质量绩效</th>
+                  <th>合计绩效</th>
                   <th>方案编号</th>
                 </tr>
               </thead>
-              <tbody id="tableBody"></tbody>
+              <tbody id="tableBodyStandard"></tbody>
             </table>
           </div>
           <div class="pagination">
-            <span id="totalCount">共 0 条</span>
-            <button class="page-btn active">1</button>
+            <span id="totalCountStandard">共 0 条</span>
+            <button class="page-btn active" type="button">1</button>
+          </div>
+        </section>
+
+        <section class="table-area hidden" id="tableImport">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" id="checkAllImport" /></th>
+                  <th>分拨中心</th>
+                  <th>人员姓名</th>
+                  <th>人事工号</th>
+                  <th>岗位</th>
+                  <th>绩效月份</th>
+                  <th>破损件数</th>
+                  <th>创建人</th>
+                  <th>创建时间</th>
+                </tr>
+              </thead>
+              <tbody id="tableBodyImport"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span id="totalCountImport">共 0 条</span>
+            <button class="page-btn active" type="button">1</button>
           </div>
         </section>
 
@@ -197,43 +238,52 @@
 </div>
 
 <script>
-  const mockRows = [
+  const standardRows = [
     {
       hub: '顺义分拨中心', name: '张明', empNo: '90190625', job: '机叉司机', jobTag: 'tag-blue',
       joinDate: '2024-05-10', month: '2026-06',
-      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '0.00',
+      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '0',
       quality: '+1,000.00', qualityClass: 'num-up', total: '3,500.00', scheme: 'JC202600128',
     },
     {
       hub: '南通分拨', name: '李四', empNo: '90188012', job: '叉车组长', jobTag: 'tag-orange',
       joinDate: '2025-08-01', month: '2026-06',
-      base: '1,800.00', min: '1,200.00', max: '3,500.00', damage: '1.25',
+      base: '1,800.00', min: '1,200.00', max: '3,500.00', damage: '2',
       quality: '-600.00', qualityClass: 'num-down', total: '1,200.00', scheme: 'JC202600056',
     },
     {
       hub: '温州分拨', name: '王芳', empNo: '90191234', job: '机叉司机', jobTag: 'tag-blue',
       joinDate: '2023-11-02', month: '2026-06',
-      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '2.00',
+      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '1',
       quality: '0.00', qualityClass: 'num-zero', total: '2,500.00', scheme: 'JC202600128',
     },
     {
       hub: '顺义分拨中心', name: '赵强', empNo: '90190501', job: '机叉司机', jobTag: 'tag-blue',
       joinDate: '2024-01-15', month: '2026-06',
-      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '0.80',
+      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '0',
       quality: '0.00', qualityClass: 'num-zero', total: '2,500.00', scheme: 'JC202600099',
     },
     {
       hub: '南通分拨', name: '陈磊', empNo: '90187777', job: '叉车组长', jobTag: 'tag-orange',
       joinDate: '2025-03-20', month: '2026-06',
-      base: '0.00', min: '0.00', max: '0.00', damage: '0.00',
+      base: '0.00', min: '0.00', max: '0.00', damage: '0',
       quality: '0.00', qualityClass: 'num-zero', total: '0.00', scheme: '-',
     },
     {
       hub: '温州分拨', name: '刘洋', empNo: '90192001', job: '机叉司机', jobTag: 'tag-blue',
       joinDate: '2024-09-01', month: '2026-06',
-      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '0.00',
+      base: '2,500.00', min: '2,000.00', max: '4,000.00', damage: '0',
       quality: '0.00', qualityClass: 'num-zero', total: '2,500.00', scheme: 'JC202600128',
     },
+  ];
+
+  const importRows = [
+    { hub: '顺义分拨中心', name: '张明', empNo: '90190625', job: '机叉司机', jobTag: 'tag-blue', month: '2026-06', damage: '0', creator: '许越', createTime: '2026-07-03 14:22:18' },
+    { hub: '南通分拨', name: '李四', empNo: '90188012', job: '叉车组长', jobTag: 'tag-orange', month: '2026-06', damage: '2', creator: '许越', createTime: '2026-07-03 14:22:18' },
+    { hub: '温州分拨', name: '王芳', empNo: '90191234', job: '机叉司机', jobTag: 'tag-blue', month: '2026-06', damage: '1', creator: '许越', createTime: '2026-07-03 14:22:18' },
+    { hub: '顺义分拨中心', name: '赵强', empNo: '90190501', job: '机叉司机', jobTag: 'tag-blue', month: '2026-06', damage: '0', creator: '胡绵飞', createTime: '2026-07-04 09:15:02' },
+    { hub: '南通分拨', name: '陈磊', empNo: '90187777', job: '叉车组长', jobTag: 'tag-orange', month: '2026-06', damage: '0', creator: '许越', createTime: '2026-07-03 14:22:18' },
+    { hub: '温州分拨', name: '刘洋', empNo: '90192001', job: '机叉司机', jobTag: 'tag-blue', month: '2026-06', damage: '0', creator: '许越', createTime: '2026-07-03 14:22:18' },
   ];
 
   function formatQuality(val, cls) {
@@ -242,37 +292,75 @@
     return val;
   }
 
-  function renderTable() {
-    const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = mockRows.map((r) => {
+  function renderStandard() {
+    const tbody = document.getElementById('tableBodyStandard');
+    tbody.innerHTML = standardRows.map((r) => {
       const q = formatQuality(r.quality, r.qualityClass);
       return `<tr>
-        <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+        <td class="col-checkbox"><input type="checkbox" class="row-check-standard" /></td>
         <td>${r.hub}</td>
         <td>${r.name}</td>
         <td>${r.empNo}</td>
         <td><span class="tag ${r.jobTag}">${r.job}</span></td>
         <td>${r.joinDate}</td>
-        <td class="col-month">${r.month}</td>
-        <td class="col-num">${r.base}</td>
-        <td class="col-num">${r.min}</td>
-        <td class="col-num">${r.max}</td>
-        <td class="col-num">${r.damage}</td>
-        <td class="col-num ${r.qualityClass}">${q}</td>
-        <td class="col-num">${r.total}</td>
+        <td>${r.month}</td>
+        <td>${r.base}</td>
+        <td>${r.min}</td>
+        <td>${r.max}</td>
+        <td>${r.damage}</td>
+        <td class="${r.qualityClass}">${q}</td>
+        <td>${r.total}</td>
         <td>${r.scheme}</td>
       </tr>`;
     }).join('');
-    document.getElementById('totalCount').textContent = `共 ${mockRows.length} 条`;
+    document.getElementById('totalCountStandard').textContent = `共 ${standardRows.length} 条`;
   }
 
-  renderTable();
+  function renderImport() {
+    const tbody = document.getElementById('tableBodyImport');
+    tbody.innerHTML = importRows.map((r) => `<tr>
+      <td class="col-checkbox"><input type="checkbox" class="row-check-import" /></td>
+      <td>${r.hub}</td>
+      <td>${r.name}</td>
+      <td>${r.empNo}</td>
+      <td><span class="tag ${r.jobTag}">${r.job}</span></td>
+      <td>${r.month}</td>
+      <td>${r.damage}</td>
+      <td>${r.creator}</td>
+      <td>${r.createTime}</td>
+    </tr>`).join('');
+    document.getElementById('totalCountImport').textContent = `共 ${importRows.length} 条`;
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('#contentTabs .content-tab').forEach((el) => {
+      el.classList.toggle('active', el.dataset.tab === tab);
+    });
+    const isStandard = tab === 'standard';
+    document.getElementById('actionStandard').classList.toggle('hidden', !isStandard);
+    document.getElementById('actionImport').classList.toggle('hidden', isStandard);
+    document.getElementById('tableStandard').classList.toggle('hidden', !isStandard);
+    document.getElementById('tableImport').classList.toggle('hidden', isStandard);
+  }
+
+  renderStandard();
+  renderImport();
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    switchTab(tab.dataset.tab);
+  });
 
   document.getElementById('sidebarToggle').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('collapsed');
   });
-  document.getElementById('checkAll').addEventListener('change', function () {
-    document.querySelectorAll('.row-check').forEach(cb => { cb.checked = this.checked; });
+
+  document.getElementById('checkAllStandard').addEventListener('change', function () {
+    document.querySelectorAll('.row-check-standard').forEach((cb) => { cb.checked = this.checked; });
+  });
+  document.getElementById('checkAllImport').addEventListener('change', function () {
+    document.querySelectorAll('.row-check-import').forEach((cb) => { cb.checked = this.checked; });
   });
 </script>
 </body>
