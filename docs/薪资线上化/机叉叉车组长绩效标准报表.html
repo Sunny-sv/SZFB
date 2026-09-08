@@ -182,7 +182,6 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th class="col-checkbox"><input type="checkbox" id="checkAllStandard" /></th>
                   <th>分拨中心</th>
                   <th>人员姓名</th>
                   <th>人事工号</th>
@@ -296,7 +295,6 @@
     tbody.innerHTML = standardRows.map((r) => {
       const q = formatQuality(r.quality, r.qualityClass);
       return `<tr>
-        <td class="col-checkbox"><input type="checkbox" class="row-check-standard" /></td>
         <td>${r.hub}</td>
         <td>${r.name}</td>
         <td>${r.empNo}</td>
@@ -352,10 +350,6 @@
 
   document.getElementById('sidebarToggle').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('collapsed');
-  });
-
-  document.getElementById('checkAllStandard').addEventListener('change', function () {
-    document.querySelectorAll('.row-check-standard').forEach((cb) => { cb.checked = this.checked; });
   });
 </script>
 </body>
