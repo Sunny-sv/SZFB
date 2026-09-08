@@ -212,7 +212,6 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th class="col-checkbox"><input type="checkbox" id="checkAllImport" /></th>
                   <th>分拨中心</th>
                   <th>人员姓名</th>
                   <th>人事工号</th>
@@ -319,7 +318,6 @@
   function renderImport() {
     const tbody = document.getElementById('tableBodyImport');
     tbody.innerHTML = importRows.map((r) => `<tr>
-      <td class="col-checkbox"><input type="checkbox" class="row-check-import" /></td>
       <td>${r.hub}</td>
       <td>${r.name}</td>
       <td>${r.empNo}</td>
@@ -358,9 +356,6 @@
 
   document.getElementById('checkAllStandard').addEventListener('change', function () {
     document.querySelectorAll('.row-check-standard').forEach((cb) => { cb.checked = this.checked; });
-  });
-  document.getElementById('checkAllImport').addEventListener('change', function () {
-    document.querySelectorAll('.row-check-import').forEach((cb) => { cb.checked = this.checked; });
   });
 </script>
 </body>
