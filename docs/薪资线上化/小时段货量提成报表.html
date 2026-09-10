@@ -1,0 +1,2641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>小时段货量提成报表</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1890ff; --primary-hover: #40a9ff; --header-blue: #0659d9;
+      --sidebar-bg: #001529; --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65); --sidebar-text-active: #fff;
+      --bg: #f0f2f5; --card: #fff; --border: #e8e8e8;
+      --text: rgba(0,0,0,.85); --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px; --sidebar-collapsed: 64px; --header-height: 48px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px; color: var(--text); background: var(--bg); overflow: hidden;
+    }
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+    .top-header { height: var(--header-height); display: flex; flex-shrink: 0; z-index: 10; }
+    .brand-area {
+      width: var(--sidebar-width); background: var(--sidebar-bg); color: #fff;
+      display: flex; align-items: center; padding: 0 16px; font-size: 15px; font-weight: 500;
+      white-space: nowrap; flex-shrink: 0; transition: width .2s; letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area { width: var(--sidebar-collapsed); padding: 0 8px; justify-content: center; font-size: 12px; }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+    .top-tabs {
+      flex: 1; min-width: 0; height: 100%; background: var(--header-blue);
+      display: flex; align-items: flex-end; padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn, .top-tabs .home-btn {
+      width: 36px; height: 36px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center;
+      color: #fff; cursor: pointer; border-radius: 4px; font-size: 18px; flex-shrink: 0; opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover, .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+    .page-tabs { display: flex; align-items: flex-end; flex: 1; overflow-x: auto; gap: 4px; padding: 0 4px; height: 100%; }
+    .page-tab {
+      display: flex; align-items: center; gap: 8px; padding: 0 14px; height: 36px;
+      border-radius: 6px 6px 0 0; color: rgba(255,255,255,.95); cursor: pointer;
+      white-space: nowrap; font-size: 13px; background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active { background: #fff; color: var(--text); font-weight: 500; }
+    .page-tab .tab-close { font-size: 14px; line-height: 1; opacity: .7; }
+    .top-right {
+      display: flex; align-items: center; gap: 4px; padding: 0 8px 6px 12px;
+      color: #fff; flex-shrink: 0; align-self: flex-end; height: 42px;
+    }
+    .top-right .icon-btn {
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border-radius: 4px; font-size: 16px; position: relative;
+    }
+    .top-right .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .top-right .icon-btn .badge {
+      position: absolute; top: 2px; right: 2px; min-width: 14px; height: 14px; padding: 0 3px;
+      border-radius: 7px; background: #ff4d4f; color: #fff; font-size: 10px; line-height: 14px; text-align: center;
+    }
+    .user-info { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding: 0 4px 0 8px; cursor: pointer; border-radius: 4px; height: 32px; }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px; height: 28px; border-radius: 50%; background: #722ed1;
+      display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff;
+    }
+    .user-name { font-size: 13px; color: #fff; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+    .body-row { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+    .sidebar {
+      width: var(--sidebar-width); background: var(--sidebar-bg); flex-shrink: 0;
+      transition: width .2s; overflow: hidden; display: flex; flex-direction: column;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+    .layout.sidebar-collapsed .menu-label, .layout.sidebar-collapsed .menu-arrow { display: none; }
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .menu-item {
+      display: flex; align-items: center; padding: 0 16px; height: 40px;
+      color: var(--sidebar-text); cursor: pointer; white-space: nowrap; gap: 10px; font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-arrow { margin-left: auto; font-size: 10px; opacity: .6; }
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .content-area { flex: 1; overflow: hidden; padding: 16px; }
+    .content-card {
+      background: var(--card); border-radius: 4px; padding: 16px; height: 100%;
+      min-height: 0; display: flex; flex-direction: column; gap: 16px; overflow: hidden;
+    }
+    .filter-area { display: flex; align-items: flex-end; gap: 16px; flex-shrink: 0; }
+    .filter-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 24px; align-items: center; }
+    .filter-item { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+    #hourFilterItem { align-items: flex-start; }
+    #hourFilterItem .filter-label { padding-top: 6px; }
+    .filter-item .filter-label { flex: 0 0 100px; text-align: right; font-size: 14px; color: var(--text); white-space: nowrap; }
+    .filter-item .filter-control-wrap { flex: 1; min-width: 0; }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range,
+    .filter-item .filter-control-wrap > .check-group { width: 100%; }
+    .filter-control {
+      width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 11px; font-size: 14px; color: var(--text); outline: none; background: #fff;
+    }
+    .filter-control:focus { border-color: var(--primary); }
+    .select-wrap { position: relative; width: 100%; }
+    .select-wrap select {
+      width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 28px 0 11px; font-size: 14px; color: var(--text); background: #fff;
+      appearance: none; outline: none; cursor: pointer;
+    }
+    .select-wrap::after {
+      content: "▼"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-secondary); pointer-events: none;
+    }
+    .date-range { display: flex; align-items: center; gap: 8px; width: 100%; }
+    .date-range .filter-control { flex: 1; }
+    .date-range .sep { color: var(--text-secondary); flex-shrink: 0; }
+    .check-group { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; min-height: 32px; }
+    .check-group label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; font-size: 13px; }
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 0; align-items: center; }
+    .filter-display-mode {
+      display: inline-flex; align-items: center; gap: 6px; height: 32px;
+      margin-right: 4px; font-size: 14px; color: var(--text); cursor: pointer; white-space: nowrap;
+    }
+    .filter-display-mode-label { color: var(--text); }
+    .filter-display-mode input[type="checkbox"] {
+      width: 16px; height: 16px; margin: 0; cursor: pointer; accent-color: var(--primary);
+    }
+    .btn {
+      height: 32px; padding: 0 16px; border: 1px solid var(--border); border-radius: 4px;
+      background: #fff; cursor: pointer; font-size: 14px; color: var(--text);
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+    .layout.is-measure #pageReport .filter-item.formal-filter { display: none; }
+    .layout.is-measure #pageReport .filter-actions .btn-formal { display: none; }
+    .measure-only { display: none; }
+    .layout.is-measure .filter-item.measure-only { display: flex; }
+    .layout.is-measure .btn-action.measure-only { display: inline-flex; }
+    .layout.is-measure .btn-action.measure-only.is-hidden { display: none; }
+    .layout.is-measure .filter-item.measure-only.is-hidden { display: none; }
+    .formal-only { display: table-cell; }
+    .layout.is-measure .formal-only { display: none; }
+    .measure-col { display: none; }
+    .layout.is-measure .measure-col { display: table-cell; }
+    .measure-summary {
+      display: none; flex-direction: column; align-items: stretch; gap: 8px; flex-shrink: 0;
+      padding: 12px 14px; margin-bottom: 8px; font-size: 13px;
+      background: #f6f9ff; border: 1px solid #d6e4ff; border-radius: 4px;
+    }
+    .layout.is-measure .measure-summary { display: none; }
+    .layout.is-measure.has-measure-task .measure-summary { display: flex; }
+    .measure-summary .sum-title {
+      font-size: 14px; font-weight: 600; color: var(--text); margin: 0;
+    }
+    .measure-summary .sum-row {
+      display: flex; align-items: center; gap: 20px 28px; flex-wrap: wrap;
+    }
+    .measure-summary .sum-hint {
+      color: var(--text-secondary); line-height: 1.5; margin: 0;
+    }
+    .measure-summary .sum-label { color: var(--text-secondary); }
+    .measure-summary .sum-value { font-weight: 600; font-size: 15px; color: var(--text); }
+    .table-empty-tip {
+      padding: 48px 24px; text-align: center; color: var(--text-secondary); font-size: 14px; line-height: 1.6;
+    }
+    .unit-legend {
+      flex-shrink: 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4;
+      padding: 0 0 8px; margin: 0;
+    }
+    .link { color: var(--primary); cursor: pointer; }
+    .tab-block { display: flex; flex-direction: column; gap: 0; flex-shrink: 0; }
+    .content-tabs {
+      display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .content-tab {
+      padding: 10px 16px; cursor: pointer; color: var(--text-secondary); font-size: 14px;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+    .action-bar { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px; padding: 0 15px; border: 1px solid var(--border); border-radius: 4px;
+      background: #fff; cursor: pointer; font-size: 14px; color: var(--text);
+    }
+    .btn-action:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action.primary:hover { background: var(--primary-hover); }
+    .table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+    .table-scroll { flex: 1; min-height: 0; overflow: auto; }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 14px; }
+    .data-table th, .data-table td {
+      border: 1px solid var(--border); padding: 10px 12px; text-align: center;
+      font-size: 14px; white-space: nowrap; color: var(--text);
+    }
+    .data-table th {
+      background: #fafafa; font-weight: 500; white-space: nowrap;
+    }
+    .data-table th.th-group { background: #fafafa; font-weight: 600; }
+    .data-table th.th-type { background: #fafafa; font-weight: 500; }
+    .data-table th.th-sub { background: #fafafa; font-weight: 500; }
+    .data-table .col-checkbox { width: 48px; text-align: center; }
+    .data-table .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .num-neg { color: #cf1322; }
+    .num-pos { color: #389e0d; }
+    .pagination {
+      display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+      margin-top: auto; padding-top: 16px; flex-shrink: 0; font-size: 13px; color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      background: #fff; cursor: pointer; font-size: 13px; color: var(--text);
+      display: flex; align-items: center; justify-content: center; padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      text-align: center; font-size: 13px; outline: none;
+    }
+    .modal-mask {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      width: 720px; max-width: 92vw; max-height: 86vh; background: #fff; border-radius: 4px;
+      display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
+    .modal-header {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; font-size: 16px; font-weight: 500;
+    }
+    .modal-close { cursor: pointer; font-size: 18px; color: var(--text-secondary); border: none; background: none; }
+    .modal-body { padding: 16px 20px; overflow: auto; flex: 1; }
+    .modal-footer {
+      padding: 12px 20px; border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .form-row .filter-label { flex: 0 0 88px; text-align: right; }
+    .adj-range-wrap { margin-top: 8px; }
+    .adj-range-hint {
+      margin: 0 0 8px; font-size: 12px; color: var(--text-secondary); line-height: 1.5;
+    }
+    .adj-range-table {
+      width: 100%; border-collapse: collapse; font-size: 13px; background: #fff;
+    }
+    .adj-range-table th,
+    .adj-range-table td {
+      border: 1px solid var(--border); padding: 6px 8px; text-align: center; vertical-align: middle;
+    }
+    .adj-range-table th { background: #fafafa; color: var(--text-secondary); font-weight: 500; }
+    .adj-range-table .select-wrap { width: 88px; margin: 0 auto; }
+    .adj-range-table .select-wrap select {
+      height: 28px; padding: 0 22px 0 8px; font-size: 13px;
+    }
+    .adj-range-table input.adj-amt {
+      width: 96px; height: 28px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 8px; font-size: 13px; text-align: center; outline: none;
+    }
+    .adj-range-table input.adj-amt:focus { border-color: var(--primary); }
+    .adj-range-actions { margin-top: 8px; }
+    .adj-range-empty {
+      padding: 12px; text-align: center; color: var(--text-secondary); font-size: 13px;
+      border: 1px dashed var(--border); border-radius: 4px; background: #fafafa;
+    }
+    .th-pair { background: #fafafa; }
+    .hour-filter { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+    .hour-toolbar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 32px;
+    }
+    .hour-seg {
+      display: inline-flex; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      overflow: hidden; flex-shrink: 0; background: #fff;
+    }
+    .hour-seg-item {
+      border: none; background: transparent; padding: 0 14px; margin: 0;
+      font-size: 13px; color: var(--text); cursor: pointer; line-height: 30px;
+      border-right: 1px solid var(--border);
+    }
+    .hour-seg-item:last-child { border-right: none; }
+    .hour-seg-item:hover { color: var(--primary); }
+    .hour-seg-item.active {
+      background: #e6f7ff; color: var(--primary); font-weight: 500;
+    }
+    .hour-range-panel {
+      display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; min-height: 32px;
+    }
+    .hour-range-pair {
+      display: inline-flex; align-items: center; height: 32px;
+      border: 1px solid var(--border); border-radius: 4px; background: #fff; overflow: hidden;
+    }
+    .hour-range-pair:focus-within { border-color: var(--primary); }
+    .hour-range-pair .select-wrap {
+      width: 76px; position: relative;
+    }
+    .hour-range-pair .select-wrap select {
+      height: 30px; border: none; border-radius: 0; padding: 0 22px 0 10px;
+      background: transparent; box-shadow: none;
+    }
+    .hour-range-pair .select-wrap::after {
+      right: 8px;
+    }
+    .hour-range-pair .sep {
+      color: var(--text-secondary); padding: 0 2px; flex-shrink: 0; font-size: 13px;
+    }
+    .hour-range-hint {
+      color: var(--text-secondary); font-size: 12px; line-height: 1.4; white-space: nowrap;
+    }
+    .hour-check-group {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px; background: #fafafa;
+    }
+    .hour-check-group label {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0;
+      min-width: 40px; height: 28px; padding: 0 8px; border-radius: 4px;
+      border: 1px solid var(--border); background: #fff; cursor: pointer;
+      font-size: 12px; color: var(--text); white-space: nowrap; user-select: none;
+    }
+    .hour-check-group label:hover { border-color: var(--primary); color: var(--primary); }
+    .hour-check-group input {
+      position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
+    }
+    .hour-check-group label:has(input:checked) {
+      background: #e6f7ff; border-color: var(--primary); color: var(--primary); font-weight: 500;
+    }
+    .hour-filter .is-hidden { display: none !important; }
+    .table-view { display: none; width: max-content; min-width: 100%; }
+    .layout.dim-person.grain-split #tablePersonSplit { display: table; }
+    .layout.dim-person.grain-sum #tablePersonSum { display: table; }
+    .layout.dim-fenbo.grain-split #tableFenboSplit { display: table; }
+    .layout.dim-fenbo.grain-sum #tableFenboSum { display: table; }
+
+    .btn-danger { color: #ff4d4f; border-color: #ff4d4f; }
+    .sub-tabs {
+      display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 0;
+    }
+    .sub-tab {
+      height: auto; padding: 8px 16px; border-radius: 0; border: none; border-bottom: 2px solid transparent;
+      background: transparent; cursor: pointer; font-size: 13px; color: var(--text-secondary); margin-bottom: -1px;
+    }
+    .sub-tab:hover { color: var(--primary); }
+    .sub-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: transparent; font-weight: 500; }
+    .data-table tbody tr.is-selected { background: #e6f7ff; }
+    .tag {
+      display: inline-block; padding: 0 8px; height: 22px; line-height: 20px;
+      border-radius: 2px; font-size: 12px; border: 1px solid transparent;
+    }
+    .tag-draft { background: #fafafa; color: rgba(0,0,0,.65); border-color: #d9d9d9; }
+    .tag-wait { background: #fff7e6; color: #d46b08; border-color: #ffd591; }
+    .tag-reject { background: #fff1f0; color: #cf1322; border-color: #ffa39e; }
+    .tag-active { background: #f6ffed; color: #389e0d; border-color: #b7eb8f; }
+    .tag-pending { background: #e6f7ff; color: #096dd9; border-color: #91d5ff; }
+    .tag-off { background: #f5f5f5; color: rgba(0,0,0,.45); border-color: #d9d9d9; }
+    .modal.modal-sm { width: 480px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px; }
+    .form-item { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+    .form-item.span-2 { grid-column: 1 / -1; }
+    .form-item > label:first-child {
+      flex: 0 0 96px; text-align: right; font-size: 14px; white-space: nowrap;
+    }
+    .form-item > label:first-child .req { color: #ff4d4f; margin-right: 2px; }
+    .form-item > .filter-control,
+    .form-item > .select-wrap,
+    .form-item > .date-range,
+    .form-item > .form-text,
+    .form-item > .check-group,
+    .form-item > textarea { flex: 1; min-width: 0; }
+    .form-item.type-multi { align-items: flex-start; }
+    .form-item.type-multi > label:first-child { padding-top: 6px; }
+    .type-multi-hint {
+      display: block; margin-top: 4px; font-size: 12px; color: var(--text-secondary); line-height: 1.4;
+    }
+    .form-text { font-size: 14px; color: var(--text); }
+    .form-section-title {
+      font-weight: 500; margin: 16px 0 10px; padding-left: 8px; border-left: 3px solid var(--primary);
+    }
+    .form-section-title:first-child { margin-top: 0; }
+    .snapshot-box {
+      background: #fafafa; border: 1px solid var(--border); border-radius: 4px; padding: 12px 14px; font-size: 13px;
+    }
+    .snapshot-box.empty { color: var(--text-secondary); }
+    .snapshot-row { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 6px; }
+    /* 查询区多选下拉框 */
+    .multi-select-wrap { position: relative; width: 100%; }
+    .multi-select-box {
+      width: 100%; min-height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 28px 0 11px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .multi-select-box.has-value { color: var(--text); }
+    .multi-select-box .multi-select-placeholder { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .multi-select-tags {
+      flex: 1; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; overflow: hidden; padding: 2px 0;
+    }
+    .multi-select-tag {
+      display: inline-flex; align-items: center;
+      background: #e6f7ff; border: 1px solid #91d5ff; border-radius: 3px;
+      padding: 0 6px; height: 22px; font-size: 12px; color: var(--primary); line-height: 1;
+      max-width: 88px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .multi-select-arrow {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-secondary); pointer-events: none;
+    }
+    .multi-select-dropdown {
+      display: none; position: absolute; top: calc(100% + 2px); left: 0; right: 0;
+      background: #fff; border: 1px solid var(--border); border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12); z-index: 120; padding: 4px 0;
+      max-height: 200px; overflow-y: auto;
+    }
+    .multi-select-wrap.open .multi-select-dropdown { display: block; }
+    .multi-select-option {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px; font-size: 14px; color: var(--text); cursor: pointer; white-space: nowrap;
+    }
+    .multi-select-option:hover { background: #fafafa; }
+    .multi-select-option.checked { background: #e6f7ff; }
+    .emp-only { display: none; }
+    .layout.is-emp .emp-only,
+    .modal-mask.is-emp .emp-only { display: flex; }
+    .col-emp { display: none; }
+    .layout.is-emp .col-emp { display: table-cell; }
+    #maintainTableBody tr[data-layer="emp"] { display: none; }
+    .layout.is-emp #maintainTableBody tr[data-layer="fenbo"] { display: none; }
+    .layout.is-emp #maintainTableBody tr[data-layer="emp"] { display: table-row; }
+    #maintainTableBody tr.maint-row-hidden { display: none !important; }
+    .move-adj-only { display: none !important; }
+    .layout.maint-move-adj .move-adj-only,
+    #modalEdit.is-move-adj .move-adj-only,
+    #modalDetail.is-move-adj .move-adj-only,
+    #modalAdj.is-move-adj .move-adj-only { display: block !important; }
+    .adj-dual-banner {
+      margin: 12px 0 8px; padding: 8px 12px; background: #e6f7ff; border: 1px solid #91d5ff;
+      border-radius: 4px; font-size: 13px; color: #0958d9; line-height: 1.5;
+    }
+    .layout:not(.maint-move-adj) .adj-dual-banner { display: none; }
+    #modalEdit:not(.is-move-adj) .adj-dual-banner { display: none; }
+    .adj-unit-block {
+      margin-top: 4px; padding: 10px 12px 12px; border: 1px solid var(--border);
+      border-radius: 4px; background: #fafafa;
+    }
+    .adj-unit-block + .adj-unit-block,
+    .adj-unit-block + .move-adj-only .adj-unit-block { margin-top: 12px; }
+    .move-adj-only .adj-unit-block { margin-top: 12px; }
+    .adj-unit-block .form-section-title { margin-top: 0; }
+    .page-panel { display: none; height: 100%; min-height: 0; }
+    .page-panel.active { display: flex; flex-direction: column; min-height: 0; }
+    .page-panel .content-card { flex: 1; min-height: 0; overflow: hidden; }
+    .menu-item[data-page] { cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
+    </div>
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active" data-page="report">小时段货量提成报表 <span class="tab-close">×</span></div>
+        <div class="page-tab" data-page="maintain">小时段加减单价维护 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="通知">🔔<span class="badge">2</span></span>
+        <div class="user-info">
+          <div class="avatar">胡</div>
+          <span class="user-name">胡绵飞</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">工作台</span></div>
+        <div class="menu-item active">
+          <span class="menu-icon">☰</span><span class="menu-label">薪资线上化</span><span class="menu-arrow">▼</span>
+        </div>
+        <div class="menu-sub">
+          <div class="menu-item">基础提成方案维护</div>
+          <div class="menu-item">交接单人员提成</div>
+          <div class="menu-item">转运人员薪资</div>
+          <div class="menu-item active" data-page="report">小时段货量提成报表</div>
+          <div class="menu-item" data-page="maintain">小时段加减单价维护</div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+      <main class="content-area">
+        <div class="page-panel active" id="pageReport">
+          <div class="content-card">
+
+
+          <section class="filter-area">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <span class="filter-label">查询模式</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control" id="queryMode">
+                      <option value="formal" selected>正式查询</option>
+                      <option value="measure">测算结果（只读）</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item formal-filter">
+                <span class="filter-label">分拨中心</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请选择分拨中心" value="" />
+                </div>
+              </div>
+              <div class="filter-item formal-filter">
+                <span class="filter-label">人员</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="姓名 / 工号" />
+                </div>
+              </div>
+              <div class="filter-item formal-filter">
+                <span class="filter-label">岗位</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option selected>装卸工</option>
+                      <option>装卸组长</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item formal-filter">
+                <span class="filter-label">日期</span>
+                <div class="filter-control-wrap">
+                  <div class="date-range">
+                    <input class="filter-control" type="text" value="2026-08-16" />
+                    <span class="sep">~</span>
+                    <input class="filter-control" type="text" value="2026-08-16" />
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item formal-filter">
+                <span class="filter-label">操作类型</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>网点装车</option>
+                      <option>干线装车</option>
+                      <option>网点卸车</option>
+                      <option>干线卸车</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item" style="grid-column: 1 / -1;" id="hourFilterItem">
+                <span class="filter-label">显示小时段</span>
+                <div class="filter-control-wrap">
+                  <div class="hour-filter" id="hourFilter">
+                    <div class="hour-toolbar">
+                      <div class="hour-seg" id="hourModeSeg" role="tablist">
+                        <button type="button" class="hour-seg-item active" data-mode="range">区间选择</button>
+                        <button type="button" class="hour-seg-item" data-mode="custom">自定义勾选</button>
+                      </div>
+                      <div class="hour-range-panel" id="hourRangePanel">
+                        <div class="hour-range-pair">
+                          <div class="select-wrap">
+                            <select class="filter-control" id="hourStart" aria-label="开始小时"></select>
+                          </div>
+                          <span class="sep">~</span>
+                          <div class="select-wrap">
+                            <select class="filter-control" id="hourEnd" aria-label="结束小时"></select>
+                          </div>
+                        </div>
+                        <span class="hour-range-hint" id="hourRangeHint">15～14点 · 24小时</span>
+                      </div>
+                    </div>
+                    <div class="hour-check-group is-hidden" id="hourCheckGroup">
+                      <label><input type="checkbox" class="hour-check" data-hour="15" checked /> 15点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="16" checked /> 16点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="17" checked /> 17点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="18" checked /> 18点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="19" checked /> 19点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="20" checked /> 20点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="21" checked /> 21点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="22" checked /> 22点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="23" checked /> 23点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="0" checked /> 0点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="1" checked /> 1点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="2" checked /> 2点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="3" checked /> 3点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="4" checked /> 4点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="5" checked /> 5点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="6" checked /> 6点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="7" checked /> 7点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="8" checked /> 8点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="9" checked /> 9点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="10" checked /> 10点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="11" checked /> 11点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="12" checked /> 12点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="13" checked /> 13点</label>
+                      <label><input type="checkbox" class="hour-check" data-hour="14" checked /> 14点</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item measure-only is-hidden" id="snapInfoRow" style="grid-column: 1 / -1;">
+                <span class="filter-label">测算说明</span>
+                <div class="filter-control-wrap">
+                  <div class="form-text" id="snapInfoText" style="line-height:32px;">已迁至测算说明条</div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <label class="filter-display-mode">
+                <span class="filter-display-mode-label">展示方式</span>
+                <input type="checkbox" id="metricGrain" />
+                按操作类型拆分
+              </label>
+              <button class="btn btn-formal" type="button" id="btnReset">重置</button>
+              <button class="btn btn-primary btn-formal" type="button" id="btnQuery">查询</button>
+            </div>
+          </section>
+
+          <div class="tab-block">
+            <nav class="content-tabs" id="reportBizTabs">
+              <div class="content-tab active" data-ctab="load">装卸</div>
+              <div class="content-tab" data-ctab="move">移动</div>
+              <div class="content-tab" data-ctab="u">流水线卸货</div>
+              <div class="content-tab" data-ctab="s">流水线码货</div>
+              <div class="content-tab" data-ctab="z">流水线直装</div>
+            </nav>
+            <div class="sub-tabs" id="reportDimTabs">
+              <button type="button" class="sub-tab active" data-dim="fenbo">分拨维度</button>
+              <button type="button" class="sub-tab" data-dim="person">人员维度</button>
+            </div>
+          </div>
+
+          <section class="action-bar">
+            <button class="btn-action" type="button">导出</button>
+            <button class="btn-action measure-only" type="button" id="btnBackMaintain">返回维护</button>
+          </section>
+
+          <section class="table-area">
+            <p class="unit-legend" id="unitLegend">货量单位：吨；提成单位：元（保留4位小数）</p>
+            <div class="measure-summary" id="measureSummary">
+              <div class="sum-title">测算结果（只读）</div>
+              <div class="sum-row">
+                <span><span class="sum-label">测算方案：</span>萧山分拨中心-网点装车</span>
+                <span><span class="sum-label">分拨中心：</span>萧山分拨中心</span>
+                <span><span class="sum-label">操作类型：</span>网点装车</span>
+                <span><span class="sum-label">测算日期段：</span>2026-08-16</span>
+                <span><span class="sum-label">本区间增减合计：</span><span class="sum-value num-pos" id="intervalSum">+19.2000</span></span>
+                <span><span class="sum-label">人数：</span>3</span>
+              </div>
+              <p class="sum-hint">本页展示该次测算结果，仅供查看。可切「正式查询」查正式数据，或点击「返回维护」返回维护页面。</p>
+            </div>
+            <div class="table-scroll">
+              <!-- 各业务线×维度×拆分/汇总由 JS 生成 -->
+            </div>
+            <div class="pagination">
+              <span class="total" id="reportPageTotal">共 3 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+
+          </div>
+        </div>
+        <div class="page-panel" id="pageMaintain">
+          <div class="content-card">
+
+
+          <section class="filter-area">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <span class="filter-label">分拨中心</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请选择分拨中心" value="" />
+                </div>
+              </div>
+              <div class="filter-item emp-only">
+                <span class="filter-label">员工</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="姓名 / 工号" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">操作类型</span>
+                <div class="filter-control-wrap">
+                  <div class="multi-select-wrap" id="maintainTypeFilter">
+                    <div class="multi-select-box">
+                      <span class="multi-select-placeholder">请选择</span>
+                      <span class="multi-select-tags"></span>
+                      <span class="multi-select-arrow">▼</span>
+                    </div>
+                    <div class="multi-select-dropdown" id="maintainTypeFilterOpts"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">状态</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option>全部</option>
+                      <option>待提交</option>
+                      <option selected>待确认</option>
+                      <option>已驳回</option>
+                      <option>待生效</option>
+                      <option>生效中</option>
+                      <option>已失效</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">有效期限</span>
+                <div class="filter-control-wrap">
+                  <div class="date-range">
+                    <input class="filter-control" type="text" value="2026-10" placeholder="开始月" />
+                    <span class="sep">~</span>
+                    <input class="filter-control" type="text" value="2026-12" placeholder="结束月" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn" type="button">重置</button>
+              <button class="btn btn-primary" type="button">查询</button>
+            </div>
+          </section>
+
+          <div class="tab-block">
+            <nav class="content-tabs" id="bizTabs">
+              <div class="content-tab active" data-ctab="load">装卸</div>
+              <div class="content-tab" data-ctab="move">移动</div>
+              <div class="content-tab" data-ctab="u">流水线卸货</div>
+              <div class="content-tab" data-ctab="s">流水线码货</div>
+              <div class="content-tab" data-ctab="z">流水线直装</div>
+            </nav>
+            <div class="sub-tabs" id="layerTabs">
+              <button type="button" class="sub-tab active" data-layer="fenbo">分拨方案</button>
+              <button type="button" class="sub-tab" data-layer="emp">员工方案</button>
+            </div>
+          </div>
+
+          <section class="action-bar">
+            <button class="btn-action primary" type="button" id="btnAdd">新增</button>
+            <button class="btn-action" type="button" id="btnEdit">编辑</button>
+            <button class="btn-action" type="button" id="btnDelete">删除</button>
+            <button class="btn-action" type="button" id="btnSubmit">提交确认</button>
+            <button class="btn-action primary" type="button" id="btnConfirm">确认生效</button>
+            <button class="btn-action" type="button" id="btnReject">驳回</button>
+            <button class="btn-action primary" type="button" id="btnMeasure">测算</button>
+            <button class="btn-action" type="button" id="btnViewMeasure">查看测算</button>
+            <button class="btn-action" type="button">导出</button>
+          </section>
+
+          <section class="table-area">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="col-checkbox" rowspan="2"><input type="checkbox" id="maintainCheckAll" /></th>
+                    <th rowspan="2">分拨中心</th>
+                    <th class="col-emp" rowspan="2">员工姓名</th>
+                    <th class="col-emp" rowspan="2">人事工号</th>
+                    <th rowspan="2">操作类型</th>
+                    <th rowspan="2">有效期限</th>
+                    <th rowspan="2">状态</th>
+                    <th class="th-group" colspan="3">测算结果</th>
+                    <th rowspan="2">创建人</th>
+                    <th rowspan="2">创建时间</th>
+                    <th rowspan="2">最后修改人</th>
+                    <th rowspan="2">最后修改时间</th>
+                    <th rowspan="2">确认人</th>
+                    <th rowspan="2">确认时间</th>
+                    <th rowspan="2">意见</th>
+                    <th rowspan="2">操作</th>
+                  </tr>
+                  <tr>
+                    <th>本区间增减合计</th>
+                    <th>人数</th>
+                    <th>测算日期段</th>
+                  </tr>
+                </thead>
+                <tbody id="maintainTableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total" id="maintainPageTotal">共 7 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="measureStartModal">
+  <div class="modal" style="width:520px;">
+    <div class="modal-header">
+      <span>测算</span>
+      <button type="button" class="modal-close" id="measureStartClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row"><span class="filter-label">方案</span><span id="measureSchemeLabel">萧山分拨中心 · 网点装车</span></div>
+      <div class="form-row">
+        <span class="filter-label"><span class="req" style="color:#ff4d4f;">*</span>测算日期段</span>
+        <div class="date-range" style="flex:1;">
+          <input class="filter-control" type="text" id="measureDateStart" value="2026-08-16" />
+          <span class="sep">~</span>
+          <input class="filter-control" type="text" id="measureDateEnd" value="2026-08-16" />
+        </div>
+      </div>
+      <div class="form-row">
+        <span class="filter-label">说明</span>
+        <span style="color:rgba(0,0,0,.45);font-size:13px;line-height:1.5;">仅待提交可测算；加减取本条方案已保存内容。确定后排队计算，完成后可「查看测算」。</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="measureStartCancel">取消</button>
+      <button type="button" class="btn btn-primary" id="measureStartOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 草稿弹层已废弃：须先维护待提交再测算，不再从测算生成方案 -->
+
+<!-- 新增 / 编辑 -->
+<div class="modal-mask" id="modalEdit">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="editTitle">新增分拨方案（装卸）</span>
+      <button type="button" class="modal-close" data-close="modalEdit">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section-title">基本信息</div>
+      <div class="form-grid">
+        <div class="form-item">
+          <label><span class="req">*</span>分拨中心</label>
+          <input class="filter-control" type="text" value="萧山分拨中心" />
+        </div>
+        <div class="form-item emp-only">
+          <label><span class="req">*</span>员工</label>
+          <input class="filter-control" type="text" placeholder="姓名 / 工号" />
+        </div>
+        <div class="form-item type-multi span-2">
+          <label><span class="req">*</span>操作类型</label>
+          <div>
+            <div class="check-group" id="editTypeSelect"></div>
+            <span class="type-multi-hint">专属操作类型可多选（共用同一套加减）；「全部」为兜底，与专属互斥、不可同选。</span>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>有效期限</label>
+          <div class="date-range">
+            <input class="filter-control" id="editPeriodStart" type="text" value="2026-10" placeholder="开始月" />
+            <span class="sep">~</span>
+            <input class="filter-control" id="editPeriodEnd" type="text" value="2026-12" placeholder="结束月" />
+          </div>
+        </div>
+        <div class="form-item span-2">
+          <label>备注</label>
+          <input class="filter-control" id="editRemark" type="text" placeholder="选填" />
+        </div>
+      </div>
+      <div class="adj-dual-banner" id="editAdjDualBanner">
+        移动在<strong>同一套区间</strong>上分别填「加减（元/吨）」「加减（元/托）」；差额 = 吨差额 + 托差额。只调其一则另一列填 0。
+      </div>
+      <div class="adj-unit-block">
+        <div class="form-section-title" id="editTonAdjTitle">时段加减（按区间，可为负）</div>
+        <div class="adj-range-wrap" id="editAdjGrid"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalEdit">取消</button>
+      <button type="button" class="btn btn-primary" data-close="modalEdit">保存（待提交）</button>
+      <button type="button" class="btn btn-primary" data-close="modalEdit">保存并生效</button>
+    </div>
+  </div>
+</div>
+
+<!-- 详情（含测算结果） -->
+<div class="modal-mask" id="modalDetail">
+  <div class="modal">
+    <div class="modal-header">
+      <span>方案详情</span>
+      <button type="button" class="modal-close" data-close="modalDetail">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section-title">基本信息</div>
+      <div class="form-grid">
+        <div class="form-item"><label>分拨中心</label><div class="form-text">萧山分拨中心</div></div>
+        <div class="form-item emp-only"><label>员工姓名</label><div class="form-text" id="detailEmpName">起正成</div></div>
+        <div class="form-item emp-only"><label>人事工号</label><div class="form-text" id="detailEmpNo">00621257</div></div>
+        <div class="form-item"><label>操作类型</label><div class="form-text">网点装车</div></div>
+        <div class="form-item"><label>有效期限</label><div class="form-text">2026-10 ~ 2026-12</div></div>
+        <div class="form-item"><label>状态</label><div class="form-text"><span class="tag tag-wait">待确认</span></div></div>
+        <div class="form-item"><label>提交人</label><div class="form-text">张分拨</div></div>
+        <div class="form-item"><label>提交时间</label><div class="form-text">2026-09-02 09:10</div></div>
+      </div>
+      <div class="form-section-title">测算结果</div>
+      <div class="snapshot-box" id="detailSnap">
+        <div>提交时固化的汇总测算结果（明细以「查看测算」只读测算结果为准）</div>
+        <div class="snapshot-row">
+          <span>测算日期：2026-08-16</span>
+          <span>业务线：装卸</span>
+          <span>操作类型：网点装车</span>
+          <span>人数：3</span>
+          <span>本区间增减合计：<strong class="num-pos">+19.2000</strong></span>
+        </div>
+      </div>
+      <div class="adj-unit-block">
+        <div class="form-section-title" id="detailTonAdjTitle">时段加减区间</div>
+        <div class="adj-range-wrap" id="detailAdjGrid"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" id="btnDetailMeasure">查看测算</button>
+      <button type="button" class="btn" data-close="modalDetail">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 查看加减 -->
+<div class="modal-mask" id="modalAdj">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="adjModalTitle">查看加减（网点装车 · 元/吨）</span>
+      <button type="button" class="modal-close" data-close="modalAdj">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="adj-unit-block">
+        <div class="form-section-title" id="viewTonAdjTitle">时段加减区间</div>
+        <div class="adj-range-wrap" id="viewAdjGrid"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalAdj">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除确认 -->
+<div class="modal-mask" id="modalDelete">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>删除方案</span>
+      <button type="button" class="modal-close" data-close="modalDelete">×</button>
+    </div>
+    <div class="modal-body">
+      <p id="deleteConfirmText" style="margin:0;font-size:14px;line-height:1.6;">确认删除该方案？删除后不可恢复。（共1条）</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalDelete">取消</button>
+      <button type="button" class="btn btn-danger" id="btnDeleteOk" data-close="modalDelete">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- 提交确认（分拨） -->
+<div class="modal-mask" id="modalSubmit">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>提交确认</span>
+      <button type="button" class="modal-close" data-close="modalSubmit">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 8px;font-size:14px;line-height:1.6;">提交后状态变为「待确认」，由总部确认生效或驳回。提交时将固化当前测算结果摘要。</p>
+      <div class="snapshot-box" id="submitSummary" style="margin-top:8px;">
+        <div class="snapshot-row">
+          <span>分拨中心：萧山分拨中心</span>
+          <span>操作类型：网点装车</span>
+          <span>有效期限：2026-10 ~ 2026-12</span>
+          <span>本区间增减合计：<strong class="num-pos">+19.2000</strong></span>
+        </div>
+      </div>
+      <div class="form-item span-2" style="align-items:flex-start;margin-top:12px;">
+        <label style="padding-top:6px;flex:0 0 72px;text-align:right;">备注</label>
+        <textarea class="filter-control" id="submitRemark" style="height:72px;padding:8px 11px;" placeholder="选填，提交说明"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalSubmit">取消</button>
+      <button type="button" class="btn btn-primary" id="btnSubmitOk" data-close="modalSubmit">确认提交</button>
+    </div>
+  </div>
+</div>
+
+<!-- 确认生效 -->
+<div class="modal-mask" id="modalConfirm">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>确认生效</span>
+      <button type="button" class="modal-close" data-close="modalConfirm">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item span-2" style="align-items:flex-start;">
+        <label style="padding-top:6px;">意见</label>
+        <textarea class="filter-control" style="height:88px;padding:8px 11px;" placeholder="选填">同意，按网点装车时段政策生效</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalConfirm">取消</button>
+      <button type="button" class="btn btn-primary" data-close="modalConfirm">确认生效</button>
+    </div>
+  </div>
+</div>
+
+<!-- 驳回 -->
+<div class="modal-mask" id="modalReject">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>驳回</span>
+      <button type="button" class="modal-close" data-close="modalReject">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item span-2" style="align-items:flex-start;">
+        <label style="padding-top:6px;"><span class="req" style="color:#ff4d4f;">*</span>意见</label>
+        <textarea class="filter-control" style="height:88px;padding:8px 11px;" placeholder="请填写驳回原因">2～4 点加减请再评估</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn" data-close="modalReject">取消</button>
+      <button type="button" class="btn btn-danger" data-close="modalReject">驳回</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  const layout = document.getElementById('layout');
+
+  function showPage(page) {
+    const isReport = page === 'report';
+    document.getElementById('pageReport').classList.toggle('active', isReport);
+    document.getElementById('pageMaintain').classList.toggle('active', !isReport);
+    document.querySelectorAll('#pageTabs .page-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.page === page);
+    });
+    document.querySelectorAll('.menu-sub .menu-item[data-page]').forEach(item => {
+      item.classList.toggle('active', item.dataset.page === page);
+    });
+    document.title = isReport ? '小时段货量提成报表' : '小时段加减单价维护';
+    try {
+      const nextHash = isReport ? '' : '#maintain';
+      if ((location.hash || '') !== nextHash) {
+        history.replaceState(null, '', (location.pathname || '') + (location.search || '') + nextHash);
+      }
+    } catch (e) {}
+    if (!isReport) layout.classList.remove('is-measure');
+    else if (typeof syncMode === 'function') syncMode();
+  }
+  function goReportMeasure() {
+    const row = requireMaintainRow('viewMeasure');
+    if (!row) return;
+    const fenbo = (row.children[1].textContent || '').trim();
+    const empName = (row.children[2].textContent || '').trim();
+    const empNo = (row.children[3].textContent || '').trim();
+    const type = (row.children[4].textContent || '').trim();
+    const sum = (row.children[7].textContent || '').trim();
+    const people = (row.children[8].textContent || '').trim();
+    const dates = (row.children[9].textContent || '').trim();
+    const bizKey = row.dataset.biz || getActiveMaintainBizKey();
+    const isEmp = (row.dataset.layer || '') === 'emp';
+    const scheme = isEmp
+      ? (fenbo + ' · ' + empName + ' / ' + empNo + ' · ' + type)
+      : (fenbo + ' · ' + type);
+    openMeasureSnapshot({
+      scheme: scheme,
+      fenbo: fenbo,
+      type: type,
+      dates: dates === '-' || dates === '提交时固化' ? '2026-08-16' : dates,
+      sum: (sum.indexOf('+') >= 0 || sum.indexOf('-') >= 0) ? sum : '+19.2000',
+      people: people === '-' ? (isEmp ? '1' : '3') : people,
+      bizKey: bizKey,
+      layer: isEmp ? 'emp' : 'fenbo',
+      empName: isEmp ? empName : '',
+      empNo: isEmp ? empNo : ''
+    });
+  }
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.page-tab');
+    if (!tab || !tab.dataset.page) return;
+    if (e.target.classList.contains('tab-close')) return;
+    showPage(tab.dataset.page);
+  });
+  document.querySelectorAll('.menu-sub .menu-item[data-page]').forEach(item => {
+    item.addEventListener('click', () => showPage(item.dataset.page));
+  });
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    layout.classList.toggle('sidebar-collapsed');
+  });
+
+  const queryMode = document.getElementById('queryMode');
+  const measureStartModal = document.getElementById('measureStartModal');
+  const btnQuery = document.getElementById('btnQuery');
+  const btnBackMaintain = document.getElementById('btnBackMaintain');
+
+  let lastMeasureMeta = null;
+  let hasMeasureTaskFromMaintain = false;
+  const MEASURE_NO_TASK_TIP = '当前没有可查看的测算任务。请到【小时段加减单价维护】勾选一条已测算完成的方案，再点「查看测算」进入本页。';
+
+  function measureBizMismatchTip() {
+    if (!hasMeasureTaskFromMaintain || !lastMeasureMeta) return '';
+    const taskBiz = lastMeasureMeta.bizKey || 'load';
+    const active = getActiveBizKey();
+    if (taskBiz === active) return '';
+    const label = (BIZ_TABS[taskBiz] && BIZ_TABS[taskBiz].label) || taskBiz;
+    return '当前测算任务属于「' + label + '」，请切回该业务线查看，或返回维护重新选择方案。';
+  }
+
+  function showMeasureListTip(tip) {
+    const host = document.querySelector('#pageReport .table-scroll');
+    if (host) host.innerHTML = '<div class="table-empty-tip">' + tip + '</div>';
+    const total = document.getElementById('reportPageTotal');
+    if (total) total.textContent = '共 0 条';
+  }
+
+  function syncMode() {
+    const isMeasure = queryMode.value === 'measure';
+    layout.classList.toggle('is-measure', isMeasure);
+    layout.classList.toggle('has-measure-task', isMeasure && hasMeasureTaskFromMaintain);
+    document.querySelectorAll('th.th-group[data-formal-span]').forEach(sumGroup => {
+      sumGroup.colSpan = isMeasure
+        ? Number(sumGroup.dataset.measureSpan || 3)
+        : Number(sumGroup.dataset.formalSpan || 2);
+    });
+    const host = document.querySelector('#pageReport .table-scroll');
+    if (isMeasure && !hasMeasureTaskFromMaintain) {
+      showMeasureListTip(MEASURE_NO_TASK_TIP);
+      return;
+    }
+    if (isMeasure && hasMeasureTaskFromMaintain) {
+      const mismatch = measureBizMismatchTip();
+      if (mismatch) {
+        showMeasureListTip(mismatch);
+        if (lastMeasureMeta) fillMeasureSummary(lastMeasureMeta);
+        return;
+      }
+    }
+    if (host && !host.querySelector('table')) {
+      renderReportTables();
+    }
+    applyTableAmts(isMeasure);
+    if (isMeasure && lastMeasureMeta) fillMeasureSummary(lastMeasureMeta);
+  }
+
+  let lastTrialState = { status: 'none', fenbo: '', type: '', dates: '' }; // none | running | done
+  function fillMeasureSummary(meta) {
+    const sum = document.getElementById('measureSummary');
+    if (!sum || !meta) return;
+    lastMeasureMeta = meta;
+    hasMeasureTaskFromMaintain = true;
+    const scheme = meta.scheme || '-';
+    const fenbo = meta.fenbo || '-';
+    const type = meta.type || '-';
+    const isEmp = meta.layer === 'emp' || !!(meta.empName && meta.empNo);
+    const sumCls = (String(meta.sum || '').indexOf('-') === 0) ? 'num-neg' : 'num-pos';
+    let empSpans = '';
+    if (isEmp) {
+      empSpans =
+        '<span><span class="sum-label">员工姓名：</span>' + (meta.empName || '-') + '</span>' +
+        '<span><span class="sum-label">人事工号：</span>' + (meta.empNo || '-') + '</span>';
+    }
+    sum.innerHTML =
+      '<div class="sum-title">测算结果（只读）</div>' +
+      '<div class="sum-row">' +
+      '<span><span class="sum-label">测算方案：</span>' + scheme + '</span>' +
+      '<span><span class="sum-label">分拨中心：</span>' + fenbo + '</span>' +
+      empSpans +
+      '<span><span class="sum-label">操作类型：</span>' + type + '</span>' +
+      '<span><span class="sum-label">测算日期段：</span>' + (meta.dates || '-') + '</span>' +
+      '<span><span class="sum-label">本区间增减合计：</span><span class="sum-value ' + sumCls + '" id="intervalSum">' + (meta.sum || '+19.2000') + '</span></span>' +
+      '<span><span class="sum-label">人数：</span>' + (meta.people || '-') + '</span>' +
+      '</div>' +
+      '<p class="sum-hint">本页展示该次测算结果，仅供查看。可切「正式查询」查正式数据，或点击「返回维护」返回维护页面。</p>';
+  }
+
+  function openMeasureSnapshot(meta) {
+    showPage('report');
+    hasMeasureTaskFromMaintain = true;
+    queryMode.value = 'measure';
+    const bizKey = (meta && meta.bizKey) || 'load';
+    if (meta) meta.bizKey = bizKey;
+    document.querySelectorAll('#reportBizTabs .content-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.ctab === bizKey);
+    });
+    fillMeasureSummary(meta || { bizKey: bizKey });
+    renderReportTables();
+    syncGrain();
+    layout.classList.add('is-measure');
+    layout.classList.add('has-measure-task');
+    applyTableAmts(true);
+  }
+
+  /** 业务日小时序：当日 15 点起至次日 14 点 */
+  const BIZ_HOURS = [15,16,17,18,19,20,21,22,23,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+  function bizHourIndex(h) { return BIZ_HOURS.indexOf(Number(h)); }
+
+  const BIZ_TABS = {
+    load: {
+      key: 'load', label: '装卸',
+      types: ['网点装车', '干线装车', '网点卸车', '干线卸车'],
+      posts: ['装卸工', '装卸组长'],
+      opTypes: ['全部', '网点装车', '干线装车', '网点卸车', '干线卸车'],
+      volLabel: '操作货量', unit: '吨', isMove: false,
+      people: [
+        { name: '起正成', emp: '00621257', post: '装卸组长', fenbo: '萧山分拨中心' },
+        { name: '王磊', emp: '00630821', post: '装卸工', fenbo: '萧山分拨中心' },
+        { name: '李强', emp: '00640112', post: '装卸工', fenbo: '萧山分拨中心' }
+      ]
+    },
+    move: {
+      key: 'move', label: '移动',
+      types: ['网点移动', '干线移动'],
+      posts: ['电叉司机', '叉车组长', '机叉司机'],
+      opTypes: ['全部', '网点移动', '干线移动'],
+      volLabel: '移动货量', trayLabel: '移动托数', unit: '吨', isMove: true,
+      people: [
+        { name: '陈涛', emp: '00651001', post: '电叉司机', fenbo: '萧山分拨中心' },
+        { name: '赵敏', emp: '00651022', post: '叉车组长', fenbo: '萧山分拨中心' },
+        { name: '周杰', emp: '00651108', post: '机叉司机', fenbo: '萧山分拨中心' }
+      ]
+    },
+    u: {
+      key: 'u', label: '流水线卸货',
+      types: ['网点卸货', '干线卸货'],
+      posts: ['L卸货员', 'L卸货组长'],
+      opTypes: ['全部', '网点卸货', '干线卸货'],
+      volLabel: '卸货货量', unit: '吨', isMove: false,
+      people: [
+        { name: '孙悦', emp: '00662011', post: 'L卸货组长', fenbo: '萧山分拨中心' },
+        { name: '吴芳', emp: '00662045', post: 'L卸货员', fenbo: '萧山分拨中心' },
+        { name: '郑浩', emp: '00662103', post: 'L卸货员', fenbo: '萧山分拨中心' }
+      ]
+    },
+    s: {
+      key: 's', label: '流水线码货',
+      types: ['网点码货', '干线码货'],
+      posts: ['L码货员', 'L码货组长'],
+      opTypes: ['全部', '网点码货', '干线码货'],
+      volLabel: '码货货量', unit: '吨', isMove: false,
+      people: [
+        { name: '冯琳', emp: '00673012', post: 'L码货组长', fenbo: '萧山分拨中心' },
+        { name: '曹磊', emp: '00673088', post: 'L码货员', fenbo: '萧山分拨中心' },
+        { name: '韩雪', emp: '00673155', post: 'L码货员', fenbo: '萧山分拨中心' }
+      ]
+    },
+    z: {
+      key: 'z', label: '流水线直装',
+      types: ['网点直装', '干线直装'],
+      posts: ['装卸工', '装卸组长'],
+      opTypes: ['全部', '网点直装', '干线直装'],
+      volLabel: '直装货量', unit: '吨', isMove: false,
+      people: [
+        { name: '邓凯', emp: '00684001', post: '装卸组长', fenbo: '萧山分拨中心' },
+        { name: '彭博', emp: '00684066', post: '装卸工', fenbo: '萧山分拨中心' },
+        { name: '袁静', emp: '00684120', post: '装卸工', fenbo: '萧山分拨中心' }
+      ]
+    }
+  };
+  const FENBO_ROWS = [
+    { fenbo: '萧山分拨中心' },
+    { fenbo: '金华分拨中心' }
+  ];
+
+  function getActiveBizKey() {
+    const tab = document.querySelector('#reportBizTabs .content-tab.active');
+    return (tab && tab.dataset.ctab) || 'load';
+  }
+  function getActiveMaintainBizKey() {
+    const tab = document.querySelector('#bizTabs .content-tab.active');
+    return (tab && tab.dataset.ctab) || 'load';
+  }
+
+  function maintainStatusHtml(status) {
+    const m = {
+      draft: 'tag-draft', wait: 'tag-wait', reject: 'tag-reject', active: 'tag-active'
+    };
+    const l = { draft: '待提交', wait: '待确认', reject: '已驳回', active: '生效中' };
+    return '<span class="tag ' + (m[status] || '') + '">' + (l[status] || status) + '</span>';
+  }
+  function maintainResultCells(o) {
+    if (o.calc === 'running') return ['<span class="tag tag-pending">测算中</span>', '-', '-'];
+    if (o.calc === 'none') return ['-', '-', '-'];
+    const sumCls = (String(o.sum || '').indexOf('-') === 0) ? 'num-neg' : 'num-pos';
+    return ['<span class="' + sumCls + '">' + o.sum + '</span>', o.people || '-', o.dates || '-'];
+  }
+  function maintainOpsHtml(o) {
+    return '<span class="link" data-open="detail">查看详情</span>';
+  }
+  function maintainRowHtml(o) {
+    const res = maintainResultCells(o);
+    const name = o.layer === 'emp' ? (o.empName || '-') : '-';
+    const empNo = o.layer === 'emp' ? (o.empNo || '-') : '-';
+    return '<tr data-biz="' + o.biz + '" data-layer="' + o.layer + '" data-status="' + o.status + '" data-snap="' + (o.snap || '0') + '" data-calc="' + (o.calc || 'none') + '">' +
+      '<td class="col-checkbox"><input type="checkbox" class="row-check maintain-row-check" /></td>' +
+      '<td>' + o.fenbo + '</td><td class="col-emp">' + name + '</td><td class="col-emp">' + empNo + '</td><td>' + o.type + '</td><td>' + o.period + '</td>' +
+      '<td>' + maintainStatusHtml(o.status) + '</td>' +
+      '<td>' + res[0] + '</td><td>' + res[1] + '</td><td>' + res[2] + '</td>' +
+      '<td>' + (o.creator || '张分拨') + '</td><td>' + (o.createTime || '2026-09-01 10:00') + '</td>' +
+      '<td>' + (o.modifier || o.creator || '张分拨') + '</td><td>' + (o.modifyTime || '2026-09-01 10:00') + '</td>' +
+      '<td>' + (o.confirmer || '-') + '</td><td>' + (o.confirmTime || '-') + '</td><td>' + (o.opinion || '-') + '</td>' +
+      '<td>' + maintainOpsHtml(o) + '</td></tr>';
+  }
+  const MAINTAIN_SAMPLES = [
+    { biz:'load',layer:'fenbo',status:'wait',snap:'1',calc:'done',type:'网点装车、网点卸车',sum:'+19.2000',people:'3',dates:'2026-08-16',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'load',layer:'fenbo',status:'wait',snap:'1',calc:'done',type:'干线卸车',sum:'+6.4000',people:'2',dates:'2026-08 ~ 2026-08',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'load',layer:'fenbo',status:'draft',snap:'0',calc:'none',type:'全部',fenbo:'萧山分拨中心',period:'2026-11 ~ 2026-12' },
+    { biz:'load',layer:'fenbo',status:'draft',snap:'0',calc:'running',type:'网点装车、干线装车',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'load',layer:'fenbo',status:'draft',snap:'1',calc:'done',type:'网点装车',sum:'+19.2000',people:'3',dates:'2026-08-16',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'load',layer:'fenbo',status:'reject',snap:'1',calc:'done',type:'干线装车',sum:'-3.5000',people:'2',dates:'2026-08 ~ 2026-08',fenbo:'萧山分拨中心',period:'2026-09 ~ 2026-09',confirmer:'李总部',confirmTime:'2026-08-28 17:01',opinion:'干线装车加减偏高，请下调' },
+    { biz:'load',layer:'fenbo',status:'active',snap:'1',calc:'done',type:'网点装车',sum:'+12.4000',people:'-',dates:'提交时固化',fenbo:'萧山分拨中心',period:'2026-07 ~ 2026-09',creator:'李总部',confirmer:'李总部',confirmTime:'2026-06-25 09:00',opinion:'总部自维生效' },
+    { biz:'load',layer:'emp',status:'wait',snap:'1',calc:'done',type:'网点装车',sum:'+4.8000',people:'1',dates:'2026-08-16',fenbo:'萧山分拨中心',empName:'起正成',empNo:'00621257',period:'2026-10 ~ 2026-12' },
+    { biz:'load',layer:'emp',status:'draft',snap:'0',calc:'none',type:'全部',fenbo:'萧山分拨中心',empName:'王磊',empNo:'00630821',period:'2026-11 ~ 2026-12' },
+    { biz:'load',layer:'emp',status:'active',snap:'1',calc:'done',type:'网点装车',sum:'+2.1000',people:'1',dates:'2026-06-20',fenbo:'萧山分拨中心',empName:'李强',empNo:'00640112',period:'2026-07 ~ 2026-09',creator:'李总部',opinion:'个别员工高峰加价' },
+    { biz:'move',layer:'fenbo',status:'draft',snap:'0',calc:'none',type:'全部',fenbo:'萧山分拨中心',period:'2026-11 ~ 2026-12' },
+    { biz:'move',layer:'fenbo',status:'draft',snap:'1',calc:'done',type:'网点移动、干线移动',sum:'+8.6000',people:'2',dates:'2026-08-16',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'move',layer:'fenbo',status:'active',snap:'1',calc:'done',type:'干线移动',sum:'+5.2000',people:'-',dates:'提交时固化',fenbo:'萧山分拨中心',period:'2026-07 ~ 2026-09',creator:'李总部',opinion:'总部自维生效' },
+    { biz:'move',layer:'emp',status:'draft',snap:'0',calc:'none',type:'网点移动',fenbo:'萧山分拨中心',empName:'陈涛',empNo:'00651001',period:'2026-10 ~ 2026-12' },
+    { biz:'u',layer:'fenbo',status:'draft',snap:'0',calc:'none',type:'网点卸货',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'u',layer:'fenbo',status:'wait',snap:'1',calc:'done',type:'干线卸货',sum:'+3.1000',people:'2',dates:'2026-08-16',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'u',layer:'emp',status:'draft',snap:'1',calc:'done',type:'网点卸货',sum:'+1.2000',people:'1',dates:'2026-08-10',fenbo:'萧山分拨中心',empName:'孙悦',empNo:'00662011',period:'2026-11 ~ 2026-12' },
+    { biz:'s',layer:'fenbo',status:'draft',snap:'0',calc:'running',type:'网点码货',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'s',layer:'fenbo',status:'reject',snap:'1',calc:'done',type:'干线码货',sum:'-2.0000',people:'2',dates:'2026-08 ~ 2026-08',fenbo:'萧山分拨中心',period:'2026-09 ~ 2026-09',confirmer:'李总部',opinion:'干线码货时段请再评估' },
+    { biz:'s',layer:'emp',status:'draft',snap:'0',calc:'none',type:'全部',fenbo:'萧山分拨中心',empName:'冯琳',empNo:'00673012',period:'2026-11 ~ 2026-12' },
+    { biz:'z',layer:'fenbo',status:'draft',snap:'1',calc:'done',type:'网点直装',sum:'+4.5000',people:'2',dates:'2026-08-16',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'z',layer:'fenbo',status:'active',snap:'1',calc:'done',type:'干线直装',sum:'+7.8000',people:'-',dates:'提交时固化',fenbo:'萧山分拨中心',period:'2026-07 ~ 2026-09',creator:'李总部' },
+    { biz:'z',layer:'emp',status:'wait',snap:'1',calc:'done',type:'网点直装',sum:'+0.9000',people:'1',dates:'2026-08-16',fenbo:'萧山分拨中心',empName:'邓凯',empNo:'00684001',period:'2026-10 ~ 2026-12' }
+  ];
+  function renderMaintainTableBody() {
+    const host = document.getElementById('maintainTableBody');
+    if (!host) return;
+    host.innerHTML = MAINTAIN_SAMPLES.map(maintainRowHtml).join('');
+  }
+  function refreshMaintainTypeFilterDisplay() {
+    const wrap = document.getElementById('maintainTypeFilter');
+    if (!wrap) return;
+    const box = wrap.querySelector('.multi-select-box');
+    const ph = wrap.querySelector('.multi-select-placeholder');
+    const tags = wrap.querySelector('.multi-select-tags');
+    const checked = Array.from(wrap.querySelectorAll('.multi-select-option input:checked')).map(function (el) {
+      return el.value;
+    });
+    if (!tags || !ph || !box) return;
+    tags.innerHTML = '';
+    if (!checked.length) {
+      ph.style.display = '';
+      box.classList.remove('has-value');
+      return;
+    }
+    ph.style.display = 'none';
+    box.classList.add('has-value');
+    checked.forEach(function (t) {
+      const span = document.createElement('span');
+      span.className = 'multi-select-tag';
+      span.textContent = t;
+      tags.appendChild(span);
+    });
+  }
+  function syncMaintainTypeFilter() {
+    const biz = BIZ_TABS[getActiveMaintainBizKey()] || BIZ_TABS.load;
+    const host = document.getElementById('maintainTypeFilterOpts');
+    if (!host) return;
+    const options = ['全部'].concat(biz.types || []);
+    host.innerHTML = options.map(function (t) {
+      return '<label class="multi-select-option"><input type="checkbox" value="' + t + '" />' + t + '</label>';
+    }).join('');
+    host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        const lab = cb.closest('.multi-select-option');
+        if (lab) lab.classList.toggle('checked', cb.checked);
+        refreshMaintainTypeFilterDisplay();
+      });
+    });
+    refreshMaintainTypeFilterDisplay();
+  }
+  (function initMaintainTypeMultiSelect() {
+    const wrap = document.getElementById('maintainTypeFilter');
+    if (!wrap) return;
+    const box = wrap.querySelector('.multi-select-box');
+    if (box) {
+      box.addEventListener('click', function (e) {
+        e.stopPropagation();
+        wrap.classList.toggle('open');
+      });
+    }
+    wrap.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.addEventListener('click', function () {
+      wrap.classList.remove('open');
+    });
+  })();
+  function syncMaintainView() {
+    const biz = getActiveMaintainBizKey();
+    const layer = getMaintainLayer();
+    syncMaintainMoveAdj(!!(BIZ_TABS[biz] || {}).isMove);
+    let visible = 0;
+    document.querySelectorAll('#maintainTableBody tr').forEach(function (tr) {
+      const show = tr.dataset.biz === biz && tr.dataset.layer === layer;
+      tr.classList.toggle('maint-row-hidden', !show);
+      if (show) visible++;
+    });
+    const total = document.getElementById('maintainPageTotal');
+    if (total) total.textContent = '共 ' + visible + ' 条';
+    const rows = getVisibleMaintainRows();
+    const prefer = rows.find(function (r) { return r.dataset.status === 'draft' && r.dataset.calc !== 'running'; }) || rows[0];
+    if (prefer) selectMaintainRow(prefer);
+    else clearMaintainSelection();
+  }
+  function syncMaintainMoveAdj(isMove) {
+    layout.classList.toggle('maint-move-adj', !!isMove);
+    ['modalEdit', 'modalDetail', 'modalAdj'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('is-move-adj', !!isMove);
+    });
+    const tonTitle = document.getElementById('editTonAdjTitle');
+    if (tonTitle) {
+      tonTitle.textContent = isMove
+        ? '时段加减（按区间 · 吨/托分列，可为负）'
+        : '时段加减（按区间 · 元/吨，可为负）';
+    }
+    const detailTon = document.getElementById('detailTonAdjTitle');
+    if (detailTon) {
+      detailTon.textContent = isMove ? '时段加减区间（吨/托分列）' : '时段加减区间（元/吨）';
+    }
+    const viewTon = document.getElementById('viewTonAdjTitle');
+    if (viewTon) {
+      viewTon.textContent = isMove ? '时段加减区间（吨/托分列）' : '时段加减区间（元/吨）';
+    }
+  }
+  function fillMaintainAdjPanels(bizKey, editable) {
+    const isMove = (BIZ_TABS[bizKey] || {}).isMove;
+    syncMaintainMoveAdj(isMove);
+    const ranges = isMove ? sampleMoveAdjRanges : sampleAdjRanges;
+    fillAdjRanges('editAdjGrid', editable, ranges, { dual: isMove });
+    fillAdjRanges('detailAdjGrid', false, ranges, { dual: isMove });
+    fillAdjRanges('viewAdjGrid', false, ranges, { dual: isMove });
+  }
+  function fillEditTypeChecks(biz, selectedText) {
+    const host = document.getElementById('editTypeSelect');
+    if (!host) return;
+    const options = ['全部'].concat(biz.types || []);
+    const selected = String(selectedText || '')
+      .split(/[、,，]/)
+      .map(function (s) { return s.trim(); })
+      .filter(Boolean);
+    const picked = selected.length ? selected : [biz.types[0] || '全部'];
+    host.innerHTML = options.map(function (t) {
+      const checked = picked.indexOf(t) >= 0 ? ' checked' : '';
+      return '<label><input type="checkbox" class="edit-type-check" value="' + t + '"' + checked + ' /> ' + t + '</label>';
+    }).join('');
+
+    function applyExclusive(changed) {
+      const boxes = Array.from(host.querySelectorAll('.edit-type-check'));
+      if (!changed.checked) {
+        if (!boxes.some(function (b) { return b.checked; })) {
+          changed.checked = true;
+        }
+        return;
+      }
+      if (changed.value === '全部') {
+        boxes.forEach(function (b) {
+          if (b.value !== '全部') b.checked = false;
+        });
+      } else {
+        boxes.forEach(function (b) {
+          if (b.value === '全部') b.checked = false;
+        });
+      }
+    }
+
+    host.querySelectorAll('.edit-type-check').forEach(function (box) {
+      box.addEventListener('change', function () {
+        applyExclusive(box);
+      });
+    });
+  }
+
+  function openEditModal(mode, row) {
+    const bizKey = getActiveMaintainBizKey();
+    const biz = BIZ_TABS[bizKey] || BIZ_TABS.load;
+    const isEmp = layout.classList.contains('is-emp');
+    document.getElementById('editTitle').textContent =
+      (mode === 'add' ? '新增' : '编辑') + (isEmp ? '员工方案' : '分拨方案') + '（' + biz.label + '）';
+    const rowType = row ? row.children[4].textContent.trim() : (biz.types[0] || '全部');
+    fillEditTypeChecks(biz, rowType);
+    const empInput = document.querySelector('#modalEdit .emp-only input');
+    if (row) {
+      const parts = row.children[5].textContent.trim().split('~');
+      document.getElementById('editPeriodStart').value = (parts[0] || '').trim();
+      document.getElementById('editPeriodEnd').value = (parts[1] || '').trim();
+      const op = row.children[16].textContent.trim();
+      document.getElementById('editRemark').value = op === '-' ? '' : op;
+      if (empInput) {
+        const n = (row.children[2].textContent || '').trim();
+        const no = (row.children[3].textContent || '').trim();
+        empInput.value = isEmp ? ((n !== '-' ? n : '') + (no && no !== '-' ? (' / ' + no) : '')) : '';
+      }
+    } else {
+      document.getElementById('editPeriodStart').value = '2026-10';
+      document.getElementById('editPeriodEnd').value = '2026-12';
+      document.getElementById('editRemark').value = '';
+      if (empInput) empInput.value = '';
+    }
+    document.getElementById('modalEdit').classList.toggle('is-emp', isEmp);
+    fillMaintainAdjPanels(bizKey, true);
+    openModal('modalEdit');
+  }
+  function openDetailModal(row) {
+    const biz = BIZ_TABS[row.dataset.biz || getActiveMaintainBizKey()] || BIZ_TABS.load;
+    const isEmp = (row.dataset.layer || getMaintainLayer()) === 'emp';
+    document.getElementById('modalDetail').classList.toggle('is-emp', isEmp);
+    const type = row.children[4].textContent.trim();
+    document.querySelectorAll('#modalDetail .form-grid .form-item').forEach(function (item) {
+      const lab = item.querySelector('label');
+      if (lab && lab.textContent.trim() === '操作类型') {
+        const t = item.querySelector('.form-text');
+        if (t) t.textContent = type;
+      }
+    });
+    const detailName = document.getElementById('detailEmpName');
+    const detailNo = document.getElementById('detailEmpNo');
+    if (detailName) detailName.textContent = (row.children[2].textContent || '').trim() || '-';
+    if (detailNo) detailNo.textContent = (row.children[3].textContent || '').trim() || '-';
+    const hasSnap = row.dataset.snap === '1' || row.dataset.calc === 'done';
+    const box = document.getElementById('detailSnap');
+    if (hasSnap) {
+      const sum = (row.children[7] && row.children[7].innerHTML) || '';
+      const people = (row.children[8] && row.children[8].textContent.trim()) || '-';
+      const dates = (row.children[9] && row.children[9].textContent.trim()) || '-';
+      box.className = 'snapshot-box';
+      box.innerHTML = '<div>提交时固化的测算结果（明细以「查看测算」只读测算结果为准）</div>' +
+        '<div class="snapshot-row">' +
+        '<span>本区间增减合计：<strong>' + sum + '</strong></span>' +
+        '<span>人数：' + people + '</span>' +
+        '<span>测算日期段：' + dates + '</span>' +
+        '<span>业务线：' + biz.label + '</span>' +
+        '<span>操作类型：' + type + '</span></div>';
+    } else {
+      box.className = 'snapshot-box empty';
+      box.textContent = '无测算结果。分拨提交确认前须有与本方案一致的最近一次测算；总部自维可不测算、直接维护生效。';
+    }
+    fillMaintainAdjPanels(row.dataset.biz || getActiveMaintainBizKey(), false);
+    openModal('modalDetail');
+  }
+  function openAdjModal(row) {
+    const bizKey = row.dataset.biz || getActiveMaintainBizKey();
+    const biz = BIZ_TABS[bizKey] || BIZ_TABS.load;
+    const type = row.children[4].textContent.trim();
+    const title = document.getElementById('adjModalTitle');
+    if (title) {
+      title.textContent = biz.isMove
+        ? '查看加减（' + type + ' · 吨+托）'
+        : '查看加减（' + type + ' · 元/吨）';
+    }
+    syncMaintainMoveAdj(biz.isMove);
+    fillAdjRanges('viewAdjGrid', false, biz.isMove ? sampleMoveAdjRanges : sampleAdjRanges, { dual: !!biz.isMove });
+    openModal('modalAdj');
+  }
+
+  function nfix(seed, i) {
+    const x = Math.abs(Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453);
+    return x - Math.floor(x);
+  }
+
+  function sampleVol(seed, h, ti) {
+    const base = 0.4 + nfix(seed + ti, h) * 2.2;
+    return (base + (h >= 2 && h <= 5 ? 0.8 : 0)).toFixed(2);
+  }
+  function sampleTray(seed, h, ti) {
+    return Math.max(1, Math.round(8 + nfix(seed + 9 + ti, h) * 40 + (h >= 2 && h <= 5 ? 12 : 0)));
+  }
+  function sampleTip(seed, h, ti, vol) {
+    const adj = (h >= 2 && h <= 4) ? 1 : (h === 5 ? -1 : 0);
+    const formal = (parseFloat(vol) * adj * 0.35).toFixed(4);
+    const measure = (parseFloat(vol) * (adj === 0 ? 0.2 : adj) * 0.35).toFixed(4);
+    return { formal: formal, measure: measure };
+  }
+
+  function tipTd(formal, measure, hour) {
+    const className = hour == null ? 'cell-amt cell-tip' : 'cell-amt cell-tip hour-col';
+    const dh = hour == null ? '' : (' data-hour="' + hour + '"');
+    return '<td class="' + className + '"' + dh + ' data-formal="' + formal + '" data-measure="' + measure + '">' + formal + '</td>';
+  }
+  function volTd(val, hour) {
+    if (hour == null) return '<td>' + val + '</td>';
+    return '<td class="hour-col" data-hour="' + hour + '">' + val + '</td>';
+  }
+
+  function buildSplitMetrics(biz, seed) {
+    // returns { summaryCellsHtml, hourCellsHtml(h) } as functions producing cell html
+    const types = biz.types;
+    const perType = biz.isMove ? 3 : 2;
+    function block(h) {
+      let html = '';
+      types.forEach((t, ti) => {
+        const vol = sampleVol(seed, h == null ? 99 : h, ti);
+        const tip = sampleTip(seed, h == null ? 3 : h, ti, vol);
+        html += volTd(vol, h);
+        if (biz.isMove) html += volTd(sampleTray(seed, h == null ? 99 : h, ti), h);
+        html += tipTd(tip.formal, tip.measure, h);
+      });
+      return html;
+    }
+    return {
+      colspan: types.length * perType,
+      summary: block(null),
+      hour: function (h) { return block(h); }
+    };
+  }
+
+  function buildSumMetrics(biz, seed) {
+    let totalVol = 0, totalTray = 0, tipF = 0, tipM = 0;
+    const hourBlocks = [];
+    for (let h = 0; h < 24; h++) {
+      let v = 0, tr = 0, f = 0, m = 0;
+      biz.types.forEach((_, ti) => {
+        const vol = parseFloat(sampleVol(seed, h, ti));
+        const tip = sampleTip(seed, h, ti, vol);
+        v += vol; f += parseFloat(tip.formal); m += parseFloat(tip.measure);
+        if (biz.isMove) tr += sampleTray(seed, h, ti);
+      });
+      totalVol += v; totalTray += tr; tipF += f; tipM += m;
+      hourBlocks.push({ v: v.toFixed(2), tr: tr, f: f.toFixed(4), m: m.toFixed(4) });
+    }
+    return {
+      totalVol: totalVol.toFixed(2),
+      totalTray: totalTray,
+      tipF: tipF.toFixed(4),
+      tipM: tipM.toFixed(4),
+      hourBlocks: hourBlocks,
+      formalSpan: biz.isMove ? 3 : 2,
+      measureSpan: biz.isMove ? 4 : 3
+    };
+  }
+
+  function renderSplitTable(id, biz, dim) {
+    const types = biz.types;
+    const perType = biz.isMove ? 3 : 2;
+    const groupSpan = types.length * perType;
+    const rows = dim === 'person' ? biz.people : FENBO_ROWS;
+    const baseCols = dim === 'person'
+      ? '<th rowspan="3">分拨中心</th><th rowspan="3">员工姓名</th><th rowspan="3">人事工号</th><th rowspan="3">岗位</th><th rowspan="3">日期</th>'
+      : '<th rowspan="3">分拨中心</th><th rowspan="3">日期</th>';
+
+    let r1 = '<tr>' + baseCols +
+      '<th class="th-group th-pair" colspan="' + groupSpan + '">汇总</th>';
+    BIZ_HOURS.forEach(h => {
+      r1 += '<th class="th-group hour-col" data-hour="' + h + '" colspan="' + groupSpan + '">' + h + '点</th>';
+    });
+    r1 += '</tr>';
+
+    let r2 = '<tr>';
+    // summary types
+    types.forEach(t => { r2 += '<th class="th-type" colspan="' + perType + '">' + t + '</th>'; });
+    BIZ_HOURS.forEach(h => {
+      types.forEach(t => {
+        r2 += '<th class="th-type hour-col" data-hour="' + h + '" colspan="' + perType + '">' + t + '</th>';
+      });
+    });
+    r2 += '</tr>';
+
+    let r3 = '<tr>';
+    function subHeads2(hour) {
+      let s = '';
+      types.forEach(() => {
+        if (hour == null) {
+          s += '<th class="th-sub">货量</th>';
+          if (biz.isMove) s += '<th class="th-sub">托数</th>';
+          s += '<th class="th-sub">提成</th>';
+        } else {
+          s += '<th class="th-sub hour-col" data-hour="' + hour + '">货量</th>';
+          if (biz.isMove) s += '<th class="th-sub hour-col" data-hour="' + hour + '">托数</th>';
+          s += '<th class="th-sub hour-col" data-hour="' + hour + '">提成</th>';
+        }
+      });
+      return s;
+    }
+    r3 += subHeads2(null);
+    BIZ_HOURS.forEach(h => { r3 += subHeads2(h); });
+    r3 += '</tr>';
+
+    let body = '';
+    rows.forEach((row, ri) => {
+      const seed = (biz.key.charCodeAt(0) || 1) * 17 + ri * 31 + (dim === 'person' ? 3 : 7);
+      const metrics = buildSplitMetrics(biz, seed);
+      body += '<tr>';
+      if (dim === 'person') {
+        body += '<td>' + row.fenbo + '</td><td>' + row.name + '</td><td>' + row.emp + '</td><td>' + row.post + '</td><td>2026-08-16</td>';
+      } else {
+        body += '<td>' + row.fenbo + '</td><td>2026-08-16</td>';
+      }
+      body += metrics.summary;
+      BIZ_HOURS.forEach(h => { body += metrics.hour(h); });
+      body += '</tr>';
+    });
+
+    return '<table class="data-table table-view" id="' + id + '"><thead>' + r1 + r2 + r3 + '</thead><tbody>' + body + '</tbody></table>';
+  }
+
+  function renderSumTable(id, biz, dim) {
+    const rows = dim === 'person' ? biz.people : FENBO_ROWS;
+    const rowspan = 2;
+    const baseCols = dim === 'person'
+      ? '<th rowspan="2">分拨中心</th><th rowspan="2">员工姓名</th><th rowspan="2">人事工号</th><th rowspan="2">岗位</th><th rowspan="2">日期</th>'
+      : '<th rowspan="2">分拨中心</th><th rowspan="2">日期</th>';
+
+    const sample = buildSumMetrics(biz, 1);
+    const formalSpan = sample.formalSpan;
+    const measureSpan = sample.measureSpan;
+
+    let r1 = '<tr>' + baseCols +
+      '<th class="th-group th-pair" colspan="' + formalSpan + '" data-formal-span="' + formalSpan + '" data-measure-span="' + measureSpan + '"' +
+      (id.indexOf('Person') >= 0 && id.indexOf('Sum') >= 0 ? ' id="thSumGroup"' : '') + '>汇总</th>';
+    BIZ_HOURS.forEach(h => {
+      r1 += '<th class="th-group hour-col" data-hour="' + h + '" colspan="' + formalSpan +
+        '" data-formal-span="' + formalSpan + '" data-measure-span="' + measureSpan + '">' + h + '点</th>';
+    });
+    r1 += '</tr>';
+
+    let r2 = '<tr>';
+    r2 += '<th class="th-sub th-pair">' + biz.volLabel + '</th>';
+    if (biz.isMove) r2 += '<th class="th-sub th-pair">' + (biz.trayLabel || '移动托数') + '</th>';
+    r2 += '<th class="th-sub th-pair formal-only">提成</th>';
+    r2 += '<th class="th-sub th-pair measure-col">现行提成</th>';
+    r2 += '<th class="th-sub th-pair measure-col">测算提成</th>';
+    BIZ_HOURS.forEach(h => {
+      r2 += '<th class="th-sub hour-col" data-hour="' + h + '">' + biz.volLabel + '</th>';
+      if (biz.isMove) r2 += '<th class="th-sub hour-col" data-hour="' + h + '">' + (biz.trayLabel || '移动托数') + '</th>';
+      r2 += '<th class="th-sub hour-col formal-only" data-hour="' + h + '">提成</th>';
+      r2 += '<th class="th-sub hour-col measure-col" data-hour="' + h + '">现行提成</th>';
+      r2 += '<th class="th-sub hour-col measure-col" data-hour="' + h + '">测算提成</th>';
+    });
+    r2 += '</tr>';
+
+    let body = '';
+    rows.forEach((row, ri) => {
+      const seed = (biz.key.charCodeAt(0) || 1) * 19 + ri * 41 + (dim === 'person' ? 5 : 11);
+      const m = buildSumMetrics(biz, seed);
+      body += '<tr>';
+      if (dim === 'person') {
+        body += '<td>' + row.fenbo + '</td><td>' + row.name + '</td><td>' + row.emp + '</td><td>' + row.post + '</td><td>2026-08-16</td>';
+      } else {
+        body += '<td>' + row.fenbo + '</td><td>2026-08-16</td>';
+      }
+      body += '<td>' + m.totalVol + '</td>';
+      if (biz.isMove) body += '<td>' + m.totalTray + '</td>';
+      body += '<td class="cell-amt formal-only">' + m.tipF + '</td>';
+      body += '<td class="cell-amt measure-col">0.00</td>';
+      body += '<td class="cell-amt measure-col cell-after">' + m.tipM + '</td>';
+      BIZ_HOURS.forEach(h => {
+        const hb = m.hourBlocks[h];
+        body += '<td class="hour-col" data-hour="' + h + '">' + hb.v + '</td>';
+        if (biz.isMove) body += '<td class="hour-col" data-hour="' + h + '">' + hb.tr + '</td>';
+        body += '<td class="cell-amt hour-col formal-only" data-hour="' + h + '">' + hb.f + '</td>';
+        body += '<td class="cell-amt hour-col measure-col" data-hour="' + h + '">0.00</td>';
+        body += '<td class="cell-amt hour-col measure-col cell-after" data-hour="' + h + '">' + hb.m + '</td>';
+      });
+      body += '</tr>';
+    });
+
+    return '<table class="data-table table-view" id="' + id + '"><thead>' + r1 + r2 + '</thead><tbody>' + body + '</tbody></table>';
+  }
+
+  function syncBizFilters(biz) {
+    const postSel = document.querySelector('#pageReport .filter-item .filter-label');
+    // update 岗位 select: find by label
+    document.querySelectorAll('#pageReport .filter-item').forEach(item => {
+      const label = item.querySelector('.filter-label');
+      if (!label) return;
+      if (label.textContent.trim() === '岗位') {
+        const sel = item.querySelector('select');
+        if (!sel) return;
+        sel.innerHTML = '<option>全部</option>' + biz.posts.map(p => '<option>' + p + '</option>').join('');
+      }
+      if (label.textContent.trim() === '操作类型') {
+        const sel = item.querySelector('select');
+        if (!sel) return;
+        sel.innerHTML = biz.opTypes.map((o, i) => '<option' + (i === 0 ? ' selected' : '') + '>' + o + '</option>').join('');
+      }
+    });
+    const measureType = document.querySelector('#pageReport .filter-item.measure-only .filter-label');
+    document.querySelectorAll('#pageReport .filter-item.measure-only').forEach(item => {
+      const label = item.querySelector('.filter-label');
+      if (label && label.textContent.trim() === '测算类型') {
+        const sel = item.querySelector('select');
+        if (!sel) return;
+        const opts = ['全部'].concat(biz.types);
+        sel.innerHTML = opts.map((o, i) => '<option' + (i === 1 ? ' selected' : '') + '>' + o + '</option>').join('');
+      }
+    });
+    if (layout.classList.contains('is-measure') && lastMeasureMeta) {
+      fillMeasureSummary(lastMeasureMeta);
+    }
+    const unitEl = document.getElementById('unitLegend');
+    if (unitEl) {
+      unitEl.textContent = biz.isMove
+        ? '货量单位：吨；托数单位：托；提成单位：元（保留4位小数）'
+        : '货量单位：吨；提成单位：元（保留4位小数）';
+    }
+  }
+
+  function renderReportTables() {
+    const biz = BIZ_TABS[getActiveBizKey()] || BIZ_TABS.load;
+    const host = document.querySelector('#pageReport .table-scroll');
+    if (!host) return;
+    host.innerHTML =
+      renderSplitTable('tablePersonSplit', biz, 'person') +
+      renderSumTable('tablePersonSum', biz, 'person') +
+      renderSplitTable('tableFenboSplit', biz, 'fenbo') +
+      renderSumTable('tableFenboSum', biz, 'fenbo');
+    syncBizFilters(biz);
+  }
+
+  function syncGrain() {
+    const grainEl = document.getElementById('metricGrain');
+    const isSplit = !!(grainEl && grainEl.checked);
+    const dimTab = document.querySelector('#reportDimTabs .sub-tab.active');
+    const dim = dimTab ? dimTab.dataset.dim : 'fenbo';
+    layout.classList.toggle('grain-split', isSplit);
+    layout.classList.toggle('grain-sum', !isSplit);
+    layout.classList.toggle('dim-person', dim === 'person');
+    layout.classList.toggle('dim-fenbo', dim === 'fenbo');
+    const total = document.getElementById('reportPageTotal');
+    if (total) total.textContent = dim === 'fenbo' ? '共 2 条' : '共 3 条';
+    syncHours();
+    syncMode();
+  }
+
+  function hoursFromRange(start, end) {
+    const out = [];
+    let i = bizHourIndex(start);
+    const endI = bizHourIndex(end);
+    if (i < 0 || endI < 0) return out;
+    for (;;) {
+      out.push(BIZ_HOURS[i]);
+      if (i === endI) break;
+      i = (i + 1) % 24;
+    }
+    return out;
+  }
+
+  function readCheckedHours() {
+    return new Set(
+      Array.from(document.querySelectorAll('.hour-check:checked')).map(el => Number(el.dataset.hour))
+    );
+  }
+
+  function writeCheckedHours(hours) {
+    const on = new Set(Array.from(hours).map(Number));
+    document.querySelectorAll('.hour-check').forEach(el => {
+      el.checked = on.has(Number(el.dataset.hour));
+    });
+  }
+
+  function rangeFromHours(set) {
+    const arr = Array.from(set).map(Number);
+    if (!arr.length) return { start: 15, end: 14, exact: true };
+    if (arr.length === 24) return { start: 15, end: 14, exact: true };
+    const setObj = new Set(arr);
+    const idxs = arr.map(bizHourIndex).filter(i => i >= 0).sort((a, b) => a - b);
+    for (let n = 0; n < idxs.length; n++) {
+      const startI = idxs[n];
+      const rebuilt = [];
+      for (let k = 0; k < arr.length; k++) rebuilt.push(BIZ_HOURS[(startI + k) % 24]);
+      if (rebuilt.every(h => setObj.has(h))) {
+        return { start: rebuilt[0], end: rebuilt[rebuilt.length - 1], exact: true };
+      }
+    }
+    let best = null;
+    for (let s = 0; s < 24; s++) {
+      for (let len = arr.length; len <= 24; len++) {
+        const covered = new Set();
+        for (let k = 0; k < len; k++) covered.add(BIZ_HOURS[(s + k) % 24]);
+        if (arr.every(h => covered.has(h))) {
+          if (!best || len < best.len) {
+            best = { start: BIZ_HOURS[s], end: BIZ_HOURS[(s + len - 1) % 24], len: len };
+          }
+          break;
+        }
+      }
+    }
+    return best
+      ? { start: best.start, end: best.end, exact: false }
+      : { start: 15, end: 14, exact: false };
+  }
+
+  function formatHourHint(start, end) {
+    const list = hoursFromRange(start, end);
+    const si = bizHourIndex(start);
+    const ei = bizHourIndex(end);
+    const wrap = list.length > 1 && si > ei;
+    if (wrap) {
+      return start + '～14、15～' + end + '点 · ' + list.length + '小时 · 跨业务日起点';
+    }
+    return start + '～' + end + '点 · ' + list.length + '小时';
+  }
+
+  function getHourMode() {
+    const active = document.querySelector('#hourModeSeg .hour-seg-item.active');
+    return active ? active.dataset.mode : 'range';
+  }
+
+  function applyRangeToChecks() {
+    const start = Number(document.getElementById('hourStart').value);
+    const end = Number(document.getElementById('hourEnd').value);
+    writeCheckedHours(hoursFromRange(start, end));
+    document.getElementById('hourRangeHint').textContent = formatHourHint(start, end);
+    syncHours();
+  }
+
+  function syncHourModePanels() {
+    const mode = getHourMode();
+    const rangePanel = document.getElementById('hourRangePanel');
+    const checkGroup = document.getElementById('hourCheckGroup');
+    rangePanel.classList.toggle('is-hidden', mode !== 'range');
+    checkGroup.classList.toggle('is-hidden', mode !== 'custom');
+    if (mode === 'range') {
+      const derived = rangeFromHours(readCheckedHours());
+      document.getElementById('hourStart').value = String(derived.start);
+      document.getElementById('hourEnd').value = String(derived.end);
+      applyRangeToChecks();
+    } else {
+      syncHours();
+    }
+  }
+
+  function initHourFilter() {
+    const startSel = document.getElementById('hourStart');
+    const endSel = document.getElementById('hourEnd');
+    startSel.innerHTML = '';
+    endSel.innerHTML = '';
+    BIZ_HOURS.forEach(h => {
+      startSel.appendChild(new Option(h + '点', String(h)));
+      endSel.appendChild(new Option(h + '点', String(h)));
+    });
+    startSel.value = '15';
+    endSel.value = '14';
+    applyRangeToChecks();
+    document.getElementById('hourModeSeg').addEventListener('click', (e) => {
+      const btn = e.target.closest('.hour-seg-item');
+      if (!btn) return;
+      document.querySelectorAll('#hourModeSeg .hour-seg-item').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      syncHourModePanels();
+    });
+    startSel.addEventListener('change', applyRangeToChecks);
+    endSel.addEventListener('change', applyRangeToChecks);
+    document.getElementById('hourCheckGroup').addEventListener('change', () => {
+      if (getHourMode() === 'custom') syncHours();
+    });
+    // 芯片点击切换勾选（隐藏原生 checkbox）
+    document.getElementById('hourCheckGroup').addEventListener('click', (e) => {
+      const label = e.target.closest('label');
+      if (!label || getHourMode() !== 'custom') return;
+      const input = label.querySelector('.hour-check');
+      if (!input) return;
+      e.preventDefault();
+      input.checked = !input.checked;
+      syncHours();
+    });
+    syncHourModePanels();
+  }
+
+  function syncHours() {
+    const on = new Set(
+      Array.from(document.querySelectorAll('.hour-check:checked')).map(el => String(el.dataset.hour))
+    );
+    document.querySelectorAll('.hour-col').forEach(el => {
+      const show = on.has(String(el.dataset.hour));
+      el.style.display = show ? '' : 'none';
+    });
+  }
+
+  function paintAmt(el, text, forcePos) {
+    const v = parseFloat(text);
+    el.textContent = text;
+    el.classList.remove('num-neg', 'num-pos');
+    if (v < 0) el.classList.add('num-neg');
+    else if (forcePos && v > 0) el.classList.add('num-pos');
+  }
+
+  function applyTableAmts(isMeasure) {
+    document.querySelectorAll('#pageReport td.cell-tip[data-formal]').forEach(el => {
+      const text = isMeasure ? el.dataset.measure : el.dataset.formal;
+      paintAmt(el, text, isMeasure && parseFloat(text) > 0);
+    });
+    document.querySelectorAll('#pageReport td.cell-after').forEach(el => {
+      paintAmt(el, el.textContent, true);
+    });
+    const sumEl = document.getElementById('intervalSum');
+    if (sumEl) {
+      sumEl.textContent = isMeasure ? '+19.2000' : '';
+      sumEl.className = 'sum-value num-pos';
+    }
+  }
+
+  document.getElementById('reportBizTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('#reportBizTabs .content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    renderReportTables();
+    syncGrain();
+  });
+  // reportCheckAll 在 renderReportTables 内绑定
+
+  queryMode.addEventListener('change', syncMode);
+  document.getElementById('metricGrain').addEventListener('change', syncGrain);
+  document.getElementById('reportDimTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.sub-tab');
+    if (!tab) return;
+    document.querySelectorAll('#reportDimTabs .sub-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    syncGrain();
+  });
+  initHourFilter();
+  if (btnBackMaintain) {
+    btnBackMaintain.addEventListener('click', () => {
+      queryMode.value = 'formal';
+      hasMeasureTaskFromMaintain = false;
+      syncMode();
+      showPage('maintain');
+    });
+  }
+
+  function closeMeasureStart() { measureStartModal.classList.remove('show'); }
+  document.getElementById('measureStartClose').addEventListener('click', closeMeasureStart);
+  document.getElementById('measureStartCancel').addEventListener('click', closeMeasureStart);
+  document.getElementById('measureStartOk').addEventListener('click', () => {
+    const row = getSelectedMaintainRow();
+    if (!row || row.dataset.status !== 'draft') {
+      alert('仅「待提交」可测算。');
+      return;
+    }
+    const d0 = (document.getElementById('measureDateStart') || {}).value || '';
+    const d1 = (document.getElementById('measureDateEnd') || {}).value || '';
+    const dates = d0 === d1 ? d0 : (d0 + ' ~ ' + d1);
+    closeMeasureStart();
+    row.dataset.calc = 'done';
+    row.dataset.snap = '1';
+    if (row.children[7]) row.children[7].innerHTML = '<span class="num-pos">+19.2000</span>';
+    const isEmp = (row.dataset.layer || '') === 'emp';
+    if (row.children[8]) row.children[8].textContent = isEmp ? '1' : '3';
+    if (row.children[9]) row.children[9].textContent = dates;
+    const fenbo = (row.children[1].textContent || '').trim();
+    const empName = (row.children[2].textContent || '').trim();
+    const empNo = (row.children[3].textContent || '').trim();
+    const type = (row.children[4].textContent || '').trim();
+    lastTrialState = { status: 'done', fenbo: fenbo, type: type, dates: dates };
+    lastMeasureMeta = {
+      scheme: isEmp ? (fenbo + ' · ' + empName + ' / ' + empNo + ' · ' + type) : (fenbo + ' · ' + type),
+      fenbo: fenbo,
+      type: type,
+      dates: dates,
+      sum: '+19.2000',
+      people: isEmp ? '1' : '3',
+      bizKey: row.dataset.biz || getActiveMaintainBizKey(),
+      layer: isEmp ? 'emp' : 'fenbo',
+      empName: isEmp ? empName : '',
+      empNo: isEmp ? empNo : ''
+    };
+    alert('测算完成。可点「查看测算」看明细。');
+  });
+  measureStartModal.addEventListener('click', (e) => { if (e.target === measureStartModal) closeMeasureStart(); });
+
+  // draftModal 已移除
+
+  renderReportTables();
+  syncGrain();
+
+
+  /** 装卸等：单列加减。移动：同区间吨+托两列 */
+  const sampleAdjRanges = [
+    { start: 2, end: 4, amt: 1 },
+    { start: 5, end: 5, amt: -1 }
+  ];
+  const sampleMoveAdjRanges = [
+    { start: 2, end: 4, ton: 1, tray: -0.3 },
+    { start: 5, end: 5, ton: -1, tray: 0 },
+    { start: 15, end: 16, ton: 0, tray: 0.5 }
+  ];
+
+  function hoursInBizRange(start, end) {
+    const out = [];
+    let i = bizHourIndex(start);
+    const endI = bizHourIndex(end);
+    if (i < 0 || endI < 0) return out;
+    for (;;) {
+      out.push(BIZ_HOURS[i]);
+      if (i === endI) break;
+      i = (i + 1) % 24;
+    }
+    return out;
+  }
+
+  function coveredHoursByRanges(ranges, skipIdx) {
+    const set = new Set();
+    (ranges || []).forEach(function (r, i) {
+      if (i === skipIdx) return;
+      hoursInBizRange(r.start, r.end).forEach(function (h) { set.add(Number(h)); });
+    });
+    return set;
+  }
+
+  function firstFreeHour(ranges) {
+    const covered = coveredHoursByRanges(ranges, -1);
+    for (let i = 0; i < BIZ_HOURS.length; i++) {
+      if (!covered.has(BIZ_HOURS[i])) return BIZ_HOURS[i];
+    }
+    return null;
+  }
+
+  function pathHitsCovered(start, end, covered) {
+    const path = hoursInBizRange(start, end);
+    for (let i = 0; i < path.length; i++) {
+      if (covered.has(Number(path[i]))) return true;
+    }
+    return false;
+  }
+
+  function hourOptionHtml(hour, selected, disabled) {
+    return '<option value="' + hour + '"' +
+      (Number(selected) === Number(hour) ? ' selected' : '') +
+      (disabled ? ' disabled' : '') +
+      '>' + hour + '点</option>';
+  }
+
+  function amtClass(v) {
+    const n = Number(v);
+    return n < 0 ? 'num-neg' : (n > 0 ? 'num-pos' : '');
+  }
+
+  function fillAdjRanges(hostId, editable, rangesInit, opts) {
+    const host = document.getElementById(hostId);
+    if (!host) return;
+    const dual = !!(opts && opts.dual);
+    let ranges = (rangesInit || []).map(function (r) {
+      if (dual) {
+        return {
+          start: Number(r.start),
+          end: Number(r.end),
+          ton: r.ton != null ? r.ton : (r.amt != null ? r.amt : 0),
+          tray: r.tray != null ? r.tray : 0
+        };
+      }
+      return { start: Number(r.start), end: Number(r.end), amt: r.amt != null ? r.amt : 0 };
+    });
+
+    function render() {
+      host.innerHTML = '';
+      host.className = 'adj-range-wrap';
+
+      const hint = document.createElement('p');
+      hint.className = 'adj-range-hint';
+      hint.textContent = editable
+        ? (dual
+          ? '同一套区间：每行填吨加减与托加减；未覆盖小时两项均按 0；已占用小时不可再选；允许跨零点（如 22～1）。'
+          : '按业务日序选起止小时；未覆盖小时按 0；已占用小时不可再选；允许跨零点（如 22～1）。')
+        : (dual
+          ? '同一套区间展开到各小时；吨、托分别乘货量/托数后相加为差额。'
+          : '未覆盖小时按 0；算差额时按区间展开到各小时。');
+      host.appendChild(hint);
+
+      if (!ranges.length) {
+        const empty = document.createElement('div');
+        empty.className = 'adj-range-empty';
+        empty.textContent = dual ? '暂无区间（吨、托加减均为 0）' : '暂无区间（全部小时加减为 0）';
+        host.appendChild(empty);
+      } else {
+        const table = document.createElement('table');
+        table.className = 'adj-range-table';
+        const headAmt = dual
+          ? '<th>加减（元/吨）</th><th>加减（元/托）</th>'
+          : '<th>加减（元/吨）</th>';
+        table.innerHTML = '<thead><tr><th>开始</th><th>结束</th>' + headAmt +
+          (editable ? '<th>操作</th>' : '') + '</tr></thead>';
+        const tbody = document.createElement('tbody');
+
+        ranges.forEach(function (r, idx) {
+          const covered = coveredHoursByRanges(ranges, idx);
+          const tr = document.createElement('tr');
+
+          if (!editable) {
+            if (dual) {
+              tr.innerHTML =
+                '<td>' + r.start + '点</td>' +
+                '<td>' + r.end + '点</td>' +
+                '<td class="' + amtClass(r.ton) + '">' + r.ton + '</td>' +
+                '<td class="' + amtClass(r.tray) + '">' + r.tray + '</td>';
+            } else {
+              tr.innerHTML =
+                '<td>' + r.start + '点</td>' +
+                '<td>' + r.end + '点</td>' +
+                '<td class="' + amtClass(r.amt) + '">' + r.amt + '</td>';
+            }
+            tbody.appendChild(tr);
+            return;
+          }
+
+          let startOpts = '';
+          BIZ_HOURS.forEach(function (h) {
+            startOpts += hourOptionHtml(h, r.start, covered.has(h));
+          });
+          let endOpts = '';
+          BIZ_HOURS.forEach(function (h) {
+            const blocked = covered.has(h) || pathHitsCovered(r.start, h, covered);
+            endOpts += hourOptionHtml(h, r.end, blocked);
+          });
+
+          let amtCells = '';
+          if (dual) {
+            amtCells =
+              '<td><input class="adj-amt adj-ton" type="number" step="0.0001" data-idx="' + idx + '" value="' + r.ton + '" /></td>' +
+              '<td><input class="adj-amt adj-tray" type="number" step="0.0001" data-idx="' + idx + '" value="' + r.tray + '" /></td>';
+          } else {
+            amtCells =
+              '<td><input class="adj-amt" type="number" step="0.0001" data-idx="' + idx + '" value="' + r.amt + '" /></td>';
+          }
+
+          tr.innerHTML =
+            '<td><div class="select-wrap"><select class="adj-start" data-idx="' + idx + '">' + startOpts + '</select></div></td>' +
+            '<td><div class="select-wrap"><select class="adj-end" data-idx="' + idx + '">' + endOpts + '</select></div></td>' +
+            amtCells +
+            '<td><button type="button" class="btn adj-del" data-idx="' + idx + '" style="height:28px;padding:0 10px;">删除</button></td>';
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        host.appendChild(table);
+
+        if (editable) {
+          table.querySelectorAll('.adj-start').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+              const i = Number(this.dataset.idx);
+              ranges[i].start = Number(this.value);
+              const covered = coveredHoursByRanges(ranges, i);
+              if (pathHitsCovered(ranges[i].start, ranges[i].end, covered)) {
+                ranges[i].end = ranges[i].start;
+              }
+              render();
+            });
+          });
+          table.querySelectorAll('.adj-end').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+              const i = Number(this.dataset.idx);
+              ranges[i].end = Number(this.value);
+              render();
+            });
+          });
+          if (dual) {
+            table.querySelectorAll('.adj-ton').forEach(function (inp) {
+              inp.addEventListener('change', function () {
+                const i = Number(this.dataset.idx);
+                ranges[i].ton = this.value === '' ? 0 : Number(this.value);
+              });
+            });
+            table.querySelectorAll('.adj-tray').forEach(function (inp) {
+              inp.addEventListener('change', function () {
+                const i = Number(this.dataset.idx);
+                ranges[i].tray = this.value === '' ? 0 : Number(this.value);
+              });
+            });
+          } else {
+            table.querySelectorAll('.adj-amt').forEach(function (inp) {
+              inp.addEventListener('change', function () {
+                const i = Number(this.dataset.idx);
+                ranges[i].amt = this.value === '' ? 0 : Number(this.value);
+              });
+            });
+          }
+          table.querySelectorAll('.adj-del').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              ranges.splice(Number(this.dataset.idx), 1);
+              render();
+            });
+          });
+        }
+      }
+
+      if (editable) {
+        const actions = document.createElement('div');
+        actions.className = 'adj-range-actions';
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'btn';
+        addBtn.textContent = '新增区间';
+        addBtn.addEventListener('click', function () {
+          const free = firstFreeHour(ranges);
+          if (free == null) {
+            window.alert('24 小时均已覆盖，无法再新增区间');
+            return;
+          }
+          if (dual) ranges.push({ start: free, end: free, ton: 0, tray: 0 });
+          else ranges.push({ start: free, end: free, amt: 0 });
+          render();
+        });
+        actions.appendChild(addBtn);
+        host.appendChild(actions);
+      }
+    }
+
+    render();
+  }
+
+  function openModal(id) {
+    document.getElementById(id).classList.add('show');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+
+  /** 当前子 Tab 下可见行（分拨方案 / 员工方案） */
+  function getMaintainLayer() {
+    return layout.classList.contains('is-emp') ? 'emp' : 'fenbo';
+  }
+  function getVisibleMaintainRows() {
+    const layer = getMaintainLayer();
+    const biz = getActiveMaintainBizKey();
+    return Array.from(document.querySelectorAll('#maintainTableBody tr')).filter(function (r) {
+      return r.dataset.layer === layer && r.dataset.biz === biz && !r.classList.contains('maint-row-hidden');
+    });
+  }
+  function clearMaintainSelection() {
+    document.querySelectorAll('#maintainTableBody tr').forEach(r => r.classList.remove('is-selected'));
+    document.querySelectorAll('#maintainTableBody .maintain-row-check').forEach(cb => { cb.checked = false; });
+    const all = document.getElementById('maintainCheckAll');
+    if (all) all.checked = false;
+  }
+  function selectMaintainRow(tr) {
+    if (!tr) return;
+    clearMaintainSelection();
+    tr.classList.add('is-selected');
+    const cb = tr.querySelector('.maintain-row-check');
+    if (cb) cb.checked = true;
+  }
+  /** 只认当前可见层的选中行；勾选与 is-selected 不一致时以勾选为准 */
+  function getCheckedMaintainRows() {
+    const rows = getVisibleMaintainRows();
+    const checked = rows.filter(r => {
+      const cb = r.querySelector('.maintain-row-check');
+      return cb && cb.checked;
+    });
+    if (checked.length) return checked;
+    const selected = rows.find(r => r.classList.contains('is-selected'));
+    return selected ? [selected] : [];
+  }
+  function getSelectedMaintainRow() {
+    const checked = getCheckedMaintainRows();
+    return checked[0] || null;
+  }
+  function maintainStatusLabel(status) {
+    return ({ draft: '待提交', wait: '待确认', reject: '已驳回', active: '生效中', pending: '待生效', expired: '已失效' })[status] || status || '-';
+  }
+  /**
+   * 按钮 × 状态（原型校验）
+   * 测算：仅待提交
+   * 查看测算：须本行测算完成
+   * 提交确认：待提交且已测算完成
+   * 编辑：待提交 / 已驳回
+   * 删除：待提交 / 待确认 / 已驳回
+   * 确认生效 / 驳回：仅待确认
+   */
+  function requireMaintainRow(action) {
+    const row = getSelectedMaintainRow();
+    if (!row) {
+      alert('请先勾选一条当前列表中的方案。');
+      return null;
+    }
+    const status = row.dataset.status || '';
+    const calc = row.dataset.calc || (row.dataset.snap === '1' ? 'done' : 'none');
+    const st = maintainStatusLabel(status);
+
+    if (action === 'measure') {
+      if (status !== 'draft') {
+        alert('仅「待提交」可测算。当前是「' + st + '」，请先维护待提交方案。');
+        return null;
+      }
+      if (calc === 'running') {
+        alert('该方案正在测算中，请稍后再发起或查看。');
+        return null;
+      }
+      return row;
+    }
+    if (action === 'viewMeasure') {
+      if (calc === 'running') {
+        alert('测算进行中，请稍后再查看。');
+        return null;
+      }
+      if (calc !== 'done' && row.dataset.snap !== '1') {
+        alert('尚未测算完成。请先对「待提交」方案点「测算」。');
+        return null;
+      }
+      return row;
+    }
+    if (action === 'submit') {
+      if (status !== 'draft') {
+        alert('仅「待提交」可提交确认。当前是「' + st + '」。');
+        return null;
+      }
+      if (calc !== 'done' && row.dataset.snap !== '1') {
+        alert('分拨提交确认前必须测算完成。请先点「测算」并等结果。\n（总部自维可直接生效，不强制测算）');
+        return null;
+      }
+      return row;
+    }
+    if (action === 'edit') {
+      if (status !== 'draft' && status !== 'reject') {
+        alert('仅「待提交 / 已驳回」可编辑。当前是「' + st + '」。');
+        return null;
+      }
+      return row;
+    }
+    if (action === 'delete') {
+      if (!['draft', 'wait', 'reject'].includes(status)) {
+        alert('仅未生效方案可删（待提交 / 待确认 / 已驳回）。当前是「' + st + '」。');
+        return null;
+      }
+      return row;
+    }
+    if (action === 'confirm' || action === 'reject') {
+      if (status !== 'wait') {
+        alert('仅「待确认」可' + (action === 'confirm' ? '确认生效' : '驳回') + '。当前是「' + st + '」。');
+        return null;
+      }
+      return row;
+    }
+    return row;
+  }
+  function openMeasureForRow(row) {
+    const fenbo = (row.children[1] && row.children[1].textContent || '').trim();
+    const type = (row.children[4] && row.children[4].textContent || '').trim();
+    const isEmp = (row.dataset.layer || '') === 'emp' || layout.classList.contains('is-emp');
+    const label = document.getElementById('measureSchemeLabel');
+    if (label) {
+      if (isEmp) {
+        const n = (row.children[2] && row.children[2].textContent || '').trim();
+        const no = (row.children[3] && row.children[3].textContent || '').trim();
+        const empPart = (n && n !== '-' ? n : '') + (no && no !== '-' ? (' / ' + no) : '');
+        label.textContent = fenbo + ' · ' + (empPart || '-') + ' · ' + type;
+      } else {
+        label.textContent = fenbo + ' · ' + type;
+      }
+    }
+    measureStartModal.classList.add('show');
+  }
+
+  document.getElementById('bizTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('#bizTabs .content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    syncMaintainTypeFilter();
+    syncMaintainView();
+  });
+
+  function syncEmpLayerUi(isEmp) {
+    layout.classList.toggle('is-emp', !!isEmp);
+    document.querySelectorAll('.modal-mask').forEach(function (m) {
+      m.classList.toggle('is-emp', !!isEmp);
+    });
+  }
+
+  document.getElementById('layerTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.sub-tab');
+    if (!tab) return;
+    document.querySelectorAll('#layerTabs .sub-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    syncEmpLayerUi(tab.dataset.layer === 'emp');
+    syncMaintainView();
+  });
+
+  document.getElementById('maintainCheckAll').addEventListener('change', function () {
+    const rows = getVisibleMaintainRows();
+    rows.forEach(r => {
+      const cb = r.querySelector('.maintain-row-check');
+      if (cb) cb.checked = this.checked;
+      r.classList.toggle('is-selected', this.checked && rows.length === 1);
+    });
+    if (this.checked && rows.length === 1) selectMaintainRow(rows[0]);
+    if (!this.checked) clearMaintainSelection();
+  });
+
+  document.getElementById('maintainTableBody').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr');
+    if (!tr || !tr.dataset.layer) return;
+    if (e.target.classList.contains('maintain-row-check') || e.target.type === 'checkbox') {
+      if (e.target.classList.contains('maintain-row-check')) {
+        if (e.target.checked) selectMaintainRow(tr);
+        else tr.classList.remove('is-selected');
+      }
+      return;
+    }
+    if (!e.target.classList.contains('link')) {
+      selectMaintainRow(tr);
+    }
+    const open = e.target.dataset.open;
+    if (open === 'detail') {
+      selectMaintainRow(tr);
+      openDetailModal(tr);
+    }
+  });
+
+  function fillMaintainActionSummary(boxId, row) {
+    const box = document.getElementById(boxId);
+    if (!box || !row) return;
+    const fenbo = (row.children[1] && row.children[1].textContent || '').trim();
+    const type = (row.children[4] && row.children[4].textContent || '').trim();
+    const period = (row.children[5] && row.children[5].textContent || '').trim();
+    const sumCell = row.children[7] ? row.children[7].innerHTML : '-';
+    box.innerHTML = '<div class="snapshot-row">' +
+      '<span>分拨中心：' + fenbo + '</span>' +
+      '<span>操作类型：' + type + '</span>' +
+      '<span>有效期限：' + period + '</span>' +
+      '<span>本区间增减合计：<strong>' + sumCell + '</strong></span></div>';
+  }
+
+  document.getElementById('btnAdd').addEventListener('click', () => {
+    openEditModal('add');
+  });
+  document.getElementById('btnEdit').addEventListener('click', () => {
+    const row = requireMaintainRow('edit');
+    if (!row) return;
+    openEditModal('edit', row);
+  });
+  document.getElementById('btnDelete').addEventListener('click', () => {
+    const rows = getCheckedMaintainRows();
+    if (!rows.length) {
+      alert('请先勾选要删除的方案。');
+      return;
+    }
+    for (let i = 0; i < rows.length; i++) {
+      const status = rows[i].dataset.status || '';
+      if (!['draft', 'wait', 'reject'].includes(status)) {
+        alert('仅未生效方案可删（待提交 / 待确认 / 已驳回）。存在不可删状态，请重新勾选。');
+        return;
+      }
+    }
+    const tip = document.getElementById('deleteConfirmText');
+    if (tip) tip.textContent = '确认删除该方案？删除后不可恢复。（共' + rows.length + '条）';
+    openModal('modalDelete');
+  });
+  document.getElementById('btnDeleteOk').addEventListener('click', () => {
+    /* 原型示意：确认删除 */
+  });
+  document.getElementById('btnConfirm').addEventListener('click', () => {
+    if (!requireMaintainRow('confirm')) return;
+    openModal('modalConfirm');
+  });
+  document.getElementById('btnReject').addEventListener('click', () => {
+    if (!requireMaintainRow('reject')) return;
+    openModal('modalReject');
+  });
+  document.getElementById('btnDetailMeasure').addEventListener('click', () => {
+    closeModal('modalDetail');
+    goReportMeasure();
+  });
+  document.getElementById('btnViewMeasure').addEventListener('click', () => {
+    goReportMeasure();
+  });
+  document.getElementById('btnMeasure').addEventListener('click', () => {
+    const row = requireMaintainRow('measure');
+    if (!row) return;
+    openMeasureForRow(row);
+  });
+  document.getElementById('btnSubmit').addEventListener('click', () => {
+    const row = requireMaintainRow('submit');
+    if (!row) return;
+    fillMaintainActionSummary('submitSummary', row);
+    const remark = document.getElementById('submitRemark');
+    if (remark) remark.value = '';
+    openModal('modalSubmit');
+  });
+  document.getElementById('btnSubmitOk').addEventListener('click', () => {
+    /* 原型示意：确认提交 → 待确认 */
+  });
+
+  document.querySelectorAll('[data-close]').forEach(el => {
+    el.addEventListener('click', () => closeModal(el.dataset.close));
+  });
+  document.querySelectorAll('.modal-mask').forEach(mask => {
+    mask.addEventListener('click', (e) => {
+      if (e.target === mask) mask.classList.remove('show');
+    });
+  });
+
+  fillMaintainAdjPanels(getActiveMaintainBizKey(), true);
+
+  renderMaintainTableBody();
+  syncMaintainTypeFilter();
+  syncMaintainView();
+
+  const hashPage = (location.hash || '').replace(/^#/, '');
+  showPage(hashPage === 'maintain' ? 'maintain' : 'report');
+  window.addEventListener('hashchange', () => {
+    const h = (location.hash || '').replace(/^#/, '');
+    showPage(h === 'maintain' ? 'maintain' : 'report');
+  });
+
+</script>
+</body>
+</html>
