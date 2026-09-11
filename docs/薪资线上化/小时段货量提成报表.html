@@ -1326,7 +1326,11 @@
     return ['<span class="' + sumCls + '">' + o.sum + '</span>', o.people || '-', o.dates || '-'];
   }
   function maintainOpsHtml(o) {
-    return '<span class="link" data-open="detail">查看详情</span>';
+    const canView = o.calc === 'done' || o.snap === '1';
+    const measureLink = canView
+      ? '<span class="link" data-open="measure">查看测算</span>'
+      : '<span class="link link-disabled" data-open="measure" style="color:rgba(0,0,0,.25);cursor:not-allowed;">查看测算</span>';
+    return '<span class="link" data-open="detail">查看详情</span>　' + measureLink;
   }
   function maintainRowHtml(o) {
     const res = maintainResultCells(o);
@@ -1679,8 +1683,8 @@
     const groupSpan = types.length * perType;
     const rows = dim === 'person' ? biz.people : FENBO_ROWS;
     const baseCols = dim === 'person'
-      ? '<th rowspan="3">分拨中心</th><th rowspan="3">员工姓名</th><th rowspan="3">人事工号</th><th rowspan="3">岗位</th><th rowspan="3">日期</th>'
-      : '<th rowspan="3">分拨中心</th><th rowspan="3">日期</th>';
+      ? '<th rowspan="3">分拨中心</th><th rowspan="3">员工姓名</th><th rowspan="3">人事工号</th><th rowspan="3">岗位</th>'
+      : '<th rowspan="3">分拨中心</th>';
 
     let r1 = '<tr>' + baseCols +
       '<th class="th-group th-pair" colspan="' + groupSpan + '">汇总</th>';
@@ -1725,9 +1729,9 @@
       const metrics = buildSplitMetrics(biz, seed);
       body += '<tr>';
       if (dim === 'person') {
-        body += '<td>' + row.fenbo + '</td><td>' + row.name + '</td><td>' + row.emp + '</td><td>' + row.post + '</td><td>2026-08-16</td>';
+        body += '<td>' + row.fenbo + '</td><td>' + row.name + '</td><td>' + row.emp + '</td><td>' + row.post + '</td>';
       } else {
-        body += '<td>' + row.fenbo + '</td><td>2026-08-16</td>';
+        body += '<td>' + row.fenbo + '</td>';
       }
       body += metrics.summary;
       BIZ_HOURS.forEach(h => { body += metrics.hour(h); });
@@ -1741,8 +1745,8 @@
     const rows = dim === 'person' ? biz.people : FENBO_ROWS;
     const rowspan = 2;
     const baseCols = dim === 'person'
-      ? '<th rowspan="2">分拨中心</th><th rowspan="2">员工姓名</th><th rowspan="2">人事工号</th><th rowspan="2">岗位</th><th rowspan="2">日期</th>'
-      : '<th rowspan="2">分拨中心</th><th rowspan="2">日期</th>';
+      ? '<th rowspan="2">分拨中心</th><th rowspan="2">员工姓名</th><th rowspan="2">人事工号</th><th rowspan="2">岗位</th>'
+      : '<th rowspan="2">分拨中心</th>';
 
     const sample = buildSumMetrics(biz, 1);
     const formalSpan = sample.formalSpan;
@@ -1778,9 +1782,9 @@
       const m = buildSumMetrics(biz, seed);
       body += '<tr>';
       if (dim === 'person') {
-        body += '<td>' + row.fenbo + '</td><td>' + row.name + '</td><td>' + row.emp + '</td><td>' + row.post + '</td><td>2026-08-16</td>';
+        body += '<td>' + row.fenbo + '</td><td>' + row.name + '</td><td>' + row.emp + '</td><td>' + row.post + '</td>';
       } else {
-        body += '<td>' + row.fenbo + '</td><td>2026-08-16</td>';
+        body += '<td>' + row.fenbo + '</td>';
       }
       body += '<td>' + m.totalVol + '</td>';
       if (biz.isMove) body += '<td>' + m.totalTray + '</td>';
@@ -2537,6 +2541,9 @@
     if (open === 'detail') {
       selectMaintainRow(tr);
       openDetailModal(tr);
+    } else if (open === 'measure') {
+      selectMaintainRow(tr);
+      goReportMeasure();
     }
   });
 
