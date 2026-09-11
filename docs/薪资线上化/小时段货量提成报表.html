@@ -677,7 +677,7 @@
                 <span><span class="sum-label">测算方案：</span>萧山分拨中心-网点装车</span>
                 <span><span class="sum-label">分拨中心：</span>萧山分拨中心</span>
                 <span><span class="sum-label">操作类型：</span>网点装车</span>
-                <span><span class="sum-label">测算日期段：</span>2026-08-16</span>
+                <span><span class="sum-label">测算日期段：</span>2026-08-16 15:00:00 ~ 2026-08-16 14:59:59</span>
                 <span><span class="sum-label">本区间增减合计：</span><span class="sum-value num-pos" id="intervalSum">+19.2000</span></span>
                 <span><span class="sum-label">人数：</span>3</span>
               </div>
@@ -835,7 +835,7 @@
 </div>
 
 <div class="modal-mask" id="measureStartModal">
-  <div class="modal" style="width:520px;">
+  <div class="modal" style="width:640px;">
     <div class="modal-header">
       <span>测算</span>
       <button type="button" class="modal-close" id="measureStartClose">×</button>
@@ -844,11 +844,17 @@
       <div class="form-row"><span class="filter-label">方案</span><span id="measureSchemeLabel">萧山分拨中心 · 网点装车</span></div>
       <div class="form-row">
         <span class="filter-label"><span class="req" style="color:#ff4d4f;">*</span>测算日期段</span>
-        <div class="date-range" style="flex:1;">
-          <input class="filter-control" type="text" id="measureDateStart" value="2026-08-16" />
+        <div class="date-range" style="flex:1;align-items:center;flex-wrap:wrap;gap:6px;">
+          <input class="filter-control" type="text" id="measureDateStart" value="2026-08-16" style="width:118px;" title="只改日期" />
+          <span class="measure-time-fixed" style="color:rgba(0,0,0,.45);font-size:13px;white-space:nowrap;" title="固定展示，不可改">15:00:00</span>
           <span class="sep">~</span>
-          <input class="filter-control" type="text" id="measureDateEnd" value="2026-08-16" />
+          <input class="filter-control" type="text" id="measureDateEnd" value="2026-08-16" style="width:118px;" title="只改日期" />
+          <span class="measure-time-fixed" style="color:rgba(0,0,0,.45);font-size:13px;white-space:nowrap;" title="固定展示，不可改">14:59:59</span>
         </div>
+      </div>
+      <div class="form-row" style="margin-top:-4px;">
+        <span class="filter-label"></span>
+        <span style="color:rgba(0,0,0,.35);font-size:12px;line-height:1.4;">时分秒固定：开始日 15:00:00、结束日 14:59:59（业务日起止，不可改）</span>
       </div>
       <div class="form-row">
         <span class="filter-label">说明</span>
@@ -941,7 +947,7 @@
       <div class="snapshot-box" id="detailSnap">
         <div>提交时固化的汇总测算结果（明细以「查看测算」只读测算结果为准）</div>
         <div class="snapshot-row">
-          <span>测算日期：2026-08-16</span>
+          <span>测算日期：2026-08-16 15:00:00 ~ 2026-08-16 14:59:59</span>
           <span>业务线：装卸</span>
           <span>操作类型：网点装车</span>
           <span>人数：3</span>
@@ -1108,7 +1114,7 @@
       scheme: scheme,
       fenbo: fenbo,
       type: type,
-      dates: dates === '-' || dates === '提交时固化' ? '2026-08-16' : dates,
+      dates: dates === '-' || dates === '提交时固化' ? '2026-08-16 15:00:00 ~ 2026-08-16 14:59:59' : dates,
       sum: (sum.indexOf('+') >= 0 || sum.indexOf('-') >= 0) ? sum : '+19.2000',
       people: people === '-' ? (isEmp ? '1' : '3') : people,
       bizKey: bizKey,
@@ -1347,29 +1353,29 @@
       '<td>' + maintainOpsHtml(o) + '</td></tr>';
   }
   const MAINTAIN_SAMPLES = [
-    { biz:'load',layer:'fenbo',status:'wait',snap:'1',calc:'done',type:'网点装车、网点卸车',sum:'+19.2000',people:'3',dates:'2026-08-16',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
-    { biz:'load',layer:'fenbo',status:'wait',snap:'1',calc:'done',type:'干线卸车',sum:'+6.4000',people:'2',dates:'2026-08 ~ 2026-08',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'load',layer:'fenbo',status:'wait',snap:'1',calc:'done',type:'网点装车、网点卸车',sum:'+19.2000',people:'3',dates:'2026-08-16 15:00:00 ~ 2026-08-16 14:59:59',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'load',layer:'fenbo',status:'wait',snap:'1',calc:'done',type:'干线卸车',sum:'+6.4000',people:'2',dates:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
     { biz:'load',layer:'fenbo',status:'draft',snap:'0',calc:'none',type:'全部',fenbo:'萧山分拨中心',period:'2026-11 ~ 2026-12' },
     { biz:'load',layer:'fenbo',status:'draft',snap:'0',calc:'running',type:'网点装车、干线装车',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
-    { biz:'load',layer:'fenbo',status:'draft',snap:'1',calc:'done',type:'网点装车',sum:'+19.2000',people:'3',dates:'2026-08-16',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
-    { biz:'load',layer:'fenbo',status:'reject',snap:'1',calc:'done',type:'干线装车',sum:'-3.5000',people:'2',dates:'2026-08 ~ 2026-08',fenbo:'萧山分拨中心',period:'2026-09 ~ 2026-09',confirmer:'李总部',confirmTime:'2026-08-28 17:01',opinion:'干线装车加减偏高，请下调' },
+    { biz:'load',layer:'fenbo',status:'draft',snap:'1',calc:'done',type:'网点装车',sum:'+19.2000',people:'3',dates:'2026-08-16 15:00:00 ~ 2026-08-16 14:59:59',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'load',layer:'fenbo',status:'reject',snap:'1',calc:'done',type:'干线装车',sum:'-3.5000',people:'2',dates:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59',fenbo:'萧山分拨中心',period:'2026-09 ~ 2026-09',confirmer:'李总部',confirmTime:'2026-08-28 17:01',opinion:'干线装车加减偏高，请下调' },
     { biz:'load',layer:'fenbo',status:'active',snap:'1',calc:'done',type:'网点装车',sum:'+12.4000',people:'-',dates:'提交时固化',fenbo:'萧山分拨中心',period:'2026-07 ~ 2026-09',creator:'李总部',confirmer:'李总部',confirmTime:'2026-06-25 09:00',opinion:'总部自维生效' },
-    { biz:'load',layer:'emp',status:'wait',snap:'1',calc:'done',type:'网点装车',sum:'+4.8000',people:'1',dates:'2026-08-16',fenbo:'萧山分拨中心',empName:'起正成',empNo:'00621257',period:'2026-10 ~ 2026-12' },
+    { biz:'load',layer:'emp',status:'wait',snap:'1',calc:'done',type:'网点装车',sum:'+4.8000',people:'1',dates:'2026-08-16 15:00:00 ~ 2026-08-16 14:59:59',fenbo:'萧山分拨中心',empName:'起正成',empNo:'00621257',period:'2026-10 ~ 2026-12' },
     { biz:'load',layer:'emp',status:'draft',snap:'0',calc:'none',type:'全部',fenbo:'萧山分拨中心',empName:'王磊',empNo:'00630821',period:'2026-11 ~ 2026-12' },
-    { biz:'load',layer:'emp',status:'active',snap:'1',calc:'done',type:'网点装车',sum:'+2.1000',people:'1',dates:'2026-06-20',fenbo:'萧山分拨中心',empName:'李强',empNo:'00640112',period:'2026-07 ~ 2026-09',creator:'李总部',opinion:'个别员工高峰加价' },
+    { biz:'load',layer:'emp',status:'active',snap:'1',calc:'done',type:'网点装车',sum:'+2.1000',people:'1',dates:'2026-06-20 15:00:00 ~ 2026-06-20 14:59:59',fenbo:'萧山分拨中心',empName:'李强',empNo:'00640112',period:'2026-07 ~ 2026-09',creator:'李总部',opinion:'个别员工高峰加价' },
     { biz:'move',layer:'fenbo',status:'draft',snap:'0',calc:'none',type:'全部',fenbo:'萧山分拨中心',period:'2026-11 ~ 2026-12' },
-    { biz:'move',layer:'fenbo',status:'draft',snap:'1',calc:'done',type:'网点移动、干线移动',sum:'+8.6000',people:'2',dates:'2026-08-16',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'move',layer:'fenbo',status:'draft',snap:'1',calc:'done',type:'网点移动、干线移动',sum:'+8.6000',people:'2',dates:'2026-08-16 15:00:00 ~ 2026-08-16 14:59:59',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
     { biz:'move',layer:'fenbo',status:'active',snap:'1',calc:'done',type:'干线移动',sum:'+5.2000',people:'-',dates:'提交时固化',fenbo:'萧山分拨中心',period:'2026-07 ~ 2026-09',creator:'李总部',opinion:'总部自维生效' },
     { biz:'move',layer:'emp',status:'draft',snap:'0',calc:'none',type:'网点移动',fenbo:'萧山分拨中心',empName:'陈涛',empNo:'00651001',period:'2026-10 ~ 2026-12' },
     { biz:'u',layer:'fenbo',status:'draft',snap:'0',calc:'none',type:'网点卸货',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
-    { biz:'u',layer:'fenbo',status:'wait',snap:'1',calc:'done',type:'干线卸货',sum:'+3.1000',people:'2',dates:'2026-08-16',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
-    { biz:'u',layer:'emp',status:'draft',snap:'1',calc:'done',type:'网点卸货',sum:'+1.2000',people:'1',dates:'2026-08-10',fenbo:'萧山分拨中心',empName:'孙悦',empNo:'00662011',period:'2026-11 ~ 2026-12' },
+    { biz:'u',layer:'fenbo',status:'wait',snap:'1',calc:'done',type:'干线卸货',sum:'+3.1000',people:'2',dates:'2026-08-16 15:00:00 ~ 2026-08-16 14:59:59',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'u',layer:'emp',status:'draft',snap:'1',calc:'done',type:'网点卸货',sum:'+1.2000',people:'1',dates:'2026-08-10 15:00:00 ~ 2026-08-10 14:59:59',fenbo:'萧山分拨中心',empName:'孙悦',empNo:'00662011',period:'2026-11 ~ 2026-12' },
     { biz:'s',layer:'fenbo',status:'draft',snap:'0',calc:'running',type:'网点码货',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
-    { biz:'s',layer:'fenbo',status:'reject',snap:'1',calc:'done',type:'干线码货',sum:'-2.0000',people:'2',dates:'2026-08 ~ 2026-08',fenbo:'萧山分拨中心',period:'2026-09 ~ 2026-09',confirmer:'李总部',opinion:'干线码货时段请再评估' },
+    { biz:'s',layer:'fenbo',status:'reject',snap:'1',calc:'done',type:'干线码货',sum:'-2.0000',people:'2',dates:'2026-08-01 15:00:00 ~ 2026-08-31 14:59:59',fenbo:'萧山分拨中心',period:'2026-09 ~ 2026-09',confirmer:'李总部',opinion:'干线码货时段请再评估' },
     { biz:'s',layer:'emp',status:'draft',snap:'0',calc:'none',type:'全部',fenbo:'萧山分拨中心',empName:'冯琳',empNo:'00673012',period:'2026-11 ~ 2026-12' },
-    { biz:'z',layer:'fenbo',status:'draft',snap:'1',calc:'done',type:'网点直装',sum:'+4.5000',people:'2',dates:'2026-08-16',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
+    { biz:'z',layer:'fenbo',status:'draft',snap:'1',calc:'done',type:'网点直装',sum:'+4.5000',people:'2',dates:'2026-08-16 15:00:00 ~ 2026-08-16 14:59:59',fenbo:'萧山分拨中心',period:'2026-10 ~ 2026-12' },
     { biz:'z',layer:'fenbo',status:'active',snap:'1',calc:'done',type:'干线直装',sum:'+7.8000',people:'-',dates:'提交时固化',fenbo:'萧山分拨中心',period:'2026-07 ~ 2026-09',creator:'李总部' },
-    { biz:'z',layer:'emp',status:'wait',snap:'1',calc:'done',type:'网点直装',sum:'+0.9000',people:'1',dates:'2026-08-16',fenbo:'萧山分拨中心',empName:'邓凯',empNo:'00684001',period:'2026-10 ~ 2026-12' }
+    { biz:'z',layer:'emp',status:'wait',snap:'1',calc:'done',type:'网点直装',sum:'+0.9000',people:'1',dates:'2026-08-16 15:00:00 ~ 2026-08-16 14:59:59',fenbo:'萧山分拨中心',empName:'邓凯',empNo:'00684001',period:'2026-10 ~ 2026-12' }
   ];
   function renderMaintainTableBody() {
     const host = document.getElementById('maintainTableBody');
@@ -2076,9 +2082,9 @@
       alert('仅「待提交」可测算。');
       return;
     }
-    const d0 = (document.getElementById('measureDateStart') || {}).value || '';
-    const d1 = (document.getElementById('measureDateEnd') || {}).value || '';
-    const dates = d0 === d1 ? d0 : (d0 + ' ~ ' + d1);
+    const d0 = ((document.getElementById('measureDateStart') || {}).value || '').trim();
+    const d1 = ((document.getElementById('measureDateEnd') || {}).value || '').trim();
+    const dates = (d0 + ' 15:00:00') + ' ~ ' + (d1 + ' 14:59:59');
     closeMeasureStart();
     row.dataset.calc = 'done';
     row.dataset.snap = '1';
@@ -2115,33 +2121,47 @@
 
   /** 装卸等：单列加减。移动：同区间吨+托两列 */
   const sampleAdjRanges = [
-    { start: 2, end: 4, amt: 1 },
-    { start: 5, end: 5, amt: -1 }
+    { start: 2, end: 5, amt: 1 },
+    { start: 5, end: 6, amt: -1 }
   ];
   const sampleMoveAdjRanges = [
-    { start: 2, end: 4, ton: 1, tray: -0.3 },
-    { start: 5, end: 5, ton: -1, tray: 0 },
+    { start: 2, end: 5, ton: 1, tray: -0.3 },
+    { start: 5, end: 6, ton: -1, tray: 0 },
     { start: 15, end: 16, ton: 0, tray: 0.5 }
   ];
 
-  function hoursInBizRange(start, end) {
+  /** 加减区间：结束不含；开始＝结束 → 全业务日 24 小时 */
+  function nextBizHour(h) {
+    const i = bizHourIndex(h);
+    if (i < 0) return 15;
+    return BIZ_HOURS[(i + 1) % 24];
+  }
+  function hoursInBizRangeAdj(start, end) {
     const out = [];
     let i = bizHourIndex(start);
     const endI = bizHourIndex(end);
     if (i < 0 || endI < 0) return out;
+    if (Number(start) === Number(end)) return BIZ_HOURS.slice();
     for (;;) {
       out.push(BIZ_HOURS[i]);
-      if (i === endI) break;
       i = (i + 1) % 24;
+      if (i === endI) break;
     }
     return out;
+  }
+  function firstValidAdjEnd(start, covered) {
+    for (let k = 1; k <= 24; k++) {
+      const end = BIZ_HOURS[(bizHourIndex(start) + k) % 24];
+      if (!pathHitsCovered(start, end, covered)) return end;
+    }
+    return nextBizHour(start);
   }
 
   function coveredHoursByRanges(ranges, skipIdx) {
     const set = new Set();
     (ranges || []).forEach(function (r, i) {
       if (i === skipIdx) return;
-      hoursInBizRange(r.start, r.end).forEach(function (h) { set.add(Number(h)); });
+      hoursInBizRangeAdj(r.start, r.end).forEach(function (h) { set.add(Number(h)); });
     });
     return set;
   }
@@ -2155,7 +2175,7 @@
   }
 
   function pathHitsCovered(start, end, covered) {
-    const path = hoursInBizRange(start, end);
+    const path = hoursInBizRangeAdj(start, end);
     for (let i = 0; i < path.length; i++) {
       if (covered.has(Number(path[i]))) return true;
     }
@@ -2198,11 +2218,11 @@
       hint.className = 'adj-range-hint';
       hint.textContent = editable
         ? (dual
-          ? '同一套区间：每行填吨加减与托加减；未覆盖小时两项均按 0；已占用小时不可再选；允许跨零点（如 22～1）。'
-          : '按业务日序选起止小时；未覆盖小时按 0；已占用小时不可再选；允许跨零点（如 22～1）。')
+          ? '结束不含：14～15＝只14点；开始＝结束（如15～15）＝全业务日。吨/托同区间；未覆盖按0；允许跨零点（如22～2）。'
+          : '结束不含：14～15＝只14点；开始＝结束（如15～15）＝全业务日；未覆盖按0；允许跨零点（如22～2）。')
         : (dual
-          ? '同一套区间展开到各小时；吨、托分别乘货量/托数后相加为差额。'
-          : '未覆盖小时按 0；算差额时按区间展开到各小时。');
+          ? '同一套区间按结束不含展开到各小时；吨、托分别乘货量/托数后相加为差额。'
+          : '未覆盖小时按 0；算差额时按结束不含展开到各小时。');
       host.appendChild(hint);
 
       if (!ranges.length) {
@@ -2279,7 +2299,7 @@
               ranges[i].start = Number(this.value);
               const covered = coveredHoursByRanges(ranges, i);
               if (pathHitsCovered(ranges[i].start, ranges[i].end, covered)) {
-                ranges[i].end = ranges[i].start;
+                ranges[i].end = firstValidAdjEnd(ranges[i].start, covered);
               }
               render();
             });
@@ -2334,8 +2354,8 @@
             window.alert('24 小时均已覆盖，无法再新增区间');
             return;
           }
-          if (dual) ranges.push({ start: free, end: free, ton: 0, tray: 0 });
-          else ranges.push({ start: free, end: free, amt: 0 });
+          if (dual) ranges.push({ start: free, end: nextBizHour(free), ton: 0, tray: 0 });
+          else ranges.push({ start: free, end: nextBizHour(free), amt: 0 });
           render();
         });
         actions.appendChild(addBtn);
