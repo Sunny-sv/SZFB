@@ -301,7 +301,7 @@
 <body>
   <div class="review-bar">
     <strong>评审切换（非线上控件）· V1.1.0</strong>
-    <div class="hint" id="paramHint">额定 27000kg（27吨）：剩余按算法 B；超重示例 27100.01→超100.01kg</div>
+    <div class="hint" id="paramHint">额定 27000kg（27吨）：剩余按真实剩余吨向上取整；超重示例 27100.01→超100.01kg</div>
 
     <div class="row">
       <div class="lab">操作类型 / 菜单</div>
@@ -494,11 +494,21 @@
 
     function setDialogButtons(kind) {
       if (kind === 'over') {
+        /* 演示：强行装入停顿秒数 T 读系统参数，默认 5；T=0 可立刻点 */
+        var forceWaitSec = 5;
         dialogFoot.innerHTML =
           '<button type="button" id="btnCancel">取消装入</button>' +
-          '<button type="button" id="btnForce" class="danger">强行装入</button>';
+          '<button type="button" id="btnForce" class="danger" disabled>强行装入</button>';
         document.getElementById('btnCancel').addEventListener('click', hideDialog);
-        document.getElementById('btnForce').addEventListener('click', hideDialog);
+        var btnForce = document.getElementById('btnForce');
+        btnForce.addEventListener('click', hideDialog);
+        if (forceWaitSec <= 0) {
+          btnForce.disabled = false;
+        } else {
+          setTimeout(function () {
+            btnForce.disabled = false;
+          }, forceWaitSec * 1000);
+        }
       } else {
         dialogFoot.innerHTML = '<button type="button" id="btnKnow">知道了</button>';
         document.getElementById('btnKnow').addEventListener('click', hideDialog);
@@ -658,7 +668,7 @@
           setMetricNormal(103, 80.6);
           rowWeight.classList.add('tip');
           showDialog(
-            '<span class="ton-num">超重</span>：装入本票后将超重 <span class="ton-num">1000</span> 公斤，请装轻货或不装。',
+            '<span class="ton-num">超重</span>：装入本票后将超重 <span class="ton-num">1000.00</span> 公斤，请装轻货或不装。',
             true,
             'over'
           );
