@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>实时装车 - 装车进度原型</title>
+  <title>实时装车 - 装车进度原型（V1.1.0）</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -290,12 +290,18 @@
       font-size: 14px;
       font-weight: 600;
     }
+    .dialog .foot button + button {
+      border-left: 1px solid #e0e0e0;
+    }
+    .dialog .foot button.danger {
+      color: #c62828;
+    }
   </style>
 </head>
 <body>
   <div class="review-bar">
-    <strong>评审切换（非线上控件）</strong>
-    <div class="hint" id="paramHint">干线演示：剩余 5 / 3 / 1 吨提示；达 120% 禁止装车</div>
+    <strong>评审切换（非线上控件）· V1.1.0</strong>
+    <div class="hint" id="paramHint">额定 27000kg（27吨）：剩余按算法 B；超重示例 27100.01→超100.01kg</div>
 
     <div class="row">
       <div class="lab">操作类型 / 菜单</div>
@@ -396,7 +402,7 @@
             <div class="lab">预配实际重量：</div>
             <div class="big">9626.53</div>
             <div class="metric" id="rowWeight">额定重量：<b id="ratedW">27000</b> <span class="pct" id="pctW">(72%)</span></div>
-            <div class="metric" id="rowVolume">额定体积：<b id="ratedV">130</b> <span class="pct" id="pctV">(45%)</span></div>
+            <div class="metric" id="rowVolume">额定体积：<b id="ratedV">130</b> <span class="pct" id="pctV">(45.7%)</span></div>
             <div class="lock-tip" id="lockTip">已禁止装车扫描</div>
           </div>
           <div class="panel-right">
@@ -420,7 +426,7 @@
     <div class="mask" id="mask" aria-hidden="true">
       <div class="dialog" role="dialog" aria-modal="true">
         <div class="body" id="dialogBody"></div>
-        <div class="foot">
+        <div class="foot" id="dialogFoot">
           <button type="button" id="btnKnow">知道了</button>
         </div>
       </div>
@@ -428,7 +434,7 @@
   </div>
 
   <script>
-    /* 额定重量 27000kg=27吨，用于演示剩余吨 → 重量% */
+    /* V1.1.0：重量%向下取整；体积%一位小数向下取；剩余 n=额定吨-floor(已装吨)；超重可强装 */
     var RATED_KG = 27000;
     var RATED_TON = 27;
 
@@ -468,6 +474,11 @@
     var lockTip = document.getElementById('lockTip');
     var mask = document.getElementById('mask');
     var dialogBody = document.getElementById('dialogBody');
+    var dialogFoot = document.getElementById('dialogFoot');
+
+    function floor1(x) {
+      return Math.floor(x * 10) / 10;
+    }
 
     function remainToWeightPct(remainTon) {
       var loaded = RATED_TON - remainTon;
@@ -475,12 +486,32 @@
       return Math.floor((loaded / RATED_TON) * 100);
     }
 
-    function showDialog(text, asHtml) {
+    function remainToVolumePct(remainTon) {
+      /* 避免演示落到 x.0%；向下取一位小数 */
+      var raw = Math.max(30.1, Math.min(95.9, 100 - remainTon * 8.3 + 0.7));
+      return floor1(raw);
+    }
+
+    function setDialogButtons(kind) {
+      if (kind === 'over') {
+        dialogFoot.innerHTML =
+          '<button type="button" id="btnCancel">取消装入</button>' +
+          '<button type="button" id="btnForce" class="danger">强行装入</button>';
+        document.getElementById('btnCancel').addEventListener('click', hideDialog);
+        document.getElementById('btnForce').addEventListener('click', hideDialog);
+      } else {
+        dialogFoot.innerHTML = '<button type="button" id="btnKnow">知道了</button>';
+        document.getElementById('btnKnow').addEventListener('click', hideDialog);
+      }
+    }
+
+    function showDialog(text, asHtml, kind) {
       if (asHtml) {
         dialogBody.innerHTML = text;
       } else {
         dialogBody.textContent = text;
       }
+      setDialogButtons(kind || 'know');
       mask.classList.add('show');
       mask.setAttribute('aria-hidden', 'false');
     }
@@ -493,16 +524,17 @@
     function currentFlags() {
       var m = MODES[mode];
       if (m.flowOnly) {
-        return { tip: false, force: false, hint: '流水装车：只展示双百分比，不提示、不拦截' };
+        return { tip: false, force: false, over: false, hint: '流水装车：只展示双百分比（本版取整），不提示、不拦截、不走超重强装' };
       }
       var tip = combo === 'both' || combo === 'tip';
       var force = combo === 'both' || combo === 'force';
+      var over = !force || combo === 'tip' || combo === 'none' || combo === 'both';
       var hint = '';
-      if (combo === 'both') hint = (mode === 'outlet' ? '网点' : '干线') + '：开提示 + 开拦截';
-      if (combo === 'tip') hint = '只开剩余吨位提示，不拦截';
-      if (combo === 'force') hint = '只开强制拦截（干线常用 120%），不弹剩余吨提示';
-      if (combo === 'none') hint = '两项都关：只展示双百分比';
-      return { tip: tip, force: force, hint: hint };
+      if (combo === 'both') hint = (mode === 'outlet' ? '网点' : '干线') + '：开提示 + 开拦截（未到强制线时可超重强装）';
+      if (combo === 'tip') hint = '只开剩余吨提示；超重可强装（每件+语音）';
+      if (combo === 'force') hint = '只开强制拦截；未命中强制前超重仍可强装；命中则锁扫';
+      if (combo === 'none') hint = '两项都关：仍展示双%；已装＞额定仍弹超重可强装';
+      return { tip: tip, force: force, over: over, hint: hint };
     }
 
     function rebuildLevelBtns() {
@@ -510,20 +542,21 @@
       var f = currentFlags();
       var html = '<button type="button" class="active" data-level="safe">安全</button>';
       m.tips.forEach(function (t) {
-        html += '<button type="button" data-level="t' + t + '">剩余≤' + t + '吨</button>';
+        html += '<button type="button" data-level="t' + t + '">剩余n=' + t + '吨</button>';
       });
-      html += '<button type="button" data-level="force">禁止装车120%</button>';
+      html += '<button type="button" data-level="over">超重100.01kg</button>';
+      html += '<button type="button" data-level="force">强制拦120%</button>';
       levelBtns.innerHTML = html;
       if (m.flowOnly) {
-        levelLab.textContent = '剩余可装（流水只展示，点了也不弹窗）';
+        levelLab.textContent = '档位（流水点了也不弹窗）';
       } else if (f.tip && f.force) {
-        levelLab.textContent = '剩余可装提示 / 禁止装车';
+        levelLab.textContent = '剩余提示 / 超重强装 / 强制锁扫';
       } else if (f.tip) {
-        levelLab.textContent = '剩余可装提示（拦截已关）';
+        levelLab.textContent = '剩余提示 / 超重强装';
       } else if (f.force) {
-        levelLab.textContent = '禁止装车（提示已关）';
+        levelLab.textContent = '超重强装 / 强制锁扫';
       } else {
-        levelLab.textContent = '两项都关，点档位不弹窗不锁扫';
+        levelLab.textContent = '仅超重强装（提示/拦截开关都关）';
       }
 
       Array.prototype.forEach.call(levelBtns.querySelectorAll('button'), function (b) {
@@ -559,7 +592,7 @@
       pctW.style.display = '';
       pctV.style.display = '';
       pctW.textContent = '(' + weightPct + '%)';
-      pctV.textContent = '(' + volumePct + '%)';
+      pctV.textContent = '(' + (typeof volumePct === 'number' ? volumePct.toFixed(1) : volumePct) + '%)';
     }
 
     function render() {
@@ -575,7 +608,7 @@
         rowWeight.className = 'metric miss';
         rowWeight.innerHTML = '额定重量：未获取到额定重量';
         rowVolume.className = 'metric';
-        rowVolume.innerHTML = '额定体积：<b>130</b> <span class="pct">(45%)</span>';
+        rowVolume.innerHTML = '额定体积：<b>130</b> <span class="pct">(45.7%)</span>';
         return;
       }
       if (level === 'missV') {
@@ -586,25 +619,51 @@
         return;
       }
 
-      /* 重建 metric 节点（缺额定会改 innerHTML） */
       rowWeight.innerHTML = '额定重量：<b id="ratedW">27000</b> <span class="pct" id="pctW">(72%)</span>';
-      rowVolume.innerHTML = '额定体积：<b id="ratedV">130</b> <span class="pct" id="pctV">(45%)</span>';
+      rowVolume.innerHTML = '额定体积：<b id="ratedV">130</b> <span class="pct" id="pctV">(45.7%)</span>';
       ratedW = document.getElementById('ratedW');
       ratedV = document.getElementById('ratedV');
       pctW = document.getElementById('pctW');
       pctV = document.getElementById('pctV');
 
       if (level === 'safe') {
-        setMetricNormal(72, 45);
+        /* 已装约 19440kg → 72%；体积演示 45.7% */
+        setMetricNormal(72, 45.7);
+        return;
+      }
+
+      if (level === 'over') {
+        /* 额定 27000；试算后已装 27100.01 → 超重 100.01kg；重量%向下取整=100 */
+        setMetricNormal(100, 74.9);
+        rowWeight.classList.add('tip');
+        if (!m.flowOnly) {
+          showDialog(
+            '超重：装入本票后将超重 <span class="ton-num">100.01</span> 公斤，请装轻货或不装。',
+            true,
+            'over'
+          );
+        }
         return;
       }
 
       if (level === 'force') {
-        setMetricNormal(120, 88);
-        rowWeight.classList.add('force');
         if (f.force) {
+          /* 已装 32400 = 额定×120%；锁扫 */
+          setMetricNormal(120, 88.5);
+          rowWeight.classList.add('force');
           lockTip.classList.add('show');
-          showDialog('车辆已超额定载重 120%，禁止继续装车');
+          showDialog('车辆已超额定载重 120%，禁止继续装车', false, 'know');
+        } else if (!m.flowOnly) {
+          /* 未开强制：已装 28000，超额定 1000kg（未到 120% 线） */
+          setMetricNormal(103, 80.6);
+          rowWeight.classList.add('tip');
+          showDialog(
+            '超重：装入本票后将超重 <span class="ton-num">1000</span> 公斤，请装轻货或不装。',
+            true,
+            'over'
+          );
+        } else {
+          setMetricNormal(120, 88.5);
         }
         return;
       }
@@ -612,11 +671,11 @@
       if (level.indexOf('t') === 0) {
         var remain = parseInt(level.slice(1), 10);
         var wPct = remainToWeightPct(remain);
-        var vPct = Math.max(30, Math.min(95, 100 - remain * 8));
+        var vPct = remainToVolumePct(remain);
         setMetricNormal(wPct, vPct);
         rowWeight.classList.add('tip');
         if (f.tip) {
-          showDialog('剩余可装 <span class="ton-num">' + remain + '</span> 吨，请注意超载！', true);
+          showDialog('剩余可装 <span class="ton-num">' + remain + '</span> 吨，请注意超载！', true, 'know');
         }
       }
     }
@@ -656,8 +715,6 @@
         render();
       });
     });
-
-    document.getElementById('btnKnow').addEventListener('click', hideDialog);
 
     rebuildLevelBtns();
     render();
