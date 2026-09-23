@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>操作大票运单管理</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0659d9;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 48px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+
+    /* 顶部整栏：左品牌 + 右蓝底标签栏 */
+    .top-header {
+      height: var(--header-height);
+      display: flex;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .brand-area {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: width .2s;
+      letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area {
+      width: var(--sidebar-collapsed);
+      padding: 0 8px;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+
+    .top-tabs {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      background: var(--header-blue);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn,
+    .top-tabs .home-btn {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 18px;
+      flex-shrink: 0;
+      opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover,
+    .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+
+    .page-tabs {
+      display: flex;
+      align-items: flex-end;
+      flex: 1;
+      overflow-x: auto;
+      gap: 4px;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 36px;
+      border-radius: 6px 6px 0 0;
+      color: rgba(255,255,255,.95);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active {
+      background: #fff;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .7;
+      margin-left: 2px;
+    }
+    .page-tab.active .tab-close { opacity: .45; color: var(--text-secondary); }
+    .page-tab .tab-close:hover { opacity: 1; color: #ff4d4f; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px 6px 12px;
+      color: #fff;
+      flex-shrink: 0;
+      align-self: flex-end;
+      height: 42px;
+    }
+    .top-right .icon-btn {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .top-right .icon-btn .badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+      padding: 0 4px 0 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 32px;
+    }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #722ed1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+
+    /* 下方：侧栏 + 主内容 */
+    .body-row { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    /* 主内容区：卡片撑满可视高度，分页贴底 */
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    /* 1. 筛选条件区：名称左+控件右；3 列网格；重置/查询与最后一行底对齐 */
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 128px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    /* 2. 标签切换区 */
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* 3. 操作按钮区 */
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+    .btn-action:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+    .btn-action:disabled:hover { opacity: .45; }
+    .toast {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1100;
+      padding: 10px 16px;
+      background: rgba(0, 0, 0, .75);
+      color: #fff;
+      border-radius: 4px;
+      font-size: 14px;
+      line-height: 1.5;
+      display: none;
+      max-width: 480px;
+      text-align: center;
+    }
+    .toast.show { display: block; }
+
+    /* 4. 数据列表区：占满剩余高度，分页始终在底部 */
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 14px; }
+    .data-table th,
+    .data-table td { border: 1px solid var(--border); padding: 10px 12px; text-align: center; }
+    .data-table th { background: #fafafa; font-weight: 500; color: var(--text); white-space: nowrap; }
+    .data-table td { white-space: nowrap; }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .cell-placeholder { color: var(--text-secondary); }
+
+    /* 分页：贴列表区底部固定展示 */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .modal-mask {
+      position: fixed; inset: 0; z-index: 1000;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, .45);
+    }
+    .modal-mask.open { display: flex; }
+    .modal {
+      width: 640px; max-height: 90vh; background: #fff; border-radius: 4px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+      display: flex; flex-direction: column;
+    }
+    .modal.confirm { width: 420px; }
+    .modal-header {
+      height: 48px; padding: 0 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 16px; font-weight: 500; flex-shrink: 0;
+    }
+    .modal-close { border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 18px; }
+    .modal-body { padding: 18px 24px 8px; overflow-y: auto; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .form-item {
+      display: flex; flex-direction: row; align-items: center; gap: 8px;
+      min-width: 0; margin-bottom: 14px;
+    }
+    .form-item.align-start { align-items: flex-start; }
+    .form-item.align-start .form-label { padding-top: 6px; }
+    .check-group { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+    .check-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .form-item .form-label {
+      flex: 0 0 160px; width: 160px; text-align: right;
+      white-space: nowrap; color: var(--text);
+    }
+    .form-label.required::before { content: "*"; color: #ff4d4f; margin-right: 4px; }
+    .form-field { flex: 1; min-width: 0; }
+    .form-control {
+      width: 240px; max-width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 11px; outline: none; font-size: 14px; background: #fff;
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .form-control:disabled { background: #f5f5f5; color: var(--text-secondary); }
+    .confirm-body { padding: 28px 24px 12px; line-height: 1.6; }
+
+    .multi-select { position: relative; width: 100%; }
+    .multi-select-box {
+      min-height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 2px 28px 2px 6px; display: flex; flex-wrap: wrap; gap: 4px;
+      align-items: center; cursor: pointer; background: #fff;
+    }
+    .multi-select-box:hover { border-color: var(--primary); }
+    .multi-select.open .multi-select-box { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .multi-placeholder { color: #bfbfbf; font-size: 14px; padding: 0 4px; }
+    .multi-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #f5f5f5; border-radius: 2px; padding: 0 6px; height: 22px; font-size: 12px;
+    }
+    .multi-tag-remove {
+      border: none; background: transparent; cursor: pointer; color: var(--text-secondary);
+      font-size: 12px; line-height: 1; padding: 0;
+    }
+    .multi-select-menu {
+      display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+      background: #fff; border: 1px solid var(--border); border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.12); z-index: 20; max-height: 220px; overflow: auto;
+    }
+    .multi-select.open .multi-select-menu { display: block; }
+    .multi-option {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; cursor: pointer; font-size: 14px;
+    }
+    .multi-option:hover { background: #f5f5f5; }
+    .multi-option.selected { color: var(--primary); }
+    .multi-option .check { opacity: 0; color: var(--primary); }
+    .multi-option.selected .check { opacity: 1; }
+    .multi-select::after {
+      content: "▼"; position: absolute; right: 10px; top: 16px; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-secondary); pointer-events: none;
+    }
+    .panel { display: none; }
+    .panel.active { display: flex; }
+    .filter-area.panel.active { display: flex; }
+    .action-bar.panel.active { display: flex; }
+    .table-area.panel.active { display: flex; }
+    .cell-danger { color: #ff4d4f; font-weight: 700; }
+    .data-table tbody tr.row-alert td { background: #fff1f0; }
+    .data-table tbody tr.row-alert:hover td { background: #ffccc7; }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
+    </div>
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active">操作大票运单管理 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="文档">📄</span>
+        <span class="icon-btn" title="下载">⬇</span>
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔<span class="badge">3</span></span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+        <div class="menu-item active">
+          <span class="menu-icon">☰</span><span class="menu-label">操作大票</span><span class="menu-arrow">▼</span>
+        </div>
+        <div class="menu-sub">
+          <div class="menu-item">操作大票运单管理</div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area panel active" data-panel="summary">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">运单号</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">寄件时间</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" placeholder="开始日期" />
+                  <span>~</span>
+                  <input class="filter-control" type="text" placeholder="结束日期" />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">寄件省区</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">寄件分拨中心</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">目的分拨中心</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">目的省区</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">提货方式</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>请选择</option>
+                    <option>中心派车提货</option>
+                    <option>网点交件</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">送货方式</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>请选择</option>
+                    <option>中心自提</option>
+                    <option>中心直送</option>
+                    <option>网点派送</option>
+                    <option>网点自提</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">是否装车头</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>请选择</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">物品名称</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">产品类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>请选择</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">物品类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>请选择</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">包装类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>请选择</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">签收状态</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option>已签收</option>
+                    <option selected>未签收</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn" type="button">重置</button>
+            <button class="btn btn-primary" type="button">查询</button>
+          </div>
+        </section>
+
+        <section class="filter-area panel" data-panel="exception">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">运单号</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">寄件时间</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" placeholder="开始日期" />
+                  <span>~</span>
+                  <input class="filter-control" type="text" placeholder="结束日期" />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">寄件分拨中心</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">寄件网点</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">目的分拨中心</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">提货方式</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>请选择</option>
+                    <option>中心派车提货</option>
+                    <option>网点交件</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">送货方式</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>请选择</option>
+                    <option>中心自提</option>
+                    <option>中心直送</option>
+                    <option>网点派送</option>
+                    <option>网点自提</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">异常类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>请选择</option>
+                    <option>小改大</option>
+                    <option>同客户累加</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">是否按操作大票货量</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>请选择</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn" type="button">重置</button>
+            <button class="btn btn-primary" type="button">查询</button>
+          </div>
+        </section>
+
+        <section class="filter-area panel" data-panel="maintain">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">配置范围</span>
+              <div class="filter-control-wrap">
+                <div class="multi-select" id="scopeSelect">
+                  <div class="multi-select-box" id="scopeBox"></div>
+                  <div class="multi-select-menu" id="scopeMenu">
+                    <div class="multi-option" data-value="全国"><span>全国</span><span class="check">✓</span></div>
+                    <div class="multi-option" data-value="分拨"><span>分拨</span><span class="check">✓</span></div>
+                    <div class="multi-option" data-value="网点"><span>网点</span><span class="check">✓</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">开单网点/分拨</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">始发网点</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择" />
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn">重置</button>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-panel="summary">运单列表</div>
+          <div class="content-tab" data-panel="exception">异常开单（一期不做）</div>
+          <div class="content-tab" data-panel="maintain">维护</div>
+        </nav>
+
+        <section class="action-bar panel active" data-panel="summary">
+          <button class="btn-action primary" type="button" id="btnUnload" disabled>卸出并通知</button>
+          <button class="btn-action" type="button">导出</button>
+        </section>
+
+        <section class="action-bar panel" data-panel="exception">
+          <button class="btn-action primary" type="button" id="btnAudit" disabled>审核</button>
+          <button class="btn-action" type="button">导出</button>
+        </section>
+
+        <section class="action-bar panel" data-panel="maintain">
+          <button class="btn-action primary" type="button" id="btnAdd">新增</button>
+          <button class="btn-action" type="button" id="btnEdit">编辑</button>
+          <button class="btn-action" type="button" id="btnDelete">删除</button>
+          <button class="btn-action" type="button" id="btnImport">导入</button>
+          <button class="btn-action" type="button" id="btnExport">导出</button>
+        </section>
+
+        <section class="table-area panel active" data-panel="summary">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" class="check-all" /></th>
+                  <th>运单号</th>
+                  <th>提货方式</th>
+                  <th>送货方式</th>
+                  <th>是否装车头</th>
+                  <th>寄件时间</th>
+                  <th>寄件网点</th>
+                  <th>寄件分拨中心</th>
+                  <th>寄件省区</th>
+                  <th>目的网点</th>
+                  <th>目的分拨中心</th>
+                  <th>物品名称</th>
+                  <th>产品类型</th>
+                  <th>物品类型</th>
+                  <th>包装类型</th>
+                  <th>件数</th>
+                  <th>实际重量（吨）</th>
+                  <th>结算重量（吨）</th>
+                  <th>体积</th>
+                  <th>首分拨封签发车时间</th>
+                  <th>首分拨GPS发车时间</th>
+                  <th>目的分拨封签到车时间</th>
+                  <th>目的分拨GPS到达时间</th>
+                  <th>目的分拨卸出时间</th>
+                  <th>是否已发短信</th>
+                  <th>目的分拨卸出扫描人</th>
+                  <th>目的分拨扫描人岗位</th>
+                  <th>目的分拨装车时间</th>
+                  <th>是否改单</th>
+                  <th>改单后是否为大票</th>
+                  <th>签收状态</th>
+                  <th>签收时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-alert">
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>800123456789</td>
+                  <td>网点交件</td>
+                  <td>中心自提</td>
+                  <td class="cell-danger">装车头</td>
+                  <td>2026-09-18 10:20</td>
+                  <td>大学城网点</td>
+                  <td>重庆分拨中心</td>
+                  <td>重庆</td>
+                  <td>东莞南城网点</td>
+                  <td>东莞分拨中心</td>
+                  <td>机械配件</td>
+                  <td>标准件</td>
+                  <td>普货</td>
+                  <td>纸箱</td>
+                  <td>86</td>
+                  <td>9.2</td>
+                  <td>8.8</td>
+                  <td>12.6</td>
+                  <td>2026-09-18 22:10</td>
+                  <td>2026-09-18 22:18</td>
+                  <td>2026-09-20 06:40</td>
+                  <td>2026-09-20 06:32</td>
+                  <td></td>
+                  <td>否</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>否</td>
+                  <td>-</td>
+                  <td>未签收</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>800123456791</td>
+                  <td>网点交件</td>
+                  <td>中心自提</td>
+                  <td class="cell-danger">装车头</td>
+                  <td>2026-09-20 09:10</td>
+                  <td>观音桥网点</td>
+                  <td>重庆分拨中心</td>
+                  <td>重庆</td>
+                  <td>虎门网点</td>
+                  <td>东莞分拨中心</td>
+                  <td>设备</td>
+                  <td>标准件</td>
+                  <td>普货</td>
+                  <td>木架</td>
+                  <td>52</td>
+                  <td>10.1</td>
+                  <td>9.8</td>
+                  <td>15.4</td>
+                  <td>2026-09-20 21:30</td>
+                  <td>2026-09-20 21:42</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>否</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>是</td>
+                  <td>是</td>
+                  <td>未签收</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>800123456792</td>
+                  <td>网点交件</td>
+                  <td>中心直送</td>
+                  <td class="cell-danger">装车头</td>
+                  <td>2026-09-19 08:40</td>
+                  <td>南坪网点</td>
+                  <td>重庆分拨中心</td>
+                  <td>重庆</td>
+                  <td>长安网点</td>
+                  <td>东莞分拨中心</td>
+                  <td>钢材</td>
+                  <td>标准件</td>
+                  <td>普货</td>
+                  <td>裸装</td>
+                  <td>30</td>
+                  <td>12</td>
+                  <td>12</td>
+                  <td>6.8</td>
+                  <td>2026-09-19 20:05</td>
+                  <td>2026-09-19 20:16</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>否</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>否</td>
+                  <td>-</td>
+                  <td>未签收</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>800123456790</td>
+                  <td>网点交件</td>
+                  <td>网点派送</td>
+                  <td></td>
+                  <td>2026-09-18 11:05</td>
+                  <td>大学城网点</td>
+                  <td>重庆分拨中心</td>
+                  <td>重庆</td>
+                  <td>昆明官渡网点</td>
+                  <td>昆明分拨中心</td>
+                  <td>建材</td>
+                  <td>标准件</td>
+                  <td>普货</td>
+                  <td>托盘</td>
+                  <td>40</td>
+                  <td>8.5</td>
+                  <td>8.5</td>
+                  <td>8.2</td>
+                  <td>2026-09-18 23:00</td>
+                  <td>2026-09-18 23:12</td>
+                  <td>2026-09-20 08:10</td>
+                  <td>2026-09-20 08:02</td>
+                  <td>2026-09-20 09:15</td>
+                  <td>是</td>
+                  <td>李强</td>
+                  <td>装卸工</td>
+                  <td>2026-09-20 18:40</td>
+                  <td>否</td>
+                  <td>-</td>
+                  <td>未签收</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>800123456793</td>
+                  <td>网点交件</td>
+                  <td>中心自提</td>
+                  <td class="cell-danger">装车头</td>
+                  <td>2026-09-17 16:30</td>
+                  <td>杨家坪网点</td>
+                  <td>重庆分拨中心</td>
+                  <td>重庆</td>
+                  <td>厚街网点</td>
+                  <td>东莞分拨中心</td>
+                  <td>家具</td>
+                  <td>标准件</td>
+                  <td>普货</td>
+                  <td>纸箱</td>
+                  <td>64</td>
+                  <td>8.6</td>
+                  <td>8.4</td>
+                  <td>18.0</td>
+                  <td>2026-09-17 22:40</td>
+                  <td>2026-09-17 22:55</td>
+                  <td>2026-09-19 05:20</td>
+                  <td>2026-09-19 05:08</td>
+                  <td>2026-09-19 10:12</td>
+                  <td>是</td>
+                  <td>王敏</td>
+                  <td>文员</td>
+                  <td></td>
+                  <td>否</td>
+                  <td>-</td>
+                  <td>未签收</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>800123456794</td>
+                  <td>网点交件</td>
+                  <td>网点自提</td>
+                  <td></td>
+                  <td>2026-09-20 14:18</td>
+                  <td>沙坪坝网点</td>
+                  <td>重庆分拨中心</td>
+                  <td>重庆</td>
+                  <td>呈贡网点</td>
+                  <td>昆明分拨中心</td>
+                  <td>配件</td>
+                  <td>标准件</td>
+                  <td>普货</td>
+                  <td>编织袋</td>
+                  <td>28</td>
+                  <td>7.6</td>
+                  <td>7.6</td>
+                  <td>9.1</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>否</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>是</td>
+                  <td>否</td>
+                  <td>未签收</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 6 条</span>
+            <button class="page-btn disabled">&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn disabled">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+        <section class="table-area panel" data-panel="exception">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" class="check-all" /></th>
+                  <th>运单号</th>
+                  <th>异常类型</th>
+                  <th>进异常时间</th>
+                  <th>小改大时间</th>
+                  <th>寄件时间</th>
+                  <th>提货方式</th>
+                  <th>送货方式</th>
+                  <th>寄件网点</th>
+                  <th>寄件分拨中心</th>
+                  <th>目的分拨中心</th>
+                  <th>目的网点</th>
+                  <th>收货人</th>
+                  <th>收方地址</th>
+                  <th>改单前结算重量（吨）</th>
+                  <th>结算重量（吨）</th>
+                  <th>同组累加总重量（吨）</th>
+                  <th>同组运单数</th>
+                  <th>同组运单号</th>
+                  <th>是否按操作大票货量</th>
+                  <th>核准人</th>
+                  <th>审核时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>800123456801</td>
+                  <td>小改大</td>
+                  <td>2026-09-20 00:00</td>
+                  <td>2026-09-19 14:20</td>
+                  <td>2026-09-18 09:30</td>
+                  <td>网点交件</td>
+                  <td>中心自提</td>
+                  <td>大学城网点</td>
+                  <td>重庆分拨中心</td>
+                  <td>东莞分拨中心</td>
+                  <td>东莞南城网点</td>
+                  <td>王敏</td>
+                  <td>东莞市南城街道宏图路 18 号</td>
+                  <td>2.0</td>
+                  <td>10.0</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>是</td>
+                  <td>系统</td>
+                  <td>2026-09-20 00:00</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>800123456802</td>
+                  <td>小改大</td>
+                  <td>2026-09-20 00:00</td>
+                  <td>2026-09-19 16:05</td>
+                  <td>2026-09-18 11:20</td>
+                  <td>网点交件</td>
+                  <td>网点派送</td>
+                  <td>大学城网点</td>
+                  <td>重庆分拨中心</td>
+                  <td>昆明分拨中心</td>
+                  <td>昆明官渡网点</td>
+                  <td>赵磊</td>
+                  <td>昆明市官渡区彩云北路 6 号</td>
+                  <td>3.5</td>
+                  <td>9.2</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td>否</td>
+                  <td>杨勇</td>
+                  <td>2026-09-20 09:30</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>800123456803</td>
+                  <td>同客户累加</td>
+                  <td>2026-09-20 00:00</td>
+                  <td></td>
+                  <td>2026-09-19 08:15</td>
+                  <td>网点交件</td>
+                  <td>中心直送</td>
+                  <td>观音桥网点</td>
+                  <td>重庆分拨中心</td>
+                  <td>东莞分拨中心</td>
+                  <td>虎门网点</td>
+                  <td>李华</td>
+                  <td>东莞市虎门镇连升路 88 号</td>
+                  <td></td>
+                  <td>4.2</td>
+                  <td>9.6</td>
+                  <td>3</td>
+                  <td>800123456803、800123456804、800123456805</td>
+                  <td>是</td>
+                  <td>系统</td>
+                  <td>2026-09-20 00:00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 3 条</span>
+            <button class="page-btn disabled">&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn disabled">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+        <section class="table-area panel" data-panel="maintain">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" class="check-all" /></th>
+                  <th>配置范围</th>
+                  <th>开单网点/分拨</th>
+                  <th>分拨类型</th>
+                  <th>重量阈值（吨）≥</th>
+                  <th>件数下限 ≥</th>
+                  <th>件数上限 ≤</th>
+                  <th>剔除网点</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>全国</td><td>—</td><td>直营分拨</td><td>8</td><td>1</td><td>9999</td><td>—</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>分拨</td><td>重庆分拨中心</td><td>直营分拨</td><td>8</td><td>1</td><td>9999</td><td>大学城网点</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>网点</td><td>大学城网点</td><td>—</td><td>8</td><td>1</td><td>9999</td><td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 3 条</span>
+            <button class="page-btn disabled">&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn disabled">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="editMask">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="editTitle">新增</span>
+      <button type="button" class="modal-close" id="editClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label class="form-label required">配置范围</label>
+        <div class="form-field">
+          <select class="form-control" id="mScope">
+            <option value="全国">全国</option>
+            <option value="分拨">分拨</option>
+            <option value="网点">网点</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-item align-start" id="rowTypePick">
+        <label class="form-label required">分拨类型</label>
+        <div class="form-field">
+          <div class="check-group" id="mTypePick">
+            <label><input type="checkbox" value="直营分拨" />直营分拨</label>
+            <label><input type="checkbox" value="非直营分拨" />非直营分拨</label>
+            <label><input type="checkbox" value="服务站" />服务站</label>
+            <label><input type="checkbox" value="直营集配站" />直营集配站</label>
+            <label><input type="checkbox" value="非直营集配站" />非直营集配站</label>
+            <label><input type="checkbox" value="智运中心" />智运中心</label>
+            <label><input type="checkbox" value="航空转运枢纽" />航空转运枢纽</label>
+          </div>
+        </div>
+      </div>
+      <div class="form-item" id="rowHub" style="display:none;">
+        <label class="form-label required">开单网点/分拨</label>
+        <div class="form-field">
+          <select class="form-control" id="mHub">
+            <option value="">请选择</option>
+            <option value="直营分拨">贵阳分拨中心</option>
+            <option value="直营分拨">重庆分拨中心</option>
+            <option value="服务站">凯里服务站</option>
+            <option value="直营集配站">天水集配站</option>
+            <option value="非直营分拨">毕节分拨</option>
+            <option value="非直营集配站">兴义集配站</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-item" id="rowType" style="display:none;">
+        <label class="form-label">分拨类型</label>
+        <div class="form-field">
+          <input class="form-control" id="mType" type="text" value="" disabled />
+        </div>
+      </div>
+      <div class="form-item">
+        <label class="form-label required">重量阈值（吨）≥</label>
+        <div class="form-field">
+          <input class="form-control" id="mWeight" type="text" placeholder="请输入" />
+        </div>
+      </div>
+      <div class="form-item">
+        <label class="form-label required">件数下限 ≥</label>
+        <div class="form-field">
+          <input class="form-control" id="mPieceMin" type="text" placeholder="请输入" />
+        </div>
+      </div>
+      <div class="form-item">
+        <label class="form-label required">件数上限 ≤</label>
+        <div class="form-field">
+          <input class="form-control" id="mPieceMax" type="text" placeholder="请输入" />
+        </div>
+      </div>
+      <div class="form-item" id="rowOutlet" style="display:none;">
+        <label class="form-label">剔除网点</label>
+        <div class="form-field">
+          <input class="form-control" type="text" placeholder="请选择，可不填" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" id="editCancel">取消</button>
+      <button class="btn btn-primary" type="button" id="editOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="delMask">
+  <div class="modal confirm">
+    <div class="modal-header">
+      <span>删除</span>
+      <button type="button" class="modal-close" id="delClose">×</button>
+    </div>
+    <div class="confirm-body">确认删除选中的配置吗？</div>
+    <div class="modal-footer">
+      <button class="btn" type="button" id="delCancel">取消</button>
+      <button class="btn btn-primary" type="button" id="delOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="unloadMask">
+  <div class="modal confirm">
+    <div class="modal-header">
+      <span>卸出并通知</span>
+      <button type="button" class="modal-close" id="unloadClose">×</button>
+    </div>
+    <div class="confirm-body" id="unloadBody">确认对所选运单电脑卸出并通知提货吗？本次只写轨迹、不计货量，系统自动发短信。</div>
+    <div class="modal-footer">
+      <button class="btn" type="button" id="unloadCancel">取消</button>
+      <button class="btn btn-primary" type="button" id="unloadOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="auditMask">
+  <div class="modal">
+    <div class="modal-header">
+      <span>审核</span>
+      <button type="button" class="modal-close" id="auditClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <label class="form-label required">是否按操作大票货量</label>
+        <div class="form-field">
+          <select class="form-control" id="auditFlag">
+            <option value="是">是</option>
+            <option value="否">否</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" id="auditCancel">取消</button>
+      <button class="btn btn-primary" type="button" id="auditOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="pageToast"></div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.page-tab');
+    if (!tab || e.target.classList.contains('tab-close')) return;
+    document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const name = tab.dataset.panel;
+    document.querySelectorAll('.panel').forEach(function (el) {
+      el.classList.toggle('active', el.dataset.panel === name);
+    });
+  });
+
+  document.querySelectorAll('.check-all').forEach(function (all) {
+    all.addEventListener('change', function () {
+      const table = this.closest('table');
+      table.querySelectorAll('.row-check').forEach(cb => { cb.checked = this.checked; });
+    });
+  });
+
+  var editMask = document.getElementById('editMask');
+  var delMask = document.getElementById('delMask');
+  var auditMask = document.getElementById('auditMask');
+  var unloadMask = document.getElementById('unloadMask');
+  function openEdit(title) {
+    document.getElementById('editTitle').textContent = title;
+    editMask.classList.add('open');
+  }
+  function closeEdit() { editMask.classList.remove('open'); }
+  function closeDel() { delMask.classList.remove('open'); }
+  function fillOrg(scope) {
+    var sel = document.getElementById('mHub');
+    if (scope === '网点') {
+      sel.innerHTML = '<option value="">请选择</option><option value="">大学城网点</option>';
+    } else {
+      sel.innerHTML = '<option value="">请选择</option>'
+        + '<option value="直营分拨">贵阳分拨中心</option>'
+        + '<option value="直营分拨">重庆分拨中心</option>'
+        + '<option value="服务站">凯里服务站</option>'
+        + '<option value="直营集配站">天水集配站</option>'
+        + '<option value="非直营分拨">毕节分拨</option>'
+        + '<option value="非直营集配站">兴义集配站</option>';
+    }
+    document.getElementById('mType').value = '';
+  }
+  function syncScope() {
+    var scope = document.getElementById('mScope').value;
+    document.getElementById('rowTypePick').style.display = scope === '全国' ? '' : 'none';
+    document.getElementById('rowHub').style.display = scope === '全国' ? 'none' : '';
+    document.getElementById('rowType').style.display = scope === '分拨' ? '' : 'none';
+    document.getElementById('rowOutlet').style.display = scope === '分拨' ? '' : 'none';
+    if (scope !== '全国') fillOrg(scope);
+  }
+  document.getElementById('mScope').addEventListener('change', syncScope);
+  document.getElementById('mHub').addEventListener('change', function () {
+    var opt = this.options[this.selectedIndex];
+    document.getElementById('mType').value = opt.value || '';
+  });
+  document.getElementById('btnAdd').addEventListener('click', function () {
+    document.getElementById('mScope').value = '全国';
+    syncScope();
+    openEdit('新增');
+  });
+  document.getElementById('btnEdit').addEventListener('click', function () { openEdit('编辑'); });
+  document.getElementById('btnDelete').addEventListener('click', function () { delMask.classList.add('open'); });
+  document.getElementById('btnUnload').addEventListener('click', function () {
+    if (this.disabled) return;
+    var table = document.querySelector('[data-panel="summary"].table-area');
+    var picked = table.querySelectorAll('tbody .row-check:checked');
+    var ok = false;
+    picked.forEach(function (cb) {
+      var row = cb.closest('tr');
+      if (row && row.classList.contains('row-alert')) ok = true;
+    });
+    if (!ok) {
+      showToast('请选择已到车且未卸出的中心自提运单');
+      return;
+    }
+    document.getElementById('unloadBody').textContent = '确认对所选运单电脑卸出并通知提货吗？本次只写轨迹、不计货量，系统自动发短信。';
+    unloadMask.classList.add('open');
+  });
+  function closeUnload() { unloadMask.classList.remove('open'); }
+  document.getElementById('unloadClose').addEventListener('click', closeUnload);
+  document.getElementById('unloadCancel').addEventListener('click', closeUnload);
+  document.getElementById('unloadOk').addEventListener('click', closeUnload);
+  var toastTimer = null;
+  function showToast(msg) {
+    var el = document.getElementById('pageToast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2200);
+  }
+  function syncUnloadBtn() {
+    var table = document.querySelector('[data-panel="summary"].table-area');
+    var picked = table.querySelectorAll('tbody .row-check:checked');
+    document.getElementById('btnUnload').disabled = picked.length === 0;
+  }
+  function syncAuditBtn() {
+    var table = document.querySelector('[data-panel="exception"].table-area');
+    var picked = table.querySelectorAll('tbody .row-check:checked');
+    document.getElementById('btnAudit').disabled = picked.length === 0;
+  }
+  document.querySelector('[data-panel="summary"].table-area').addEventListener('change', function (e) {
+    if (e.target.classList.contains('row-check') || e.target.classList.contains('check-all')) {
+      syncUnloadBtn();
+    }
+  });
+  document.querySelector('[data-panel="exception"].table-area').addEventListener('change', function (e) {
+    if (e.target.classList.contains('row-check') || e.target.classList.contains('check-all')) {
+      syncAuditBtn();
+    }
+  });
+  syncUnloadBtn();
+  syncAuditBtn();
+  document.getElementById('btnAudit').addEventListener('click', function () {
+    if (this.disabled) return;
+    auditMask.classList.add('open');
+  });
+  document.getElementById('auditClose').addEventListener('click', function () { auditMask.classList.remove('open'); });
+  document.getElementById('auditCancel').addEventListener('click', function () { auditMask.classList.remove('open'); });
+  document.getElementById('auditOk').addEventListener('click', function () { auditMask.classList.remove('open'); });
+  document.getElementById('editClose').addEventListener('click', closeEdit);
+  document.getElementById('editCancel').addEventListener('click', closeEdit);
+  document.getElementById('editOk').addEventListener('click', closeEdit);
+  document.getElementById('delClose').addEventListener('click', closeDel);
+  document.getElementById('delCancel').addEventListener('click', closeDel);
+  document.getElementById('delOk').addEventListener('click', closeDel);
+
+  var scopeSelect = document.getElementById('scopeSelect');
+  var scopeBox = document.getElementById('scopeBox');
+  var scopeMenu = document.getElementById('scopeMenu');
+  var selectedScopes = new Set();
+  function renderScope() {
+    scopeBox.innerHTML = '';
+    if (selectedScopes.size === 0) {
+      var ph = document.createElement('span');
+      ph.className = 'multi-placeholder';
+      ph.textContent = '请选择';
+      scopeBox.appendChild(ph);
+    } else {
+      selectedScopes.forEach(function (value) {
+        var tag = document.createElement('span');
+        tag.className = 'multi-tag';
+        tag.innerHTML = value + '<button type="button" class="multi-tag-remove" data-value="' + value + '">×</button>';
+        scopeBox.appendChild(tag);
+      });
+    }
+    scopeMenu.querySelectorAll('.multi-option').forEach(function (opt) {
+      opt.classList.toggle('selected', selectedScopes.has(opt.dataset.value));
+    });
+  }
+  scopeBox.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (e.target.classList.contains('multi-tag-remove')) {
+      selectedScopes.delete(e.target.dataset.value);
+      renderScope();
+      return;
+    }
+    scopeSelect.classList.toggle('open');
+  });
+  scopeMenu.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var option = e.target.closest('.multi-option');
+    if (!option) return;
+    var value = option.dataset.value;
+    if (selectedScopes.has(value)) selectedScopes.delete(value);
+    else selectedScopes.add(value);
+    renderScope();
+  });
+  document.addEventListener('click', function () {
+    scopeSelect.classList.remove('open');
+  });
+  renderScope();
+</script>
+
+</body>
+</html>
