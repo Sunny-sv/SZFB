@@ -1,0 +1,2508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>百分比货量及特殊单价配置</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0659d9;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 48px;
+      --green: #52c41a;
+      --red: #ff4d4f;
+      --adj-down: #BD3124;
+      --adj-up: #81B337;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+
+    .top-header {
+      height: var(--header-height);
+      display: flex;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .brand-area {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: width .2s;
+      letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area {
+      width: var(--sidebar-collapsed);
+      padding: 0 8px;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+
+    .top-tabs {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      background: var(--header-blue);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn,
+    .top-tabs .home-btn {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 18px;
+      flex-shrink: 0;
+      opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover,
+    .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+
+    .page-tabs {
+      display: flex;
+      align-items: flex-end;
+      flex: 1;
+      overflow-x: auto;
+      gap: 4px;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 36px;
+      border-radius: 6px 6px 0 0;
+      color: rgba(255,255,255,.95);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active {
+      background: #fff;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .7;
+      margin-left: 2px;
+    }
+    .page-tab.active .tab-close { opacity: .45; color: var(--text-secondary); }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px 6px 12px;
+      color: #fff;
+      flex-shrink: 0;
+      align-self: flex-end;
+      height: 42px;
+    }
+    .top-right .icon-btn {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .top-right .icon-btn .badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+      padding: 0 4px 0 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 32px;
+    }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #722ed1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+
+    .body-row { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px 16px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 118px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-label.wide { flex: 0 0 138px; }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .date-range { display: flex; align-items: center; gap: 6px; }
+    .date-range .filter-control { flex: 1; min-width: 0; padding: 0 8px; }
+    .date-range .sep { color: var(--text-secondary); font-size: 12px; flex-shrink: 0; }
+
+    .tag-select {
+      min-height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 28px 2px 6px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+      background: #fff;
+      cursor: pointer;
+      position: relative;
+    }
+    .tag-select::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 22px;
+      padding: 0 6px;
+      background: #f5f5f5;
+      border: 1px solid #e8e8e8;
+      border-radius: 2px;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .tag .tag-x { color: var(--text-secondary); font-size: 12px; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th,
+    .data-table td { border: 1px solid var(--border); padding: 8px 10px; text-align: center; }
+    .data-table th {
+      background: #fafafa;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .cell-muted { color: var(--text-secondary); }
+    .adj-down { color: var(--adj-down); }
+    .adj-up { color: var(--adj-up); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    /* 弹框 */
+    .modal-mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 4px;
+      width: min(1100px, 96vw);
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 24px rgba(0,0,0,.15);
+    }
+    .modal.modal-sm { width: min(480px, 96vw); }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-title { font-size: 16px; font-weight: 600; }
+    .modal-close {
+      width: 28px; height: 28px;
+      border: none; background: transparent;
+      font-size: 18px; cursor: pointer; color: var(--text-secondary);
+      border-radius: 4px;
+    }
+    .modal-close:hover { background: #f5f5f5; color: var(--text); }
+    .modal-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .form-section { margin-bottom: 20px; }
+    .form-section:last-child { margin-bottom: 0; }
+    .form-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .form-section-title::before {
+      content: "";
+      width: 3px;
+      height: 14px;
+      background: var(--primary);
+      border-radius: 1px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px 20px;
+    }
+    .form-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      min-width: 0;
+    }
+    .form-item.span-2 { grid-column: span 2; }
+    .form-item.span-3 { grid-column: span 3; }
+    .form-label {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+      /* 与 32px 高控件顶对齐时，文字视觉居中 */
+      line-height: 32px;
+    }
+    .form-label.wide { flex: 0 0 128px; }
+    .form-label .req { color: var(--red); margin-right: 2px; }
+    .form-control-wrap { flex: 1; min-width: 0; }
+    .form-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .form-control:disabled { background: #f5f5f5; color: var(--text-secondary); cursor: not-allowed; }
+    .form-control::placeholder { color: #bfbfbf; }
+    .form-select {
+      appearance: none;
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      cursor: pointer;
+    }
+
+    .ms-select {
+      position: relative;
+      width: 100%;
+      z-index: 1;
+    }
+    .ms-select.open { z-index: 50; }
+    .ms-select-trigger {
+      min-height: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 28px 0 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #fff;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .ms-select-trigger::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .ms-select.disabled .ms-select-trigger {
+      background: #f5f5f5;
+      color: var(--text-secondary);
+      cursor: not-allowed;
+    }
+    .ms-select-trigger .ms-placeholder {
+      color: #bfbfbf;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .ms-select-trigger .ms-tag {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 6px;
+      background: #f5f5f5;
+      border: 1px solid #e8e8e8;
+      border-radius: 2px;
+      font-size: 12px;
+      max-width: 100%;
+      white-space: nowrap;
+    }
+    .ms-select-panel {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+      z-index: 20;
+      max-height: 168px;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .ms-select.open .ms-select-panel { display: block; }
+    .ms-select.disabled .ms-select-panel { display: none; }
+    .ms-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .ms-option:hover { background: #f5f5f5; }
+    .ms-option input { accent-color: var(--primary); }
+
+    /* 类型下拉占 label 位（缩短）；输入框在 control-wrap 内，与「重/抛货」等控件同宽 */
+    .form-item.station-item .station-type {
+      /* 与 .form-label 同宽，保证右侧输入与「重/抛货」等控件同宽 */
+      flex: 0 0 96px;
+      width: 96px;
+      height: 32px;
+      padding: 0 18px 0 4px;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+    .form-item.station-item .form-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .station-field {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      width: 100%;
+    }
+    .station-field > .form-control {
+      width: 100%;
+      border-radius: 4px;
+    }
+    .station-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    .station-check input {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .match-pair {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .match-pair .form-select { width: 88px; flex-shrink: 0; }
+    .match-pair .form-control { flex: 1; }
+
+    .radio-group { display: flex; align-items: center; gap: 24px; }
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .radio-item input { accent-color: var(--primary); }
+
+    .dim-box {
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    .dim-box-title {
+      font-size: 13px;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .dim-box-title .hint { color: var(--text-secondary); font-weight: 400; }
+    .dim-groups { display: flex; flex-direction: column; gap: 12px; }
+    .dim-group-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+    .dim-options { display: flex; flex-wrap: wrap; gap: 10px 20px; }
+    .dim-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      user-select: none;
+    }
+    .dim-option input { width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; }
+    .dim-option.disabled { color: var(--text-secondary); cursor: not-allowed; opacity: .55; }
+    .dim-option.disabled input { cursor: not-allowed; }
+
+    .flat-adj {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px 20px;
+      margin-top: 12px;
+    }
+    .pct-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pct-dir {
+      width: 48px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 13px;
+      text-align: center;
+      background: #fff;
+    }
+    .pct-input {
+      width: 72px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 6px;
+      font-size: 13px;
+      text-align: center;
+    }
+    .pct-suffix { font-size: 13px; color: var(--text-secondary); }
+
+    .price-adj {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px 16px;
+      margin-top: 12px;
+    }
+    .price-adj .form-label { flex: 0 0 108px; }
+    .price-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .price-input-wrap .form-control { flex: 1; min-width: 0; }
+    .price-unit { font-size: 13px; color: var(--text-secondary); flex-shrink: 0; }
+
+    .interval-panel { margin-top: 12px; }
+    .config-header {
+      display: grid;
+      grid-template-columns: 1fr 120px 150px 150px 72px;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 4px 4px 0 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .config-header .col-interval { color: #096dd9; }
+    .config-header .col-adj { color: #389e0d; text-align: center; }
+    .config-header .col-ops { text-align: center; }
+    .config-header.is-price,
+    .config-row.is-price {
+      grid-template-columns: 1fr 110px 110px 110px 110px 64px;
+    }
+    .config-header.is-price .col-adj { font-size: 12px; }
+    .config-body {
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+      background: #fff;
+      min-height: 80px;
+    }
+    .config-empty {
+      padding: 28px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .config-group { border-bottom: 1px dashed #d9d9d9; }
+    .config-group:last-child { border-bottom: none; }
+    .config-row {
+      display: grid;
+      grid-template-columns: 1fr 120px 150px 150px 72px;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      min-height: 48px;
+    }
+    .config-row + .config-row { border-top: 1px solid #f5f5f5; }
+    .row-interval {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .row-label { font-size: 13px; white-space: nowrap; }
+    .interval-input {
+      width: 80px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      text-align: center;
+      outline: none;
+    }
+    .interval-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.1); }
+    .interval-input.error { border-color: var(--red); background: #fff2f0; }
+    .interval-sep { color: var(--text-secondary); font-size: 12px; }
+    .col-adj-cell { display: flex; justify-content: center; align-items: center; }
+    .col-adj-cell.empty { visibility: hidden; }
+    .adj-select {
+      width: 100%;
+      max-width: 110px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--text-secondary);
+    }
+    .adj-select.has-value { color: var(--text); }
+    .row-ops { display: flex; justify-content: center; gap: 6px; }
+    .btn-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 500;
+    }
+    .btn-add { background: var(--green); color: #fff; }
+    .btn-del { background: var(--red); color: #fff; }
+
+    .confirm-text { font-size: 14px; line-height: 1.7; color: var(--text); padding: 8px 0; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
+    </div>
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active">百分比货量及特殊单价配置 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="文档">📄</span>
+        <span class="icon-btn" title="下载">⬇</span>
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔<span class="badge">3</span></span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+        <div class="menu-item active">
+          <span class="menu-icon">☰</span><span class="menu-label">操作标准</span><span class="menu-arrow">▼</span>
+        </div>
+        <div class="menu-sub">
+          <div class="menu-item">操作结算重量计泡维护</div>
+          <div class="menu-item active">百分比货量及特殊单价配置</div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">维度</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>全国</option>
+                    <option>分拨</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">适用类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>直营分拨中心</option>
+                    <option>服务站</option>
+                    <option>直营集配站</option>
+                    <option>非直营分拨中心</option>
+                    <option>非直营集配站</option>
+                    <option>智运分拨中心</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">方案类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>百分比方案</option>
+                    <option>特殊单价方案</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option value="" disabled selected hidden>请选择分拨中心</option>
+                    <option>全部</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-item">
+              <span class="filter-label">操作类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control" id="filterOpType">
+                    <option value="">请选择操作类型</option>
+                    <option>卸车</option>
+                    <option>移动</option>
+                    <option>装车</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">重/抛货</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>重货</option>
+                    <option>抛货</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">任务类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>分拨</option>
+                    <option>服务站</option>
+                    <option>集配站</option>
+                    <option>网点</option>
+                    <option>智运分拨</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">调整类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>下调</option>
+                    <option>上调</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">组合项</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>上一站</option>
+                    <option>下一站</option>
+                    <option>开单网点/分拨/省区</option>
+                    <option>产品类型</option>
+                    <option>物品类型</option>
+                    <option>物品名称</option>
+                    <option>包装类型</option>
+                    <option>寄件人</option>
+                    <option>是否审报物品</option>
+                    <option>订单来源</option>
+                    <option>是否电商件</option>
+                    <option>票-操作结算重量段</option>
+                    <option>票-体积段</option>
+                    <option>票-件数段</option>
+                    <option>子托-操作结算重量段</option>
+                    <option>子托-体积段</option>
+                    <option>子托-件数段</option>
+                    <option>件-操作结算重量段</option>
+                    <option>件-体积段</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">状态</span>
+              <div class="filter-control-wrap">
+                <div class="tag-select">
+                  <span class="tag">生效中 <span class="tag-x">×</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-item">
+              <span class="filter-label">上一站</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">下一站</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label wide">开单网点/分拨/省区</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">产品类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>标准快运</option>
+                    <option>整车</option>
+                    <option>530产品</option>
+                    <option>电商大件</option>
+                    <option>电商件</option>
+                    <option>合同物流</option>
+                    <option>快运小件</option>
+                    <option>安心寄</option>
+                    <option>星联大件</option>
+                    <option>航空件</option>
+                    <option>同城特惠</option>
+                    <option>区域件</option>
+                    <option>智运大票零担</option>
+                    <option>逆向物流</option>
+                    <option>智运标准件</option>
+                    <option>放心寄</option>
+                    <option>智运大票专线</option>
+                    <option>大票直送</option>
+                    <option>大票专线</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-item">
+              <span class="filter-label">物品类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>总部仓管物料</option>
+                    <option>家具/家居</option>
+                    <option>家纺家饰</option>
+                    <option>电气/电子/安防</option>
+                    <option>加工食品/饮料</option>
+                    <option>服装/鞋/帽</option>
+                    <option>药品</option>
+                    <option>交通运输设备/机械设备</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">物品名称</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入物品名称" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">包装类型</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入包装类型" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">寄件人</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入寄件人" />
+              </div>
+            </div>
+
+            <div class="filter-item">
+              <span class="filter-label">是否审报物品</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">订单来源</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>呼叫中心</option>
+                    <option>官网</option>
+                    <option>阿里巴巴</option>
+                    <option>微信</option>
+                    <option>科捷</option>
+                    <option>用友</option>
+                    <option>慧聪网</option>
+                    <option>TCL</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">方案编号</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入方案编号(可录入多个)" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">是否电商件</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-item">
+              <span class="filter-label">有效期限</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" placeholder="开始日期" readonly />
+                  <span class="sep">~</span>
+                  <input class="filter-control" type="text" placeholder="结束日期" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">创建人</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择人员" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">创建时间</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" placeholder="开始日期" readonly />
+                  <span class="sep">~</span>
+                  <input class="filter-control" type="text" placeholder="结束日期" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">轻实重调整</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn" type="button">重置</button>
+            <button class="btn btn-primary" type="button">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-ctab="realtime">实时维护</div>
+          <div class="content-tab" data-ctab="pipeline">流水线维护</div>
+        </nav>
+
+        <section class="action-bar">
+          <button class="btn-action primary" type="button" id="btnAdd">新增</button>
+          <button class="btn-action" type="button" id="btnEdit">编辑</button>
+          <button class="btn-action" type="button" id="btnBatchEnd">批量编辑结束时间</button>
+          <button class="btn-action" type="button" id="btnTerminate">终止</button>
+          <button class="btn-action" type="button">下载模版</button>
+          <button class="btn-action" type="button">导入</button>
+          <button class="btn-action" type="button">导出</button>
+        </section>
+
+        <section class="table-area">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>
+                  <th>方案类型</th>
+                  <th>维度</th>
+                  <th>适用类型</th>
+                  <th>分拨中心</th>
+                  <th>操作类型</th>
+                  <th>重/抛货</th>
+                  <th>任务类型</th>
+                  <th>上一站</th>
+                  <th>下一站</th>
+                  <th>开单网点/分拨/省区</th>
+                  <th>产品类型</th>
+                  <th>物品类型</th>
+                  <th>物品名称</th>
+                  <th>包装类型</th>
+                  <th>寄件人</th>
+                  <th>是否审报物品</th>
+                  <th>订单来源</th>
+                  <th>是否电商件</th>
+                  <th>票-操作结算重量段</th>
+                  <th>票-体积段</th>
+                  <th>票-件数段</th>
+                  <th>子托-操作结算重量段</th>
+                  <th>子托-体积段</th>
+                  <th>子托-件数段</th>
+                  <th>件-操作结算重量段</th>
+                  <th>件-体积段</th>
+                  <th>轻实重调整</th>
+                  <th>自有调整</th>
+                  <th>外包调整</th>
+                  <th>自有吨补贴价</th>
+                  <th>自有托补贴价</th>
+                  <th>外包吨补贴价</th>
+                  <th>外包托补贴价</th>
+                  <th>方案编号</th>
+                  <th>开始时间</th>
+                  <th>结束时间</th>
+                  <th>状态</th>
+                  <th>创建人</th>
+                  <th>创建时间</th>
+                  <th>修改人</th>
+                  <th>修改时间</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>百分比方案</td>
+                  <td>全国</td>
+                  <td>直营分拨中心,服务站,直营集配站</td>
+                  <td class="cell-muted">-</td>
+                  <td>移动</td>
+                  <td>重货</td>
+                  <td>分拨,网点</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td>800 ~ 99999.99</td>
+                  <td class="cell-muted">-</td>
+                  <td>50 ~ 999999</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td>是</td>
+                  <td class="adj-down">-5%</td>
+                  <td class="adj-down">-5%</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td>TY10021</td>
+                  <td>2026-06-01 15:00:00</td>
+                  <td>2027-05-31 14:59:59</td>
+                  <td>生效中</td>
+                  <td>胡绵飞</td>
+                  <td>2026-05-28 10:12:03</td>
+                  <td>胡绵飞</td>
+                  <td>2026-06-02 09:30:11</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>特殊单价方案</td>
+                  <td>分拨</td>
+                  <td class="cell-muted">-</td>
+                  <td>杭州转运中心</td>
+                  <td>卸车</td>
+                  <td>抛货</td>
+                  <td>服务站</td>
+                  <td>上一站网点：桐庐一部</td>
+                  <td class="cell-muted">-</td>
+                  <td>开单省区：浙江省</td>
+                  <td>次日达</td>
+                  <td class="cell-muted">-</td>
+                  <td>等于：家具</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td>否</td>
+                  <td class="cell-muted">-</td>
+                  <td>是</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td>12.5</td>
+                  <td>8</td>
+                  <td>10</td>
+                  <td>6.5</td>
+                  <td>TY10022</td>
+                  <td>2026-07-01 15:00:00</td>
+                  <td>2026-12-31 14:59:59</td>
+                  <td>待生效</td>
+                  <td>王哲</td>
+                  <td>2026-06-20 14:22:08</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td>百分比方案</td>
+                  <td>分拨</td>
+                  <td class="cell-muted">-</td>
+                  <td>上海转运中心</td>
+                  <td>装车</td>
+                  <td class="cell-muted">-</td>
+                  <td>分拨</td>
+                  <td class="cell-muted">-</td>
+                  <td>下一站分拨：苏州转运中心</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td>是</td>
+                  <td class="adj-down">-10%</td>
+                  <td class="adj-down">-8%</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td class="cell-muted">-</td>
+                  <td>TY10018</td>
+                  <td>2025-01-01 15:00:00</td>
+                  <td>2025-12-31 14:59:59</td>
+                  <td>已失效</td>
+                  <td>胡绵飞</td>
+                  <td>2024-12-20 11:05:44</td>
+                  <td>胡绵飞</td>
+                  <td>2025-01-05 16:40:02</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 3 条</span>
+            <button class="page-btn disabled" type="button">&lt;</button>
+            <button class="page-btn active" type="button">1</button>
+            <button class="page-btn disabled" type="button">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+  </div>
+</div>
+
+<!-- 新增 / 编辑 -->
+<div class="modal-mask" id="modalForm">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="formModalTitle">新增</div>
+      <button class="modal-close" type="button" data-close="modalForm">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">
+        <div class="form-section-title">基础设定</div>
+        <div class="form-grid">
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>维度</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select" id="formDimension">
+                <option value="" disabled selected hidden>请选择维度</option>
+                <option value="分拨">分拨</option>
+                <option value="全国">全国</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>适用类型</span>
+            <div class="form-control-wrap">
+              <div class="ms-select disabled" id="formApplyType" data-placeholder="请选择适用类型">
+                <div class="ms-select-trigger">
+                  <span class="ms-placeholder">请选择适用类型</span>
+                </div>
+                <div class="ms-select-panel">
+                  <label class="ms-option"><input type="checkbox" value="直营分拨中心" /> 直营分拨中心</label>
+                  <label class="ms-option"><input type="checkbox" value="服务站" /> 服务站</label>
+                  <label class="ms-option"><input type="checkbox" value="直营集配站" /> 直营集配站</label>
+                  <label class="ms-option"><input type="checkbox" value="非直营分拨中心" /> 非直营分拨中心</label>
+                  <label class="ms-option"><input type="checkbox" value="非直营集配站" /> 非直营集配站</label>
+                  <label class="ms-option"><input type="checkbox" value="智运分拨中心" /> 智运分拨中心</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>方案类型</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select" id="formSchemeType">
+                <option value="" disabled selected hidden>请选择方案类型</option>
+                <option value="百分比方案">百分比方案</option>
+                <option value="特殊单价方案">特殊单价方案</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">分拨中心</span>
+            <div class="form-control-wrap">
+              <input class="form-control" type="text" id="formDc" placeholder="请输入分拨中心" disabled />
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>操作类型</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select" id="formOpType">
+                <option value="" disabled selected hidden>请选择操作类型</option>
+                <option value="卸车">卸车</option>
+                <option value="移动">移动</option>
+                <option value="装车">装车</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>开始时间</span>
+            <div class="form-control-wrap">
+              <input class="form-control" type="text" placeholder="请选择开始时间" readonly />
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>结束时间</span>
+            <div class="form-control-wrap">
+              <input class="form-control" type="text" placeholder="请选择结束时间" readonly />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">匹配条件</div>
+        <div class="form-grid">
+          <div class="form-item">
+            <span class="form-label">重/抛货</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="" disabled selected hidden>请选择</option>
+                <option>重货</option>
+                <option>抛货</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">任务类型</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="">全部</option>
+                <option>分拨</option>
+                <option>服务站</option>
+                <option>集配站</option>
+                <option>网点</option>
+                <option>智运分拨</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item station-item">
+            <select class="form-control form-select station-type">
+              <option selected>上一站网点</option>
+              <option>上一站分拨</option>
+              <option>上一站省区</option>
+            </select>
+            <div class="form-control-wrap">
+              <div class="station-field">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <label class="station-check"><input type="checkbox" /> 包含二级</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-item station-item">
+            <select class="form-control form-select station-type">
+              <option selected>下一站网点</option>
+              <option>下一站分拨</option>
+              <option>下一站省区</option>
+            </select>
+            <div class="form-control-wrap">
+              <div class="station-field">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <label class="station-check"><input type="checkbox" /> 包含二级</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-item station-item">
+            <select class="form-control form-select station-type">
+              <option selected>开单网点</option>
+              <option>开单分拨</option>
+              <option>开单省区</option>
+            </select>
+            <div class="form-control-wrap">
+              <div class="station-field">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <label class="station-check"><input type="checkbox" /> 包含二级</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">产品类型</span>
+            <div class="form-control-wrap">
+              <div class="ms-select" data-placeholder="全部">
+                <div class="ms-select-trigger">
+                  <span class="ms-placeholder">全部</span>
+                </div>
+                <div class="ms-select-panel">
+                  <label class="ms-option"><input type="checkbox" value="标准快运" /> 标准快运</label>
+                  <label class="ms-option"><input type="checkbox" value="整车" /> 整车</label>
+                  <label class="ms-option"><input type="checkbox" value="530产品" /> 530产品</label>
+                  <label class="ms-option"><input type="checkbox" value="电商大件" /> 电商大件</label>
+                  <label class="ms-option"><input type="checkbox" value="电商件" /> 电商件</label>
+                  <label class="ms-option"><input type="checkbox" value="合同物流" /> 合同物流</label>
+                  <label class="ms-option"><input type="checkbox" value="快运小件" /> 快运小件</label>
+                  <label class="ms-option"><input type="checkbox" value="安心寄" /> 安心寄</label>
+                  <label class="ms-option"><input type="checkbox" value="星联大件" /> 星联大件</label>
+                  <label class="ms-option"><input type="checkbox" value="航空件" /> 航空件</label>
+                  <label class="ms-option"><input type="checkbox" value="同城特惠" /> 同城特惠</label>
+                  <label class="ms-option"><input type="checkbox" value="区域件" /> 区域件</label>
+                  <label class="ms-option"><input type="checkbox" value="智运大票零担" /> 智运大票零担</label>
+                  <label class="ms-option"><input type="checkbox" value="逆向物流" /> 逆向物流</label>
+                  <label class="ms-option"><input type="checkbox" value="智运标准件" /> 智运标准件</label>
+                  <label class="ms-option"><input type="checkbox" value="放心寄" /> 放心寄</label>
+                  <label class="ms-option"><input type="checkbox" value="智运大票专线" /> 智运大票专线</label>
+                  <label class="ms-option"><input type="checkbox" value="大票直送" /> 大票直送</label>
+                  <label class="ms-option"><input type="checkbox" value="大票专线" /> 大票专线</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">物品类型</span>
+            <div class="form-control-wrap">
+              <div class="ms-select" data-placeholder="全部">
+                <div class="ms-select-trigger">
+                  <span class="ms-placeholder">全部</span>
+                </div>
+                <div class="ms-select-panel">
+                  <label class="ms-option"><input type="checkbox" value="总部仓管物料" /> 总部仓管物料</label>
+                  <label class="ms-option"><input type="checkbox" value="家具/家居" /> 家具/家居</label>
+                  <label class="ms-option"><input type="checkbox" value="家纺家饰" /> 家纺家饰</label>
+                  <label class="ms-option"><input type="checkbox" value="电气/电子/安防" /> 电气/电子/安防</label>
+                  <label class="ms-option"><input type="checkbox" value="加工食品/饮料" /> 加工食品/饮料</label>
+                  <label class="ms-option"><input type="checkbox" value="服装/鞋/帽" /> 服装/鞋/帽</label>
+                  <label class="ms-option"><input type="checkbox" value="药品" /> 药品</label>
+                  <label class="ms-option"><input type="checkbox" value="交通运输设备/机械设备" /> 交通运输设备/机械设备</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">物品名称</span>
+            <div class="form-control-wrap">
+              <div class="match-pair">
+                <select class="form-control form-select">
+                  <option selected>等于</option>
+                  <option>包含</option>
+                </select>
+                <input class="form-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">包装类型</span>
+            <div class="form-control-wrap">
+              <div class="match-pair">
+                <select class="form-control form-select">
+                  <option selected>等于</option>
+                  <option>包含</option>
+                </select>
+                <input class="form-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">寄件人</span>
+            <div class="form-control-wrap">
+              <input class="form-control" type="text" placeholder="请输入" />
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">是否审报物品</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="" disabled selected hidden>请选择</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">订单来源</span>
+            <div class="form-control-wrap">
+              <div class="ms-select" data-placeholder="全部">
+                <div class="ms-select-trigger">
+                  <span class="ms-placeholder">全部</span>
+                </div>
+                <div class="ms-select-panel">
+                  <label class="ms-option"><input type="checkbox" value="呼叫中心" /> 呼叫中心</label>
+                  <label class="ms-option"><input type="checkbox" value="官网" /> 官网</label>
+                  <label class="ms-option"><input type="checkbox" value="阿里巴巴" /> 阿里巴巴</label>
+                  <label class="ms-option"><input type="checkbox" value="微信" /> 微信</label>
+                  <label class="ms-option"><input type="checkbox" value="科捷" /> 科捷</label>
+                  <label class="ms-option"><input type="checkbox" value="用友" /> 用友</label>
+                  <label class="ms-option"><input type="checkbox" value="慧聪网" /> 慧聪网</label>
+                  <label class="ms-option"><input type="checkbox" value="TCL" /> TCL</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">是否电商件</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="" disabled selected hidden>请选择</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title" id="adjSectionTitle">调整比例</div>
+        <div class="radio-group" id="intervalModeGroup">
+          <label class="radio-item"><input type="radio" name="intervalMode" value="none" checked /> 不区分</label>
+          <label class="radio-item"><input type="radio" name="intervalMode" value="interval" /> 按区间配置</label>
+        </div>
+
+        <div class="flat-adj" id="flatAdjPanel">
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>轻实重调整</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="" disabled selected hidden>请选择</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>自有调整</span>
+            <div class="form-control-wrap">
+              <div class="pct-group">
+                <select class="pct-dir"><option value="+">+</option><option value="-">-</option></select>
+                <input class="pct-input" type="text" placeholder="请输入" />
+                <span class="pct-suffix">%</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>外包调整</span>
+            <div class="form-control-wrap">
+              <div class="pct-group">
+                <select class="pct-dir"><option value="+">+</option><option value="-">-</option></select>
+                <input class="pct-input" type="text" placeholder="请输入" />
+                <span class="pct-suffix">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="price-adj hidden" id="flatPricePanel">
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>自有吨补贴价</span>
+            <div class="form-control-wrap">
+              <div class="price-input-wrap">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <span class="price-unit">元</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>自有托补贴价</span>
+            <div class="form-control-wrap">
+              <div class="price-input-wrap">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <span class="price-unit">元</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>外包吨补贴价</span>
+            <div class="form-control-wrap">
+              <div class="price-input-wrap">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <span class="price-unit">元</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>外包托补贴价</span>
+            <div class="form-control-wrap">
+              <div class="price-input-wrap">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <span class="price-unit">元</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="interval-panel hidden" id="intervalPanel">
+          <div class="dim-box">
+            <div class="dim-box-title">区间维度 <span class="hint">（可多选，至少 1 项）</span></div>
+            <div class="dim-groups" id="dimGroups"></div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="config-header" id="configHeader">
+              <div class="col-interval">维度区间</div>
+              <div class="col-adj" data-pct>轻实重调整</div>
+              <div class="col-adj" data-pct>自有调整</div>
+              <div class="col-adj" data-pct>外包调整</div>
+              <div class="col-adj hidden" data-price>自有吨补贴价</div>
+              <div class="col-adj hidden" data-price>自有托补贴价</div>
+              <div class="col-adj hidden" data-price>外包吨补贴价</div>
+              <div class="col-adj hidden" data-price>外包托补贴价</div>
+              <div class="col-ops">操作</div>
+            </div>
+            <div class="config-body" id="configBody"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalForm">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalForm">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量编辑结束时间 -->
+<div class="modal-mask" id="modalBatchEnd">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">批量编辑结束时间</div>
+      <button class="modal-close" type="button" data-close="modalBatchEnd">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <span class="form-label"><span class="req">*</span>结束时间</span>
+        <div class="form-control-wrap">
+          <input class="form-control" type="text" placeholder="请选择结束时间" readonly />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalBatchEnd">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalBatchEnd">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 终止 -->
+<div class="modal-mask" id="modalTerminate">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">终止</div>
+      <button class="modal-close" type="button" data-close="modalTerminate">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text">终止后不可撤销，请确认是否终止！（共 1 条）</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalTerminate">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalTerminate">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const OP_REALTIME = ['卸车', '移动', '装车'];
+  const OP_PIPELINE = ['卸车', '移动', '码货', '直装'];
+  let currentTab = 'realtime';
+
+  function fillOpSelect(selectEl, list, withEmpty) {
+    if (!selectEl) return;
+    const cur = selectEl.value;
+    selectEl.innerHTML = '';
+    if (withEmpty) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = '请选择操作类型';
+      opt.disabled = true;
+      opt.selected = true;
+      opt.hidden = true;
+      selectEl.appendChild(opt);
+    }
+    list.forEach(function (name) {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      selectEl.appendChild(opt);
+    });
+    if ([].some.call(selectEl.options, function (o) { return o.value === cur; })) {
+      selectEl.value = cur;
+    }
+  }
+
+  function syncOpTypeOptions() {
+    const list = currentTab === 'pipeline' ? OP_PIPELINE : OP_REALTIME;
+    fillOpSelect(document.getElementById('filterOpType'), list, true);
+    fillOpSelect(document.getElementById('formOpType'), list, true);
+    updatePalletDimDisabled();
+  }
+
+  document.getElementById('sidebarToggle').addEventListener('click', function () {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('contentTabs').addEventListener('click', function (e) {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('.content-tab').forEach(function (t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    currentTab = tab.dataset.ctab;
+    syncOpTypeOptions();
+  });
+
+  document.getElementById('checkAll').addEventListener('change', function () {
+    document.querySelectorAll('.row-check').forEach(function (cb) { cb.checked = this.checked; }.bind(this));
+  });
+
+  function openModal(id) {
+    document.getElementById(id).classList.add('show');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+  document.querySelectorAll('[data-close]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      closeModal(el.getAttribute('data-close'));
+    });
+  });
+  document.querySelectorAll('.modal-mask').forEach(function (mask) {
+    mask.addEventListener('click', function (e) {
+      if (e.target === mask) mask.classList.remove('show');
+    });
+  });
+
+  document.getElementById('btnAdd').addEventListener('click', function () {
+    document.getElementById('formModalTitle').textContent = '新增';
+    syncAdjPanels();
+    openModal('modalForm');
+  });
+  document.getElementById('btnEdit').addEventListener('click', function () {
+    document.getElementById('formModalTitle').textContent = '编辑';
+    syncAdjPanels();
+    openModal('modalForm');
+  });
+  document.getElementById('btnBatchEnd').addEventListener('click', function () {
+    openModal('modalBatchEnd');
+  });
+  document.getElementById('btnTerminate').addEventListener('click', function () {
+    openModal('modalTerminate');
+  });
+
+  /* 多选下拉（适用类型 / 产品类型 / 物品类型 / 订单来源） */
+  function renderMsTrigger(root) {
+    const trigger = root.querySelector('.ms-select-trigger');
+    const placeholder = root.getAttribute('data-placeholder') || '请选择';
+    const selected = [].map.call(
+      root.querySelectorAll('input[type="checkbox"]:checked'),
+      function (cb) { return cb.value; }
+    );
+    if (!selected.length) {
+      trigger.innerHTML = '<span class="ms-placeholder">' + placeholder + '</span>';
+    } else {
+      trigger.innerHTML = selected.map(function (v) {
+        return '<span class="ms-tag">' + v + '</span>';
+      }).join('');
+    }
+  }
+
+  function clearMsSelect(root) {
+    root.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.checked = false; });
+    root.classList.remove('open');
+    renderMsTrigger(root);
+  }
+
+  document.querySelectorAll('.ms-select').forEach(function (root) {
+    const trigger = root.querySelector('.ms-select-trigger');
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (root.classList.contains('disabled')) return;
+      document.querySelectorAll('.ms-select.open').forEach(function (other) {
+        if (other !== root) other.classList.remove('open');
+      });
+      root.classList.toggle('open');
+    });
+    root.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () { renderMsTrigger(root); });
+      cb.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+    root.addEventListener('click', function (e) { e.stopPropagation(); });
+    renderMsTrigger(root);
+  });
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.ms-select.open').forEach(function (el) { el.classList.remove('open'); });
+  });
+
+  /* 维度联动：适用类型 / 分拨中心 */
+  const formApplyType = document.getElementById('formApplyType');
+  const formDimension = document.getElementById('formDimension');
+  const formDc = document.getElementById('formDc');
+  formDimension.addEventListener('change', function () {
+    const v = formDimension.value;
+    if (v === '全国') {
+      formApplyType.classList.remove('disabled');
+      formDc.disabled = true;
+      formDc.value = '';
+      formDc.placeholder = '全国维度不可填写分拨中心';
+    } else if (v === '分拨') {
+      formApplyType.classList.add('disabled');
+      clearMsSelect(formApplyType);
+      formDc.disabled = false;
+      formDc.placeholder = '请输入分拨中心';
+    } else {
+      formApplyType.classList.add('disabled');
+      clearMsSelect(formApplyType);
+      formDc.disabled = true;
+      formDc.value = '';
+      formDc.placeholder = '请输入分拨中心';
+    }
+  });
+
+  function isPriceScheme() {
+    return document.getElementById('formSchemeType').value === '特殊单价方案';
+  }
+
+  function syncAdjPanels() {
+    const isInterval = document.querySelector('input[name="intervalMode"]:checked').value === 'interval';
+    const price = isPriceScheme();
+    document.getElementById('adjSectionTitle').textContent = price ? '单价录入' : '调整比例';
+    document.getElementById('flatAdjPanel').classList.toggle('hidden', isInterval || price);
+    document.getElementById('flatPricePanel').classList.toggle('hidden', isInterval || !price);
+    document.getElementById('intervalPanel').classList.toggle('hidden', !isInterval);
+    const header = document.getElementById('configHeader');
+    header.classList.toggle('is-price', price);
+    header.querySelectorAll('[data-pct]').forEach(function (el) { el.classList.toggle('hidden', price); });
+    header.querySelectorAll('[data-price]').forEach(function (el) { el.classList.toggle('hidden', !price); });
+    if (isInterval) {
+      rebuildTree(true);
+      renderDimGroups();
+      renderConfig();
+    }
+  }
+
+  document.querySelectorAll('input[name="intervalMode"]').forEach(function (radio) {
+    radio.addEventListener('change', syncAdjPanels);
+  });
+  document.getElementById('formSchemeType').addEventListener('change', syncAdjPanels);
+
+  /* ========== 区间维度配置（嵌套树交互，来自区间维度配置.html） ========== */
+  const MAX_WV = 99999.99;
+  const MAX_PC = 999999;
+  const GROUPS = [
+    { id: 'ticket', name: '票' },
+    { id: 'pallet', name: '子托' },
+    { id: 'piece', name: '件' },
+  ];
+  const DIMS = [
+    { key: 'ticket_weight',  group: 'ticket', type: 'weight',  label: '票-操作结算重量段', pallet: false },
+    { key: 'ticket_volume',  group: 'ticket', type: 'volume',  label: '票-体积段', pallet: false },
+    { key: 'ticket_pieces',  group: 'ticket', type: 'pieces',  label: '票-件数段', pallet: false },
+    { key: 'pallet_weight',  group: 'pallet', type: 'weight',  label: '子托-操作结算重量段', pallet: true },
+    { key: 'pallet_volume',  group: 'pallet', type: 'volume',  label: '子托-体积段', pallet: true },
+    { key: 'pallet_pieces',  group: 'pallet', type: 'pieces',  label: '子托-件数段', pallet: true },
+    { key: 'piece_weight',   group: 'piece',  type: 'weight',  label: '件-操作结算重量段', pallet: false },
+    { key: 'piece_volume',   group: 'piece',  type: 'volume',  label: '件-体积段', pallet: false },
+  ];
+
+  let selectedKeys = new Set(['ticket_weight', 'ticket_pieces']);
+  let prevDimKeys = ['ticket_weight', 'ticket_pieces'];
+  let tree = [];
+  let uid = 1;
+
+  function nextId() { return 'r' + (uid++); }
+
+  function isPalletAllowed() {
+    return document.getElementById('formOpType').value === '移动';
+  }
+
+  function updatePalletDimDisabled() {
+    const allow = isPalletAllowed();
+    if (!allow) {
+      DIMS.filter(function (d) { return d.pallet; }).forEach(function (d) {
+        selectedKeys.delete(d.key);
+      });
+      if (selectedKeys.size === 0) selectedKeys.add('ticket_weight');
+      rebuildTree(true);
+    }
+    if (!document.getElementById('intervalPanel').classList.contains('hidden')) {
+      renderDimGroups();
+      renderConfig();
+    }
+  }
+
+  document.getElementById('formOpType').addEventListener('change', updatePalletDimDisabled);
+
+  function getSortedSelectedDims() {
+    return DIMS.filter(function (d) { return selectedKeys.has(d.key); });
+  }
+
+  function createRow(depth, dimKeys) {
+    const keys = dimKeys || getSortedSelectedDims().map(function (d) { return d.key; });
+    const row = {
+      id: nextId(), min: '', max: '', light: '',
+      ownDir: '+', ownVal: '', outDir: '+', outVal: '',
+      ownTon: '', ownPallet: '', outTon: '', outPallet: '',
+      children: [],
+    };
+    if (depth < keys.length - 1) {
+      row.children = [createRow(depth + 1, keys)];
+    }
+    return row;
+  }
+
+  function collectLeaves(nodes, dimKeys, depth, prefix) {
+    if (!dimKeys.length || !nodes.length) return [];
+    const results = [];
+    const key = dimKeys[depth];
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      const current = Object.assign({}, prefix, {
+        [key]: { min: node.min, max: node.max },
+      });
+      if (depth === dimKeys.length - 1) {
+        results.push({
+          intervals: current,
+          adj: {
+            light: node.light, ownDir: node.ownDir, ownVal: node.ownVal,
+            outDir: node.outDir, outVal: node.outVal,
+            ownTon: node.ownTon, ownPallet: node.ownPallet,
+            outTon: node.outTon, outPallet: node.outPallet,
+          },
+        });
+      } else {
+        const subs = collectLeaves(node.children || [], dimKeys, depth + 1, current);
+        if (subs.length === 0) results.push({ intervals: current, adj: {} });
+        else results.push.apply(results, subs);
+      }
+    }
+    return results;
+  }
+
+  function buildTreeFromLeaves(leaves, dimKeys) {
+    if (!dimKeys.length) return [];
+    if (dimKeys.length === 1) {
+      const key = dimKeys[0];
+      if (!leaves.length) return [createRow(0, dimKeys)];
+      return leaves.map(function (leaf) {
+        const iv = (leaf.intervals && leaf.intervals[key]) || { min: '', max: '' };
+        const adj = leaf.adj || {};
+        return {
+          id: nextId(), min: iv.min, max: iv.max,
+          light: adj.light || '', ownDir: adj.ownDir || '+', ownVal: adj.ownVal || '',
+          outDir: adj.outDir || '+', outVal: adj.outVal || '',
+          ownTon: adj.ownTon || '', ownPallet: adj.ownPallet || '',
+          outTon: adj.outTon || '', outPallet: adj.outPallet || '',
+          children: [],
+        };
+      });
+    }
+    const key = dimKeys[0];
+    const rest = dimKeys.slice(1);
+    const groups = [];
+    const map = new Map();
+    leaves.forEach(function (leaf) {
+      const iv = (leaf.intervals && leaf.intervals[key]) || { min: '', max: '' };
+      const gk = iv.min + '\0' + iv.max;
+      if (!map.has(gk)) {
+        const g = { interval: iv, leaves: [] };
+        map.set(gk, g);
+        groups.push(g);
+      }
+      const subIntervals = {};
+      rest.forEach(function (k) {
+        if (leaf.intervals && leaf.intervals[k]) subIntervals[k] = leaf.intervals[k];
+      });
+      map.get(gk).leaves.push({ intervals: subIntervals, adj: leaf.adj || {} });
+    });
+    if (!groups.length) return [createRow(0, dimKeys)];
+    return groups.map(function (g) {
+      return {
+        id: nextId(), min: g.interval.min, max: g.interval.max,
+        light: '', ownDir: '+', ownVal: '', outDir: '+', outVal: '',
+        ownTon: '', ownPallet: '', outTon: '', outPallet: '',
+        children: buildTreeFromLeaves(g.leaves, rest),
+      };
+    });
+  }
+
+  function rebuildTree(preserve) {
+    const dimKeys = getSortedSelectedDims().map(function (d) { return d.key; });
+    if (dimKeys.length === 0) {
+      tree = [];
+      prevDimKeys = [];
+      return;
+    }
+    if (!preserve || tree.length === 0) {
+      tree = [createRow(0, dimKeys)];
+      prevDimKeys = dimKeys.slice();
+      return;
+    }
+    const keptKeys = dimKeys.filter(function (k) { return prevDimKeys.indexOf(k) >= 0; });
+    const leaves = collectLeaves(tree, prevDimKeys, 0, {});
+    const filtered = leaves.map(function (leaf) {
+      const intervals = {};
+      keptKeys.forEach(function (k) {
+        if (leaf.intervals[k]) intervals[k] = { min: leaf.intervals[k].min, max: leaf.intervals[k].max };
+      });
+      const isLeaf = dimKeys[dimKeys.length - 1];
+      const hadRemoved = prevDimKeys.some(function (k) { return dimKeys.indexOf(k) < 0; });
+      return {
+        intervals: intervals,
+        adj: hadRemoved && keptKeys.indexOf(isLeaf) < 0 ? {} : (leaf.adj || {}),
+      };
+    });
+    tree = buildTreeFromLeaves(filtered.length ? filtered : [], dimKeys);
+    if (!tree.length) tree = [createRow(0, dimKeys)];
+    prevDimKeys = dimKeys.slice();
+  }
+
+  function renderDimGroups() {
+    const container = document.getElementById('dimGroups');
+    const allowPallet = isPalletAllowed();
+    container.innerHTML = GROUPS.map(function (g) {
+      const opts = DIMS.filter(function (d) { return d.group === g.id; }).map(function (d) {
+        const disabled = d.pallet && !allowPallet;
+        const checked = selectedKeys.has(d.key) ? 'checked' : '';
+        return '<label class="dim-option' + (disabled ? ' disabled' : '') + '">' +
+          '<input type="checkbox" data-key="' + d.key + '" ' + checked + (disabled ? ' disabled' : '') + ' />' +
+          '<span>' + d.label + '</span></label>';
+      }).join('');
+      return '<div class="dim-group"><div class="dim-group-name">' + g.name + '</div><div class="dim-options">' + opts + '</div></div>';
+    }).join('');
+
+    container.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        const key = cb.dataset.key;
+        if (cb.checked) selectedKeys.add(key);
+        else {
+          if (selectedKeys.size <= 1) {
+            cb.checked = true;
+            alert('至少保留 1 个区间维度');
+            return;
+          }
+          selectedKeys.delete(key);
+        }
+        rebuildTree(true);
+        renderConfig();
+      });
+    });
+  }
+
+  function validateInterval(dim, minStr, maxStr) {
+    const errors = [];
+    const isPieces = dim.type === 'pieces';
+    if (minStr === '' || maxStr === '') {
+      errors.push('上下限均为必填');
+      return errors;
+    }
+    if (isPieces) {
+      if (!/^\d+$/.test(minStr) || !/^\d+$/.test(maxStr)) {
+        errors.push('件数段仅支持正整数');
+        return errors;
+      }
+      const min = parseInt(minStr, 10);
+      const max = parseInt(maxStr, 10);
+      if (min <= 0 || max <= 0) errors.push('件数须为正整数');
+      if (min >= max) errors.push('下限须小于上限（前闭后开）');
+    } else {
+      if (!/^\d{1,5}(\.\d{1,2})?$/.test(minStr) || !/^\d{1,5}(\.\d{1,2})?$/.test(maxStr)) {
+        errors.push('最多 5 位整数 + 2 位小数');
+        return errors;
+      }
+      if (parseFloat(minStr) >= parseFloat(maxStr)) errors.push('下限须小于上限（前闭后开）');
+      if (parseFloat(maxStr) > MAX_WV) errors.push('上限不超过 ' + MAX_WV);
+    }
+    return errors;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  function renderRow(node, depth, dim, siblings, sibIndex, parentPath) {
+    const dims = getSortedSelectedDims();
+    const isLeaf = depth === dims.length - 1;
+    const indent = depth * 28;
+    const seq = sibIndex + 1;
+    const path = parentPath + '/' + node.id;
+    const errors = validateInterval(dim, node.min, node.max);
+    const errHtml = errors.length ? '<div style="font-size:11px;color:#ff4d4f;width:100%;">' + errors[0] + '</div>' : '';
+
+    const intervalHtml =
+      '<div class="row-interval" style="padding-left:' + indent + 'px">' +
+      '<span class="row-label">' + dim.label + ' ' + seq + '</span>' +
+      '<input class="interval-input" type="text" data-path="' + path + '" data-field="min" value="' + esc(node.min) + '" placeholder="下限" />' +
+      '<span class="interval-sep">—</span>' +
+      '<input class="interval-input" type="text" data-path="' + path + '" data-field="max" value="' + esc(node.max) + '" placeholder="上限" />' +
+      errHtml + '</div>';
+
+    const priceMode = isPriceScheme();
+    let adjHtml;
+    if (isLeaf) {
+      if (priceMode) {
+        adjHtml =
+          '<div class="col-adj-cell"><div class="price-input-wrap">' +
+          '<input class="interval-input" type="text" data-path="' + path + '" data-field="ownTon" value="' + esc(node.ownTon || '') + '" placeholder="请输入" />' +
+          '<span class="price-unit">元</span></div></div>' +
+          '<div class="col-adj-cell"><div class="price-input-wrap">' +
+          '<input class="interval-input" type="text" data-path="' + path + '" data-field="ownPallet" value="' + esc(node.ownPallet || '') + '" placeholder="请输入" />' +
+          '<span class="price-unit">元</span></div></div>' +
+          '<div class="col-adj-cell"><div class="price-input-wrap">' +
+          '<input class="interval-input" type="text" data-path="' + path + '" data-field="outTon" value="' + esc(node.outTon || '') + '" placeholder="请输入" />' +
+          '<span class="price-unit">元</span></div></div>' +
+          '<div class="col-adj-cell"><div class="price-input-wrap">' +
+          '<input class="interval-input" type="text" data-path="' + path + '" data-field="outPallet" value="' + esc(node.outPallet || '') + '" placeholder="请输入" />' +
+          '<span class="price-unit">元</span></div></div>';
+      } else {
+        adjHtml =
+          '<div class="col-adj-cell">' +
+          '<select class="adj-select ' + (node.light ? 'has-value' : '') + '" data-path="' + path + '" data-field="light">' +
+          '<option value="" disabled hidden ' + (node.light === '' ? 'selected' : '') + '>请选择</option>' +
+          '<option value="是" ' + (node.light === '是' ? 'selected' : '') + '>是</option>' +
+          '<option value="否" ' + (node.light === '否' ? 'selected' : '') + '>否</option>' +
+          '</select></div>' +
+          '<div class="col-adj-cell"><div class="pct-group">' +
+          '<select class="pct-dir" data-path="' + path + '" data-field="ownDir">' +
+          '<option value="+" ' + (node.ownDir === '+' ? 'selected' : '') + '>+</option>' +
+          '<option value="-" ' + (node.ownDir === '-' ? 'selected' : '') + '>-</option></select>' +
+          '<input class="pct-input" type="text" data-path="' + path + '" data-field="ownVal" value="' + esc(node.ownVal) + '" placeholder="0" />' +
+          '<span class="pct-suffix">%</span></div></div>' +
+          '<div class="col-adj-cell"><div class="pct-group">' +
+          '<select class="pct-dir" data-path="' + path + '" data-field="outDir">' +
+          '<option value="+" ' + (node.outDir === '+' ? 'selected' : '') + '>+</option>' +
+          '<option value="-" ' + (node.outDir === '-' ? 'selected' : '') + '>-</option></select>' +
+          '<input class="pct-input" type="text" data-path="' + path + '" data-field="outVal" value="' + esc(node.outVal) + '" placeholder="0" />' +
+          '<span class="pct-suffix">%</span></div></div>';
+      }
+    } else if (priceMode) {
+      adjHtml =
+        '<div class="col-adj-cell empty"></div>' +
+        '<div class="col-adj-cell empty"></div>' +
+        '<div class="col-adj-cell empty"></div>' +
+        '<div class="col-adj-cell empty"></div>';
+    } else {
+      adjHtml =
+        '<div class="col-adj-cell empty"></div>' +
+        '<div class="col-adj-cell empty"></div>' +
+        '<div class="col-adj-cell empty"></div>';
+    }
+
+    const showDel = siblings.length > 1;
+    const opsHtml =
+      '<div class="row-ops">' +
+      '<button type="button" class="btn-circle btn-add" data-action="add" data-path="' + path + '" data-depth="' + depth + '" title="新增同层级行">+</button>' +
+      (showDel ? '<button type="button" class="btn-circle btn-del" data-action="del" data-path="' + path + '" data-depth="' + depth + '" title="删除当前行">−</button>' : '') +
+      '</div>';
+
+    let html = '<div class="config-row' + (priceMode ? ' is-price' : '') + '" data-path="' + path + '">' + intervalHtml + adjHtml + opsHtml + '</div>';
+    if (!isLeaf && node.children) {
+      const childDim = dims[depth + 1];
+      node.children.forEach(function (child, ci) {
+        html += renderRow(child, depth + 1, childDim, node.children, ci, path);
+      });
+    }
+    return html;
+  }
+
+  function renderConfig() {
+    const body = document.getElementById('configBody');
+    const dims = getSortedSelectedDims();
+    if (dims.length === 0) {
+      body.innerHTML = '<div class="config-empty">请先勾选至少 1 个区间维度</div>';
+      return;
+    }
+    body.innerHTML = tree.map(function (root, ri) {
+      return '<div class="config-group">' + renderRow(root, 0, dims[0], tree, ri, '') + '</div>';
+    }).join('');
+    bindEvents();
+  }
+
+  function findNodeByPath(pathStr) {
+    const parts = pathStr.split('/').filter(Boolean);
+    let list = tree;
+    let node = null;
+    for (let i = 0; i < parts.length; i++) {
+      node = list.find(function (n) { return n.id === parts[i]; });
+      if (!node) return null;
+      list = node.children || [];
+    }
+    return node;
+  }
+
+  function findParentList(pathStr) {
+    const parts = pathStr.split('/').filter(Boolean);
+    if (parts.length === 1) {
+      return { list: tree, index: tree.findIndex(function (n) { return n.id === parts[0]; }) };
+    }
+    const parentPath = '/' + parts.slice(0, -1).join('/');
+    const parent = findNodeByPath(parentPath);
+    const id = parts[parts.length - 1];
+    return { list: parent.children, index: parent.children.findIndex(function (n) { return n.id === id; }) };
+  }
+
+  function sanitizeInput(dim, field, raw) {
+    if (field !== 'min' && field !== 'max') return raw;
+    if (dim.type === 'pieces') return raw.replace(/\D/g, '').slice(0, 6);
+    const cleaned = raw.replace(/[^\d.]/g, '');
+    const parts = cleaned.split('.');
+    const intPart = parts[0].slice(0, 5);
+    const decPart = parts.length > 1 ? parts[1].slice(0, 2) : '';
+    return decPart ? intPart + '.' + decPart : intPart;
+  }
+
+  function bindEvents() {
+    document.querySelectorAll('#configBody [data-field]').forEach(function (el) {
+      const handler = function () {
+        const node = findNodeByPath(el.dataset.path);
+        if (!node) return;
+        const parts = el.dataset.path.split('/').filter(Boolean);
+        const depth = parts.length - 1;
+        const dims = getSortedSelectedDims();
+        const dim = dims[depth];
+        let val = el.value;
+        if (el.dataset.field === 'min' || el.dataset.field === 'max') {
+          val = sanitizeInput(dim, el.dataset.field, val);
+          el.value = val;
+        }
+        node[el.dataset.field] = val;
+        if (el.dataset.field === 'light') el.classList.toggle('has-value', el.value !== '');
+        if (el.dataset.field === 'min' || el.dataset.field === 'max') {
+          const errs = validateInterval(dim, node.min, node.max);
+          el.classList.toggle('error', errs.length > 0 && (node.min !== '' || node.max !== ''));
+        }
+      };
+      el.addEventListener('input', handler);
+      el.addEventListener('change', handler);
+      el.addEventListener('blur', handler);
+    });
+
+    document.querySelectorAll('#configBody [data-action]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const depth = parseInt(btn.dataset.depth, 10);
+        const info = findParentList(btn.dataset.path);
+        if (btn.dataset.action === 'add') {
+          const newRow = createRow(depth, getSortedSelectedDims().map(function (d) { return d.key; }));
+          info.list.splice(info.index + 1, 0, newRow);
+        } else if (btn.dataset.action === 'del' && info.list.length > 1) {
+          info.list.splice(info.index, 1);
+        }
+        renderConfig();
+      });
+    });
+  }
+
+  rebuildTree(false);
+  renderDimGroups();
+  syncOpTypeOptions();
+})();
+</script>
+
+</body>
+</html>
