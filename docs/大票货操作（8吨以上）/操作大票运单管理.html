@@ -846,7 +846,7 @@
         </nav>
 
         <section class="action-bar panel active" data-panel="summary">
-          <button class="btn-action primary" type="button" id="btnUnload" disabled>卸出并通知</button>
+          <button class="btn-action primary" type="button" id="btnUnload" disabled>到件并通知</button>
           <button class="btn-action" type="button">导出</button>
         </section>
 
@@ -1379,10 +1379,10 @@
 <div class="modal-mask" id="unloadMask">
   <div class="modal confirm">
     <div class="modal-header">
-      <span>卸出并通知</span>
+      <span>到件并通知</span>
       <button type="button" class="modal-close" id="unloadClose">×</button>
     </div>
-    <div class="confirm-body" id="unloadBody">确认对所选运单电脑卸出并通知提货吗？本次只写轨迹、不计货量，系统自动发短信。</div>
+    <div class="confirm-body" id="unloadBody">确认对所选运单到件并通知提货吗？本次只写轨迹、不计货量，系统自动发短信。</div>
     <div class="modal-footer">
       <button class="btn" type="button" id="unloadCancel">取消</button>
       <button class="btn btn-primary" type="button" id="unloadOk">确定</button>
@@ -1504,7 +1504,7 @@
       showToast('请选择已到车且未卸出的中心自提运单');
       return;
     }
-    document.getElementById('unloadBody').textContent = '确认对所选运单电脑卸出并通知提货吗？本次只写轨迹、不计货量，系统自动发短信。';
+    document.getElementById('unloadBody').textContent = '确认对所选运单到件并通知提货吗？本次只写轨迹、不计货量，系统自动发短信。';
     unloadMask.classList.add('open');
   });
   function closeUnload() { unloadMask.classList.remove('open'); }
