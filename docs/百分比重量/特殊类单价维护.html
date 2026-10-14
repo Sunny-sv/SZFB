@@ -1,0 +1,2682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>特殊类单价维护</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0659d9;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 48px;
+      --green: #52c41a;
+      --red: #ff4d4f;
+      --adj-down: #BD3124;
+      --adj-up: #81B337;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+
+    .top-header {
+      height: var(--header-height);
+      display: flex;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .brand-area {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: width .2s;
+      letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area {
+      width: var(--sidebar-collapsed);
+      padding: 0 8px;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+
+    .top-tabs {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      background: var(--header-blue);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn,
+    .top-tabs .home-btn {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 18px;
+      flex-shrink: 0;
+      opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover,
+    .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+
+    .page-tabs {
+      display: flex;
+      align-items: flex-end;
+      flex: 1;
+      overflow-x: auto;
+      gap: 4px;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 36px;
+      border-radius: 6px 6px 0 0;
+      color: rgba(255,255,255,.95);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active {
+      background: #fff;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .7;
+      margin-left: 2px;
+    }
+    .page-tab.active .tab-close { opacity: .45; color: var(--text-secondary); }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px 6px 12px;
+      color: #fff;
+      flex-shrink: 0;
+      align-self: flex-end;
+      height: 42px;
+    }
+    .top-right .icon-btn {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .top-right .icon-btn .badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+      padding: 0 4px 0 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 32px;
+    }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #722ed1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+
+    .body-row { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px 16px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 118px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-label.wide { flex: 0 0 138px; }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range,
+    .filter-item .filter-control-wrap > .ms-select {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .date-range { display: flex; align-items: center; gap: 6px; }
+    .date-range .filter-control { flex: 1; min-width: 0; padding: 0 8px; }
+    .date-range .sep { color: var(--text-secondary); font-size: 12px; flex-shrink: 0; }
+
+    .tag-select {
+      min-height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 28px 2px 6px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+      background: #fff;
+      cursor: pointer;
+      position: relative;
+    }
+    .tag-select::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 22px;
+      padding: 0 6px;
+      background: #f5f5f5;
+      border: 1px solid #e8e8e8;
+      border-radius: 2px;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .tag .tag-x { color: var(--text-secondary); font-size: 12px; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th,
+    .data-table td { border: 1px solid var(--border); padding: 8px 10px; text-align: center; }
+    .data-table th {
+      background: #fafafa;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .cell-muted { color: var(--text-secondary); }
+    .adj-down { color: var(--adj-down); }
+    .adj-up { color: var(--adj-up); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    /* 弹框 */
+    .modal-mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 4px;
+      width: min(1100px, 96vw);
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 24px rgba(0,0,0,.15);
+    }
+    .modal.modal-sm { width: min(480px, 96vw); }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .modal-title { font-size: 16px; font-weight: 600; }
+    .modal-close {
+      width: 28px; height: 28px;
+      border: none; background: transparent;
+      font-size: 18px; cursor: pointer; color: var(--text-secondary);
+      border-radius: 4px;
+    }
+    .modal-close:hover { background: #f5f5f5; color: var(--text); }
+    .modal-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .form-section { margin-bottom: 20px; }
+    .form-section:last-child { margin-bottom: 0; }
+    .form-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .form-section-title::before {
+      content: "";
+      width: 3px;
+      height: 14px;
+      background: var(--primary);
+      border-radius: 1px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px 20px;
+    }
+    .form-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      min-width: 0;
+    }
+    .form-item.span-2 { grid-column: span 2; }
+    .form-item.span-3 { grid-column: span 3; }
+    .form-label {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+      /* 与 32px 高控件顶对齐时，文字视觉居中 */
+      line-height: 32px;
+    }
+    .form-label.wide { flex: 0 0 128px; }
+    .form-label .req { color: var(--red); margin-right: 2px; }
+    .form-control-wrap { flex: 1; min-width: 0; }
+    .form-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .form-control:disabled { background: #f5f5f5; color: var(--text-secondary); cursor: not-allowed; }
+    .form-control::placeholder { color: #bfbfbf; }
+    .form-select {
+      appearance: none;
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      cursor: pointer;
+    }
+
+    .ms-select {
+      position: relative;
+      width: 100%;
+      z-index: 1;
+    }
+    .ms-select.open { z-index: 50; }
+    .ms-select-trigger {
+      min-height: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 28px 0 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #fff;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .ms-select-trigger::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .ms-select.disabled .ms-select-trigger {
+      background: #f5f5f5;
+      color: var(--text-secondary);
+      cursor: not-allowed;
+    }
+    .ms-select-trigger .ms-placeholder {
+      color: #bfbfbf;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .ms-select-trigger .ms-tag {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 6px;
+      background: #f5f5f5;
+      border: 1px solid #e8e8e8;
+      border-radius: 2px;
+      font-size: 12px;
+      max-width: 100%;
+      white-space: nowrap;
+    }
+    .ms-select-panel {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+      z-index: 20;
+      max-height: 168px;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .ms-select.open .ms-select-panel { display: block; }
+    .ms-select.disabled .ms-select-panel { display: none; }
+    .ms-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .ms-option:hover { background: #f5f5f5; }
+    .ms-option input { accent-color: var(--primary); }
+
+    /* 类型下拉占 label 位（缩短）；输入框在 control-wrap 内，与「重/抛货」等控件同宽 */
+    .form-item.station-item .station-type {
+      /* 与 .form-label 同宽，保证右侧输入与「重/抛货」等控件同宽 */
+      flex: 0 0 96px;
+      width: 96px;
+      height: 32px;
+      padding: 0 18px 0 4px;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+    .form-item.station-item .form-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .station-field {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      width: 100%;
+    }
+    .station-field > .form-control {
+      width: 100%;
+      border-radius: 4px;
+    }
+    .station-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    .station-check input {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .station-check.is-disabled {
+      color: var(--text-secondary, #999);
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+    .station-check.is-disabled input {
+      cursor: not-allowed;
+    }
+    .match-pair {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .match-pair .form-select { width: 88px; flex-shrink: 0; }
+    .match-pair .form-control { flex: 1; }
+
+    .radio-group { display: flex; align-items: center; gap: 24px; }
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .radio-item input { accent-color: var(--primary); }
+
+    .dim-box {
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    .dim-box-title {
+      font-size: 13px;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .dim-box-title .hint { color: var(--text-secondary); font-weight: 400; }
+    .dim-groups { display: flex; flex-direction: column; gap: 12px; }
+    .dim-group-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+    .dim-options { display: flex; flex-wrap: wrap; gap: 10px 20px; }
+    .dim-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      user-select: none;
+    }
+    .dim-option input { width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; }
+    .dim-option.disabled { color: var(--text-secondary); cursor: not-allowed; opacity: .55; }
+    .dim-option.disabled input { cursor: not-allowed; }
+
+    .flat-adj {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px 20px;
+      margin-top: 12px;
+      width: 100%;
+    }
+    .flat-adj .form-item {
+      min-width: 0;
+      align-items: center;
+    }
+    .flat-adj .form-label {
+      flex: 0 0 96px;
+      font-size: 13px;
+    }
+    .flat-adj .form-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .flat-adj .price-input-wrap {
+      width: 100%;
+    }
+    .flat-adj .price-input-wrap .form-control {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      padding: 0 8px;
+    }
+    .pct-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pct-dir {
+      width: 48px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 13px;
+      text-align: center;
+      background: #fff;
+    }
+    .pct-input {
+      width: 72px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 6px;
+      font-size: 13px;
+      text-align: center;
+    }
+    .pct-suffix { font-size: 13px; color: var(--text-secondary); }
+
+    .price-adj {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px 16px;
+      margin-top: 12px;
+    }
+    .price-adj .form-label { flex: 0 0 108px; }
+    .price-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .price-input-wrap .form-control { flex: 1; min-width: 0; }
+    .price-unit { font-size: 13px; color: var(--text-secondary); flex-shrink: 0; }
+
+    .interval-panel { margin-top: 12px; }
+    .config-header {
+      display: grid;
+      grid-template-columns: minmax(380px, 1.8fr) repeat(4, minmax(96px, 1fr)) 56px;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 4px 4px 0 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .config-header .col-interval { color: #096dd9; }
+    .config-header .col-adj { color: #389e0d; text-align: center; font-size: 12px; white-space: nowrap; }
+    .config-header .col-ops { text-align: center; }
+    .config-body {
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 4px 4px;
+      background: #fff;
+      min-height: 80px;
+    }
+    .config-empty {
+      padding: 28px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .config-group { border-bottom: 1px dashed #d9d9d9; }
+    .config-group:last-child { border-bottom: none; }
+    .config-row {
+      display: grid;
+      grid-template-columns: minmax(380px, 1.8fr) repeat(4, minmax(96px, 1fr)) 56px;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      min-height: 48px;
+    }
+    .config-row .col-adj-cell .price-input-wrap {
+      width: 100%;
+      max-width: 120px;
+    }
+    .config-row .col-adj-cell .price-input-wrap .form-control {
+      width: 100%;
+      min-width: 0;
+      flex: 1;
+      padding: 0 6px;
+    }
+    .config-row + .config-row { border-top: 1px solid #f5f5f5; }
+    .row-interval {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      min-width: 0;
+    }
+    .row-label { font-size: 13px; white-space: nowrap; flex-shrink: 0; }
+    .interval-err {
+      font-size: 11px;
+      color: #ff4d4f;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .interval-input {
+      width: 64px;
+      flex-shrink: 0;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      text-align: center;
+      outline: none;
+    }
+    .interval-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.1); }
+    .interval-input.error { border-color: var(--red); background: #fff2f0; }
+    .interval-sep { color: var(--text-secondary); font-size: 12px; }
+    .hour-select {
+      width: 72px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 4px;
+      font-size: 13px;
+      background: #fff;
+      outline: none;
+    }
+    .hour-select:focus { border-color: var(--primary); }
+    .time-seg-label { font-size: 13px; color: var(--text); white-space: nowrap; margin: 0 4px; }
+    .col-adj-cell { display: flex; justify-content: center; align-items: center; }
+    .col-adj-cell.empty { visibility: hidden; }
+    .adj-select {
+      width: 100%;
+      max-width: 110px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      background: #fff;
+      color: var(--text-secondary);
+    }
+    .adj-select.has-value { color: var(--text); }
+    .row-ops { display: flex; justify-content: center; gap: 6px; }
+    .btn-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 500;
+    }
+    .btn-add { background: var(--green); color: #fff; }
+    .btn-del { background: var(--red); color: #fff; }
+
+    .confirm-text { font-size: 14px; line-height: 1.7; color: var(--text); padding: 8px 0; }
+
+    
+    .link-btn {
+      color: var(--primary);
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 13px;
+    }
+    .link-btn:hover { text-decoration: underline; }
+    .link-btn.disabled {
+      color: rgba(0,0,0,.25);
+      cursor: not-allowed;
+      text-decoration: none;
+    }
+    .th-freeze, .td-freeze {
+      position: sticky;
+      right: 0;
+      background: #fff;
+      box-shadow: -4px 0 8px rgba(0,0,0,.06);
+      z-index: 2;
+    }
+    .th-freeze { background: #fafafa; z-index: 3; }
+    .compare-meta {
+      display: flex;
+      gap: 32px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+    .compare-block { margin-bottom: 16px; }
+    .compare-block:last-child { margin-bottom: 0; }
+    .compare-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .compare-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .compare-dot.before { background: #D9001B; }
+    .compare-dot.after { background: #4B7902; }
+    .compare-scroll {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .compare-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .compare-table th, .compare-table td {
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .compare-table th { background: #fafafa; font-weight: 500; }
+    .compare-table .empty-tip {
+      color: var(--text-secondary);
+      padding: 24px;
+      text-align: center;
+    }
+    .compare-changed-before { color: #D9001B; }
+    .compare-changed-after { color: #4B7902; }
+    .modal.compare-modal { width: 960px; max-width: 96vw; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
+    </div>
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active">特殊类单价维护 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="文档">📄</span>
+        <span class="icon-btn" title="下载">⬇</span>
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔<span class="badge">3</span></span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+        <div class="menu-item active">
+          <span class="menu-icon">☰</span><span class="menu-label">操作标准</span><span class="menu-arrow">▼</span>
+        </div>
+        <div class="menu-sub">
+          <div class="menu-item">操作结算重量计泡维护</div>
+          <div class="menu-item">货量重量配置</div>
+          <div class="menu-item active">特殊类单价维护</div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area">
+          <div class="filter-grid" id="filterMaintain">
+            <div class="filter-item">
+              <span class="filter-label">省区</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option value="" selected>请选择省区</option>
+                    <option>浙江省</option>
+                    <option>上海市</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option value="" selected>请选择分拨中心</option>
+                    <option>杭州转运中心</option>
+                    <option>上海转运中心</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">维护类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>特殊物品</option>
+                    <option>特殊时段</option>
+                    <option>特殊车线</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">操作类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control" id="filterOpType">
+                    <option value="">请选择操作类型</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">状态</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>待生效</option>
+                    <option>生效中</option>
+                    <option>已失效</option>
+                    <option>已终止</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">重/抛货</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>重货</option>
+                    <option>抛货</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">任务类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>分拨</option>
+                    <option>服务站</option>
+                    <option>集配站</option>
+                    <option>网点</option>
+                    <option>智运分拨</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">上一站</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">下一站</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">开单网点/分拨/省区</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">产品类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>标准快运</option>
+                    <option>电商件</option>
+                    <option>合同物流</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">物品类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>家具/家居</option>
+                    <option>服装/鞋/帽</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">物品名称</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入物品名称" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">包装类型</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入包装类型" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">寄件人</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入寄件人" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">是否审报物品</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">订单来源</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>呼叫中心</option>
+                    <option>官网</option>
+                    <option>微信</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">是否电商件</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">操作人</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择操作人" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">任务属性</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>自有任务</option>
+                    <option>外请任务</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">车型</span>
+              <div class="filter-control-wrap">
+                <div class="ms-select" data-placeholder="全部">
+                  <div class="ms-select-trigger">
+                    <span class="ms-placeholder">全部</span>
+                  </div>
+                  <div class="ms-select-panel">
+                    <label class="ms-option"><input type="checkbox" value="平板" /> 平板</label>
+                    <label class="ms-option"><input type="checkbox" value="箱车" /> 箱车</label>
+                    <label class="ms-option"><input type="checkbox" value="高栏" /> 高栏</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">无任务交接单</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>包含</option>
+                    <option>不包含</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">周转箱内货物</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>是</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">方案编号</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="多个用换行或逗号分隔" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">有效期限</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" placeholder="开始日期" readonly />
+                  <span class="sep">~</span>
+                  <input class="filter-control" type="text" placeholder="结束日期" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">创建时间</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" placeholder="开始日期" readonly />
+                  <span class="sep">~</span>
+                  <input class="filter-control" type="text" placeholder="结束日期" readonly />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-grid hidden" id="filterLog">
+            <div class="filter-item">
+              <span class="filter-label">方案类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control" id="filterLogCategory">
+                    <option selected>实时操作</option>
+                    <option>流水线操作</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">省区</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option value="" selected>请选择省区</option>
+                    <option>浙江省</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option value="" selected>请选择分拨中心</option>
+                    <option>杭州转运中心</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">方案编号</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入方案编号" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">变更类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option value="" selected>请选择变更类型</option>
+                    <option>修改</option>
+                    <option>终止</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">变更人</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择变更人" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">变更时间</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" placeholder="开始时间" readonly />
+                  <span class="sep">~</span>
+                  <input class="filter-control" type="text" placeholder="结束时间" readonly />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn" type="button">重置</button>
+            <button class="btn btn-primary" type="button">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-ctab="realtime">实时操作</div>
+          <div class="content-tab" data-ctab="pipeline">流水线操作</div>
+          <div class="content-tab" data-ctab="log">变更记录</div>
+        </nav>
+
+        <section class="action-bar" id="actionBarMaintain">
+          <button class="btn-action primary" type="button" id="btnAdd">新增</button>
+          <button class="btn-action" type="button" id="btnEdit">编辑</button>
+          <button class="btn-action" type="button" id="btnCopy">复制</button>
+          <button class="btn-action" type="button" id="btnBatchEnd">批量编辑结束时间</button>
+          <button class="btn-action" type="button" id="btnTerminate">终止</button>
+          <button class="btn-action" type="button" id="btnDelete">删除</button>
+          <button class="btn-action" type="button" id="btnImport">导入</button>
+          <button class="btn-action" type="button">导出</button>
+        </section>
+        <section class="action-bar hidden" id="actionBarLog">
+          <button class="btn-action" type="button">导出</button>
+        </section>
+
+        <section class="table-area">
+          <div class="table-scroll">
+            <table class="data-table" id="dataTable">
+              <thead id="tableHead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 3 条</span>
+            <button class="page-btn disabled" type="button">&lt;</button>
+            <button class="page-btn active" type="button">1</button>
+            <button class="page-btn disabled" type="button">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+  </div>
+</div>
+
+<!-- 新增 / 编辑 -->
+<div class="modal-mask" id="modalForm">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="formModalTitle">新增 — 实时操作</div>
+      <button class="modal-close" type="button" data-close="modalForm">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">
+        <div class="form-section-title">基础设定</div>
+        <div class="form-grid">
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>分拨中心</span>
+            <div class="form-control-wrap">
+              <input class="form-control" type="text" id="formDc" placeholder="请输入内容" />
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>维护类型</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select" id="formMaintainType">
+                <option value="" disabled selected hidden>请选择维护类型</option>
+                <option>特殊物品</option>
+                <option>特殊车线</option>
+                <option>特殊时段</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>操作类型</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select" id="formOpType">
+                <option value="" disabled selected hidden>请选择操作类型</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>生效开始时间</span>
+            <div class="form-control-wrap">
+              <input class="form-control" type="text" placeholder="请选择日期" readonly />
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>生效结束时间</span>
+            <div class="form-control-wrap">
+              <input class="form-control" type="text" placeholder="请选择日期" readonly />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section" id="matchSection">
+        <div class="form-section-title">特殊物品维护</div>
+        <div class="form-grid">
+          <div class="form-item">
+            <span class="form-label">重/抛货</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="" disabled selected hidden>请选择</option>
+                <option>重货</option>
+                <option>抛货</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">任务类型</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="">全部</option>
+                <option>分拨</option>
+                <option>服务站</option>
+                <option>集配站</option>
+                <option>网点</option>
+                <option>智运分拨</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item station-item">
+            <select class="form-control form-select station-type">
+              <option selected>上一站网点</option>
+              <option>上一站分拨</option>
+              <option>上一站所属分拨</option>
+              <option>上一站所属省区</option>
+            </select>
+            <div class="form-control-wrap">
+              <div class="station-field">
+                <input class="form-control" type="text" placeholder="请输入关键字选择" />
+                <label class="station-check"><input type="checkbox" /> 包含二级</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-item station-item">
+            <select class="form-control form-select station-type">
+              <option selected>下一站网点</option>
+              <option>下一站分拨</option>
+              <option>下一站所属分拨</option>
+              <option>下一站所属省区</option>
+            </select>
+            <div class="form-control-wrap">
+              <div class="station-field">
+                <input class="form-control" type="text" placeholder="请输入关键字选择" />
+                <label class="station-check"><input type="checkbox" /> 包含二级</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-item station-item">
+            <select class="form-control form-select station-type">
+              <option selected>开单网点</option>
+              <option>开单所属分拨</option>
+              <option>开单所属省区</option>
+            </select>
+            <div class="form-control-wrap">
+              <div class="station-field">
+                <input class="form-control" type="text" placeholder="请输入关键字选择" />
+                <label class="station-check"><input type="checkbox" /> 包含二级</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">产品类型</span>
+            <div class="form-control-wrap">
+              <div class="ms-select" data-placeholder="全部">
+                <div class="ms-select-trigger"><span class="ms-placeholder">全部</span></div>
+                <div class="ms-select-panel">
+                  <label class="ms-option"><input type="checkbox" value="标准快运" /> 标准快运</label>
+                  <label class="ms-option"><input type="checkbox" value="电商件" /> 电商件</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">物品类型</span>
+            <div class="form-control-wrap">
+              <div class="ms-select" data-placeholder="全部">
+                <div class="ms-select-trigger"><span class="ms-placeholder">全部</span></div>
+                <div class="ms-select-panel">
+                  <label class="ms-option"><input type="checkbox" value="家具/家居" /> 家具/家居</label>
+                  <label class="ms-option"><input type="checkbox" value="服装/鞋/帽" /> 服装/鞋/帽</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">物品名称</span>
+            <div class="form-control-wrap">
+              <div class="match-pair">
+                <select class="form-control form-select"><option selected>等于</option><option>包含</option></select>
+                <input class="form-control" type="text" placeholder="请输入" />
+                <button type="button" class="btn-circle btn-add" title="新增">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">包装类型</span>
+            <div class="form-control-wrap">
+              <div class="match-pair">
+                <select class="form-control form-select"><option selected>等于</option><option>包含</option></select>
+                <input class="form-control" type="text" placeholder="请输入" />
+                <button type="button" class="btn-circle btn-add" title="新增">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">寄件人</span>
+            <div class="form-control-wrap">
+              <div class="match-pair">
+                <select class="form-control form-select"><option selected>等于</option><option>包含</option></select>
+                <input class="form-control" type="text" placeholder="请输入" />
+                <button type="button" class="btn-circle btn-add" title="新增">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">是否审报物品</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="" disabled selected hidden>请选择</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">订单来源</span>
+            <div class="form-control-wrap">
+              <div class="ms-select" data-placeholder="全部">
+                <div class="ms-select-trigger"><span class="ms-placeholder">全部</span></div>
+                <div class="ms-select-panel">
+                  <label class="ms-option"><input type="checkbox" value="呼叫中心" /> 呼叫中心</label>
+                  <label class="ms-option"><input type="checkbox" value="官网" /> 官网</label>
+                  <label class="ms-option"><input type="checkbox" value="微信" /> 微信</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">是否电商件</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="" disabled selected hidden>请选择</option>
+                <option>是</option>
+                <option>否</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">操作人</span>
+            <div class="form-control-wrap">
+              <input class="form-control" type="text" placeholder="请选择操作人" />
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">任务属性</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="" disabled selected hidden>请选择</option>
+                <option>自有任务</option>
+                <option>外请任务</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">车型</span>
+            <div class="form-control-wrap">
+              <div class="ms-select" data-placeholder="请选择">
+                <div class="ms-select-trigger">
+                  <span class="ms-placeholder">请选择</span>
+                </div>
+                <div class="ms-select-panel">
+                  <label class="ms-option"><input type="checkbox" value="平板" /> 平板</label>
+                  <label class="ms-option"><input type="checkbox" value="箱车" /> 箱车</label>
+                  <label class="ms-option"><input type="checkbox" value="高栏" /> 高栏</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">无任务交接单</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="" disabled selected hidden>请选择</option>
+                <option>包含</option>
+                <option>不包含</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">周转箱内货物</span>
+            <div class="form-control-wrap">
+              <select class="form-control form-select">
+                <option value="" disabled selected hidden>请选择</option>
+                <option>是</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title" id="adjSectionTitle">区间单价维护</div>
+        <div class="radio-group" id="intervalModeGroup">
+          <label class="radio-item"><input type="radio" name="intervalMode" value="none" checked /> 不区分</label>
+          <label class="radio-item"><input type="radio" name="intervalMode" value="interval" /> 按区间配置</label>
+        </div>
+
+        <div class="flat-adj" id="flatAdjPanel">
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>自有吨补贴价</span>
+            <div class="form-control-wrap">
+              <div class="price-input-wrap">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <span class="price-unit">元</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>自有托补贴价</span>
+            <div class="form-control-wrap">
+              <div class="price-input-wrap">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <span class="price-unit">元</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>外包吨补贴价</span>
+            <div class="form-control-wrap">
+              <div class="price-input-wrap">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <span class="price-unit">元</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>外包托补贴价</span>
+            <div class="form-control-wrap">
+              <div class="price-input-wrap">
+                <input class="form-control" type="text" placeholder="请输入" />
+                <span class="price-unit">元</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="interval-panel hidden" id="intervalPanel">
+          <div class="dim-box">
+            <div class="dim-box-title">匹配维度 <span class="hint">（可多选，至少 1 项；按时间段优先级最高）</span></div>
+            <div class="dim-groups" id="dimGroups"></div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="config-header" id="configHeader">
+              <div class="col-interval">维度区间</div>
+              <div class="col-adj">自有吨补贴价</div>
+              <div class="col-adj">自有托补贴价</div>
+              <div class="col-adj">外包吨补贴价</div>
+              <div class="col-adj">外包托补贴价</div>
+              <div class="col-ops">操作</div>
+            </div>
+            <div class="config-body" id="configBody"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalForm">取消</button>
+      <button class="btn btn-primary" type="button" id="btnFormOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量编辑结束时间 -->
+<div class="modal-mask" id="modalBatchEnd">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">批量编辑结束时间</div>
+      <button class="modal-close" type="button" data-close="modalBatchEnd">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-item">
+        <span class="form-label"><span class="req">*</span>结束时间</span>
+        <div class="form-control-wrap">
+          <input class="form-control" type="text" placeholder="请选择结束时间" readonly />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalBatchEnd">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalBatchEnd">确定</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- 与特殊类单价重叠提醒（新增/编辑） -->
+<div class="modal-mask" id="modalOverlapSave">
+  <div class="modal" style="width:560px;max-width:96vw;">
+    <div class="modal-header">
+      <div class="modal-title">与【货量重量配置】方案重叠提醒</div>
+      <button class="modal-close" type="button" data-close="modalOverlapSave">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text">当前方案与【货量重量配置】中以下方案可能重叠。若货量方案「是否叠加特殊单价」为否，算薪时将不计算特殊单价。请确认是否仍保存？</div>
+      <div style="margin-top:12px;border:1px solid #e8e8e8;border-radius:4px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr>
+              <th style="background:#fafafa;padding:8px 12px;text-align:left;border-bottom:1px solid #e8e8e8;">对侧方案编号</th>
+              <th style="background:#fafafa;padding:8px 12px;text-align:left;border-bottom:1px solid #e8e8e8;">分拨中心</th>
+              <th style="background:#fafafa;padding:8px 12px;text-align:left;border-bottom:1px solid #e8e8e8;">操作类型</th>
+              <th style="background:#fafafa;padding:8px 12px;text-align:left;border-bottom:1px solid #e8e8e8;">有效期限</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8;">TY10022,TY10024</td>
+              <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8;">杭州转运中心</td>
+              <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8;">卸车</td>
+              <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8;">2026-10-01～2026-12-31</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalOverlapSave">取消</button>
+      <button class="btn btn-primary" type="button" id="btnOverlapSaveOk">仍保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导入重叠确认（整份） -->
+<div class="modal-mask" id="modalOverlapImport">
+  <div class="modal" style="width:640px;max-width:96vw;">
+    <div class="modal-header">
+      <div class="modal-title">导入与【货量重量配置】重叠确认</div>
+      <button class="modal-close" type="button" data-close="modalOverlapImport">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text">本批导入数据中有行与【货量重量配置】方案可能重叠（不含区间字段比对）。请选择整份继续导入或整份取消。</div>
+      <div style="margin-top:12px;border:1px solid #e8e8e8;border-radius:4px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr>
+              <th style="background:#fafafa;padding:8px 12px;text-align:left;border-bottom:1px solid #e8e8e8;">导入行</th>
+              <th style="background:#fafafa;padding:8px 12px;text-align:left;border-bottom:1px solid #e8e8e8;">对侧方案编号</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8;">第 2 行</td>
+              <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8;">TY10022,TY10024,TY10025</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalOverlapImport">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalOverlapImport">继续导入</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- 变更对比 -->
+<div class="modal-mask" id="modalCompare">
+  <div class="modal compare-modal">
+    <div class="modal-header">
+      <div class="modal-title">变更对比</div>
+      <button class="modal-close" type="button" data-close="modalCompare">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="compare-meta">
+        <span id="compareTime">变更时间：-</span>
+        <span id="compareUser">变更人：-</span>
+      </div>
+      <div class="compare-block">
+        <div class="compare-title"><span class="compare-dot before"></span>变更前</div>
+        <div class="compare-scroll">
+          <table class="compare-table">
+            <thead><tr id="compareHeadBefore"></tr></thead>
+            <tbody id="compareBodyBefore"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="compare-block">
+        <div class="compare-title"><span class="compare-dot after"></span>变更后</div>
+        <div class="compare-scroll">
+          <table class="compare-table">
+            <thead><tr id="compareHeadAfter"></tr></thead>
+            <tbody id="compareBodyAfter"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" data-close="modalCompare">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 终止 -->
+<div class="modal-mask" id="modalTerminate">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">终止</div>
+      <button class="modal-close" type="button" data-close="modalTerminate">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text">终止后不可撤销，请确认是否终止！（共 1 条）</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalTerminate">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalTerminate">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const OP_REALTIME = ['网点卸车', '干线卸车', '网点移动', '干线移动', '网点装车', '干线装车'];
+  const OP_PIPELINE = [
+    '网点码货', '干线码货', '网点直装', '干线直装',
+    '流水线网点卸车', '流水线干线卸车',
+    '动态称网点移动', '动态称干线移动',
+    '尾端网点移动', '尾端干线移动'
+  ];
+  let currentTab = 'realtime';
+  const TAB_TITLE = {
+    realtime: '新增 — 实时操作',
+    pipeline: '新增 — 流水线操作'
+  };
+
+  const HOUR_OPTS = Array.from({ length: 24 }, function (_, i) { return i + '点'; });
+  function hourOptionsHtml(selected) {
+    var html = '<option value="" disabled hidden' + (selected === '' || selected == null ? ' selected' : '') + '>请选择</option>';
+    HOUR_OPTS.forEach(function (h) {
+      html += '<option value="' + h + '"' + (selected === h ? ' selected' : '') + '>' + h + '</option>';
+    });
+    return html;
+  }
+
+  const TABLE_HEAD = [
+    '分拨中心', '维护类型', '操作类型', '重/抛货', '任务类型',
+    '上一站', '下一站', '开单网点/分拨/省区',
+    '产品类型', '物品类型', '物品名称', '包装类型', '寄件人', '是否审报物品', '订单来源', '是否电商件',
+    '操作人', '任务属性', '车型', '无任务交接单', '周转箱内货物',
+    '按时间段', '票-操作结算重量段', '票-体积段', '票-件数段',
+    '子托-操作结算重量段', '子托-体积段', '子托-件数段', '件-操作结算重量段', '件-体积段',
+    '自有吨补贴价', '自有托补贴价', '外包吨补贴价', '外包托补贴价',
+    '方案编号', '生效开始时间', '生效结束时间', '变更人', '变更时间', '创建人', '创建时间', '状态'
+  ];
+
+  const TABLE_ROWS = [
+    ['杭州转运中心', '特殊物品', '网点卸车', '抛货', '服务站', '上一站所属分拨：杭州转运中心', '-', '开单所属省区：浙江省', '标准快运', '家具/家居', '等于：家具', '等于：纸箱', '-', '否', '呼叫中心', '是', '-', '自有任务', '-', '不包含', '是', '0点 ~ 8点', '800 ~ 99999.99', '-', '-', '-', '-', '-', '-', '-', '12.50', '8.00', '10.00', '6.50', 'M251008001', '2026-10-01 15:00:00', '2026-12-31 14:59:59', '王哲', '2026-10-08 13:41:31', '胡绵飞', '2026-09-28 10:12:03', '生效中'],
+    ['上海转运中心', '特殊时段', '干线移动', '重货', '分拨', '-', '下一站所属省区：浙江省', '-', '电商件', '-', '-', '-', '-', '-', '-', '否', '张三', '外请任务', '箱车', '-', '-', '-', '-', '-', '50 ~ 999999', '-', '-', '-', '-', '-', '15.00', '9.00', '12.00', '7.00', 'M251008002', '2026-11-01 15:00:00', '2027-05-31 14:59:59', '-', '-', '胡绵飞', '2026-10-10 09:01:22', '待生效'],
+    ['杭州转运中心', '特殊车线', '网点装车', '-', '网点', '-', '下一站网点：桐庐一部', '开单网点：杭州一部', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '8.00', '6.00', '6.50', '5.00', 'M251008003', '2025-01-01 15:00:00', '2025-12-31 14:59:59', '胡绵飞', '2026-01-05 16:40:02', '胡绵飞', '2024-12-20 11:05:44', '已失效']
+  ];
+
+  /* 变更记录 = 变更类型 + 与实时/流水线列表同字段 + 变更对比 */
+  const TABLE_LOG_HEAD = ['变更类型'].concat(TABLE_HEAD).concat(['变更对比']);
+
+  const TABLE_LOG_ROWS = (function () {
+    var terminateCells = TABLE_ROWS[1].slice();
+    terminateCells[TABLE_HEAD.indexOf('生效结束时间')] = '2026-11-15 09:01:22';
+    terminateCells[TABLE_HEAD.indexOf('变更人')] = '胡绵飞';
+    terminateCells[TABLE_HEAD.indexOf('变更时间')] = '2026-11-15 09:01:22';
+    terminateCells[TABLE_HEAD.indexOf('状态')] = '已失效';
+    return [
+      { type: '修改', cells: ['修改'].concat(TABLE_ROWS[0]) },
+      { type: '终止', cells: ['终止'].concat(terminateCells) }
+    ];
+  })();
+
+  function isPipelineTab() { return currentTab === 'pipeline'; }
+  function isLogTab() { return currentTab === 'log'; }
+
+  function fillOpSelect(selectEl, list, withEmpty) {
+    if (!selectEl) return;
+    const cur = selectEl.value;
+    selectEl.innerHTML = '';
+    if (withEmpty) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = '请选择操作类型';
+      opt.disabled = true;
+      opt.selected = true;
+      opt.hidden = true;
+      selectEl.appendChild(opt);
+    }
+    list.forEach(function (name) {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      selectEl.appendChild(opt);
+    });
+    if ([].some.call(selectEl.options, function (o) { return o.value === cur; })) selectEl.value = cur;
+  }
+
+  function syncOpTypeOptions() {
+    const list = isPipelineTab() ? OP_PIPELINE : OP_REALTIME;
+    fillOpSelect(document.getElementById('filterOpType'), list, true);
+    fillOpSelect(document.getElementById('formOpType'), list, true);
+    updatePalletDimDisabled();
+  }
+
+  function syncFilterMode() {
+    var isLog = isLogTab();
+    var fm = document.getElementById('filterMaintain');
+    var fl = document.getElementById('filterLog');
+    if (fm) fm.classList.toggle('hidden', isLog);
+    if (fl) fl.classList.toggle('hidden', !isLog);
+  }
+
+  function syncActionBar() {
+    var isLog = isLogTab();
+    var am = document.getElementById('actionBarMaintain');
+    var al = document.getElementById('actionBarLog');
+    if (am) am.classList.toggle('hidden', isLog);
+    if (al) al.classList.toggle('hidden', !isLog);
+  }
+
+  function getCompareFieldHeads() {
+    return TABLE_LOG_HEAD.slice(1, TABLE_LOG_HEAD.length - 1);
+  }
+
+  function fillCompareModal() {
+    var heads = getCompareFieldHeads();
+    document.getElementById('compareTime').textContent = '变更时间：2026-10-08 13:41:31';
+    document.getElementById('compareUser').textContent = '变更人：王哲';
+    var headHtml = heads.map(function (h) { return '<th>' + h + '</th>'; }).join('');
+    document.getElementById('compareHeadBefore').innerHTML = headHtml;
+    document.getElementById('compareHeadAfter').innerHTML = headHtml;
+    var beforeCells = TABLE_LOG_ROWS[0].cells.slice(1);
+    var afterCells = beforeCells.slice();
+    /* 自有吨/托、外包吨/托补贴价 + 生效结束时间（按表头定位，避免列增减错位） */
+    var idxOf = function (name) { return heads.indexOf(name); };
+    afterCells[idxOf('自有吨补贴价')] = '15.00';
+    afterCells[idxOf('自有托补贴价')] = '9.00';
+    afterCells[idxOf('外包吨补贴价')] = '12.00';
+    afterCells[idxOf('外包托补贴价')] = '7.00';
+    afterCells[idxOf('生效结束时间')] = '2026-12-15 14:59:59';
+    function rowHtml(cells, side) {
+      var cls = side === 'before' ? 'compare-changed-before' : 'compare-changed-after';
+      var other = side === 'before' ? afterCells : beforeCells;
+      return '<tr>' + cells.map(function (cell, i) {
+        var changed = String(cell) !== String(other[i]);
+        var muted = cell === '-' ? ' cell-muted' : '';
+        var c = changed ? (' class="' + cls + muted + '"') : (muted ? ' class="cell-muted"' : '');
+        return '<td' + c + '>' + cell + '</td>';
+      }).join('') + '</tr>';
+    }
+    document.getElementById('compareBodyBefore').innerHTML = rowHtml(beforeCells, 'before');
+    document.getElementById('compareBodyAfter').innerHTML = rowHtml(afterCells, 'after');
+  }
+
+  function renderTable() {
+    var thead = document.getElementById('tableHead');
+    var tbody = document.getElementById('tableBody');
+    var total = document.querySelector('.pagination .total');
+    if (isLogTab()) {
+      var heads = TABLE_LOG_HEAD;
+      var rows = TABLE_LOG_ROWS;
+      thead.innerHTML = '<tr>' + heads.map(function (h, idx) {
+        var cls = (idx === heads.length - 1) ? ' class="th-freeze"' : '';
+        return '<th' + cls + '>' + h + '</th>';
+      }).join('') + '</tr>';
+      tbody.innerHTML = rows.map(function (row) {
+        var canCompare = row.type === '修改';
+        var btn = canCompare
+          ? '<button type="button" class="link-btn btn-compare">变更对比</button>'
+          : '<button type="button" class="link-btn disabled" disabled>变更对比</button>';
+        var cellsHtml = row.cells.map(function (cell) {
+          var muted = cell === '-' ? ' class="cell-muted"' : '';
+          return '<td' + muted + '>' + cell + '</td>';
+        }).join('');
+        return '<tr>' + cellsHtml + '<td class="td-freeze">' + btn + '</td></tr>';
+      }).join('');
+      tbody.querySelectorAll('.btn-compare').forEach(function (btn) {
+        btn.addEventListener('click', function () { fillCompareModal(); openModal('modalCompare'); });
+      });
+      if (total) total.textContent = '共 ' + rows.length + ' 条';
+      return;
+    }
+    thead.innerHTML = '<tr><th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>' +
+      TABLE_HEAD.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '</tr>';
+    tbody.innerHTML = TABLE_ROWS.map(function (row) {
+      return '<tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td>' +
+        row.map(function (cell) {
+          var muted = cell === '-' ? ' class="cell-muted"' : '';
+          return '<td' + muted + '>' + cell + '</td>';
+        }).join('') + '</tr>';
+    }).join('');
+    var checkAll = document.getElementById('checkAll');
+    if (checkAll) {
+      checkAll.addEventListener('change', function () {
+        document.querySelectorAll('.row-check').forEach(function (cb) { cb.checked = checkAll.checked; });
+      });
+    }
+    if (total) total.textContent = '共 ' + TABLE_ROWS.length + ' 条';
+  }
+
+  document.getElementById('sidebarToggle').addEventListener('click', function () {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('contentTabs').addEventListener('click', function (e) {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('.content-tab').forEach(function (t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    currentTab = tab.dataset.ctab || 'realtime';
+    syncActionBar();
+    syncFilterMode();
+    if (!isLogTab()) syncOpTypeOptions();
+    renderTable();
+  });
+
+  function openModal(id) { document.getElementById(id).classList.add('show'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+  document.querySelectorAll('[data-close]').forEach(function (el) {
+    el.addEventListener('click', function () { closeModal(el.getAttribute('data-close')); });
+  });
+  document.querySelectorAll('.modal-mask').forEach(function (mask) {
+    mask.addEventListener('click', function (e) { if (e.target === mask) mask.classList.remove('show'); });
+  });
+
+  document.getElementById('btnAdd').addEventListener('click', function () {
+    if (isLogTab()) return;
+    document.getElementById('formModalTitle').textContent = TAB_TITLE[currentTab] || '新增';
+    syncOpTypeOptions();
+    syncAdjPanels();
+    openModal('modalForm');
+  });
+  document.getElementById('btnEdit').addEventListener('click', function () {
+    if (isLogTab()) return;
+    document.getElementById('formModalTitle').textContent = (TAB_TITLE[currentTab] || '编辑').replace('新增', '编辑');
+    syncOpTypeOptions();
+    syncAdjPanels();
+    openModal('modalForm');
+  });
+  var btnCopy = document.getElementById('btnCopy');
+  if (btnCopy) btnCopy.addEventListener('click', function () {
+    if (isLogTab()) return;
+    document.getElementById('formModalTitle').textContent = (TAB_TITLE[currentTab] || '新增').replace('新增', '复制新增');
+    syncOpTypeOptions();
+    syncAdjPanels();
+    openModal('modalForm');
+  });
+  document.getElementById('btnBatchEnd').addEventListener('click', function () { openModal('modalBatchEnd'); });
+  document.getElementById('btnTerminate').addEventListener('click', function () { openModal('modalTerminate'); });
+  var btnDelete = document.getElementById('btnDelete');
+  if (btnDelete) btnDelete.addEventListener('click', function () { openModal('modalTerminate'); });
+
+  function renderMsTrigger(root) {
+    const trigger = root.querySelector('.ms-select-trigger');
+    const placeholder = root.getAttribute('data-placeholder') || '请选择';
+    const selected = [].map.call(root.querySelectorAll('input[type="checkbox"]:checked'), function (cb) { return cb.value; });
+    if (!selected.length) trigger.innerHTML = '<span class="ms-placeholder">' + placeholder + '</span>';
+    else trigger.innerHTML = selected.map(function (v) { return '<span class="ms-tag">' + v + '</span>'; }).join('');
+  }
+  document.querySelectorAll('.ms-select').forEach(function (root) {
+    const trigger = root.querySelector('.ms-select-trigger');
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (root.classList.contains('disabled')) return;
+      document.querySelectorAll('.ms-select.open').forEach(function (other) { if (other !== root) other.classList.remove('open'); });
+      root.classList.toggle('open');
+    });
+    root.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () { renderMsTrigger(root); });
+      cb.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+    root.addEventListener('click', function (e) { e.stopPropagation(); });
+    renderMsTrigger(root);
+  });
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.ms-select.open').forEach(function (el) { el.classList.remove('open'); });
+  });
+
+  function syncAdjPanels() {
+    var modeEl = document.querySelector('input[name="intervalMode"]:checked');
+    var isInterval = modeEl && modeEl.value === 'interval';
+    var flat = document.getElementById('flatAdjPanel');
+    var panel = document.getElementById('intervalPanel');
+    if (flat) flat.classList.toggle('hidden', isInterval);
+    if (panel) panel.classList.toggle('hidden', !isInterval);
+    if (isInterval) {
+      rebuildTree(true);
+      renderDimGroups();
+      renderConfig();
+    }
+  }
+
+  document.querySelectorAll('input[name="intervalMode"]').forEach(function (radio) {
+    radio.addEventListener('change', syncAdjPanels);
+  });
+
+  /* ========== 区间维度配置（嵌套树交互，来自区间维度配置.html） ========== */
+  const MAX_WV = 99999.99;
+  const MAX_PC = 999999;
+  const GROUPS = [
+    { id: 'time', name: '时间' },
+    { id: 'ticket', name: '票' },
+    { id: 'pallet', name: '子托' },
+    { id: 'piece', name: '件' },
+  ];
+  const DIMS = [
+    { key: 'time_slot',      group: 'time',   type: 'time',    label: '按时间段', pallet: false },
+    { key: 'ticket_weight',  group: 'ticket', type: 'weight',  label: '票-操作结算重量段', pallet: false },
+    { key: 'ticket_volume',  group: 'ticket', type: 'volume',  label: '票-体积段', pallet: false },
+    { key: 'ticket_pieces',  group: 'ticket', type: 'pieces',  label: '票-件数段', pallet: false },
+    { key: 'pallet_weight',  group: 'pallet', type: 'weight',  label: '子托-操作结算重量段', pallet: true },
+    { key: 'pallet_volume',  group: 'pallet', type: 'volume',  label: '子托-体积段', pallet: true },
+    { key: 'pallet_pieces',  group: 'pallet', type: 'pieces',  label: '子托-件数段', pallet: true },
+    { key: 'piece_weight',   group: 'piece',  type: 'weight',  label: '件-操作结算重量段', pallet: false },
+    { key: 'piece_volume',   group: 'piece',  type: 'volume',  label: '件-体积段', pallet: false },
+  ];
+
+  let selectedKeys = new Set(['ticket_weight', 'ticket_pieces']);
+  let prevDimKeys = ['ticket_weight', 'ticket_pieces'];
+  let tree = [];
+  let uid = 1;
+
+  function nextId() { return 'r' + (uid++); }
+
+  function isPalletAllowed() {
+    var v = document.getElementById('formOpType').value || ''; return v.indexOf('移动') >= 0;
+  }
+
+  function updatePalletDimDisabled() {
+    const allow = isPalletAllowed();
+    if (!allow) {
+      DIMS.filter(function (d) { return d.pallet; }).forEach(function (d) {
+        selectedKeys.delete(d.key);
+      });
+      if (selectedKeys.size === 0) selectedKeys.add('ticket_weight');
+      rebuildTree(true);
+    }
+    var panel = document.getElementById('intervalPanel');
+    if (panel && !panel.classList.contains('hidden')) {
+      renderDimGroups();
+      renderConfig();
+    }
+  }
+
+  document.getElementById('formOpType').addEventListener('change', updatePalletDimDisabled);
+
+  function syncStationIncludeSecondary(item) {
+    var typeSel = item.querySelector('.station-type');
+    var checkLabel = item.querySelector('.station-check');
+    var checkInput = checkLabel && checkLabel.querySelector('input[type="checkbox"]');
+    if (!typeSel || !checkLabel || !checkInput) return;
+    var isSite = /网点$/.test((typeSel.value || '').trim());
+    checkInput.disabled = !isSite;
+    checkLabel.classList.toggle('is-disabled', !isSite);
+    if (!isSite) checkInput.checked = false;
+  }
+
+  function bindStationIncludeSecondary() {
+    document.querySelectorAll('.station-item').forEach(function (item) {
+      var typeSel = item.querySelector('.station-type');
+      if (!typeSel) return;
+      syncStationIncludeSecondary(item);
+      typeSel.addEventListener('change', function () { syncStationIncludeSecondary(item); });
+    });
+  }
+  bindStationIncludeSecondary();
+
+  function getSortedSelectedDims() {
+    return DIMS.filter(function (d) { return selectedKeys.has(d.key); });
+  }
+
+  function createRow(depth, dimKeys) {
+    const keys = dimKeys || getSortedSelectedDims().map(function (d) { return d.key; });
+    const row = {
+      id: nextId(), min: '', max: '',
+      ownTon: '', ownPallet: '', outTon: '', outPallet: '',
+      children: [],
+    };
+    if (depth < keys.length - 1) {
+      row.children = [createRow(depth + 1, keys)];
+    }
+    return row;
+  }
+
+  function collectLeaves(nodes, dimKeys, depth, prefix) {
+    if (!dimKeys.length || !nodes.length) return [];
+    const results = [];
+    const key = dimKeys[depth];
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      const current = Object.assign({}, prefix, {
+        [key]: { min: node.min, max: node.max },
+      });
+      if (depth === dimKeys.length - 1) {
+        results.push({
+          intervals: current,
+          adj: {
+            light: node.light, ownDir: node.ownDir, ownVal: node.ownVal,
+            outDir: node.outDir, outVal: node.outVal,
+            ownTon: node.ownTon, ownPallet: node.ownPallet,
+            outTon: node.outTon, outPallet: node.outPallet,
+          },
+        });
+      } else {
+        const subs = collectLeaves(node.children || [], dimKeys, depth + 1, current);
+        if (subs.length === 0) results.push({ intervals: current, adj: {} });
+        else results.push.apply(results, subs);
+      }
+    }
+    return results;
+  }
+
+  function buildTreeFromLeaves(leaves, dimKeys) {
+    if (!dimKeys.length) return [];
+    if (dimKeys.length === 1) {
+      const key = dimKeys[0];
+      if (!leaves.length) return [createRow(0, dimKeys)];
+      return leaves.map(function (leaf) {
+        const iv = (leaf.intervals && leaf.intervals[key]) || { min: '', max: '' };
+        const adj = leaf.adj || {};
+        return {
+          id: nextId(), min: iv.min, max: iv.max,
+          light: adj.light || '', ownDir: adj.ownDir || '+', ownVal: adj.ownVal || '',
+          outDir: adj.outDir || '+', outVal: adj.outVal || '',
+          ownTon: adj.ownTon || '', ownPallet: adj.ownPallet || '',
+          outTon: adj.outTon || '', outPallet: adj.outPallet || '',
+          children: [],
+        };
+      });
+    }
+    const key = dimKeys[0];
+    const rest = dimKeys.slice(1);
+    const groups = [];
+    const map = new Map();
+    leaves.forEach(function (leaf) {
+      const iv = (leaf.intervals && leaf.intervals[key]) || { min: '', max: '' };
+      const gk = iv.min + '\0' + iv.max;
+      if (!map.has(gk)) {
+        const g = { interval: iv, leaves: [] };
+        map.set(gk, g);
+        groups.push(g);
+      }
+      const subIntervals = {};
+      rest.forEach(function (k) {
+        if (leaf.intervals && leaf.intervals[k]) subIntervals[k] = leaf.intervals[k];
+      });
+      map.get(gk).leaves.push({ intervals: subIntervals, adj: leaf.adj || {} });
+    });
+    if (!groups.length) return [createRow(0, dimKeys)];
+    return groups.map(function (g) {
+      return {
+        id: nextId(), min: g.interval.min, max: g.interval.max,
+        light: '', ownDir: '+', ownVal: '', outDir: '+', outVal: '',
+        ownTon: '', ownPallet: '', outTon: '', outPallet: '',
+        children: buildTreeFromLeaves(g.leaves, rest),
+      };
+    });
+  }
+
+  function rebuildTree(preserve) {
+    const dimKeys = getSortedSelectedDims().map(function (d) { return d.key; });
+    if (dimKeys.length === 0) {
+      tree = [];
+      prevDimKeys = [];
+      return;
+    }
+    if (!preserve || tree.length === 0) {
+      tree = [createRow(0, dimKeys)];
+      prevDimKeys = dimKeys.slice();
+      return;
+    }
+    const keptKeys = dimKeys.filter(function (k) { return prevDimKeys.indexOf(k) >= 0; });
+    const leaves = collectLeaves(tree, prevDimKeys, 0, {});
+    const filtered = leaves.map(function (leaf) {
+      const intervals = {};
+      keptKeys.forEach(function (k) {
+        if (leaf.intervals[k]) intervals[k] = { min: leaf.intervals[k].min, max: leaf.intervals[k].max };
+      });
+      const isLeaf = dimKeys[dimKeys.length - 1];
+      const hadRemoved = prevDimKeys.some(function (k) { return dimKeys.indexOf(k) < 0; });
+      return {
+        intervals: intervals,
+        adj: hadRemoved && keptKeys.indexOf(isLeaf) < 0 ? {} : (leaf.adj || {}),
+      };
+    });
+    tree = buildTreeFromLeaves(filtered.length ? filtered : [], dimKeys);
+    if (!tree.length) tree = [createRow(0, dimKeys)];
+    prevDimKeys = dimKeys.slice();
+  }
+
+  function renderDimGroups() {
+    const container = document.getElementById('dimGroups');
+    const allowPallet = isPalletAllowed();
+    container.innerHTML = GROUPS.map(function (g) {
+      const opts = DIMS.filter(function (d) { return d.group === g.id; }).map(function (d) {
+        const disabled = d.pallet && !allowPallet;
+        const checked = selectedKeys.has(d.key) ? 'checked' : '';
+        return '<label class="dim-option' + (disabled ? ' disabled' : '') + '">' +
+          '<input type="checkbox" data-key="' + d.key + '" ' + checked + (disabled ? ' disabled' : '') + ' />' +
+          '<span>' + d.label + '</span></label>';
+      }).join('');
+      return '<div class="dim-group"><div class="dim-group-name">' + g.name + '</div><div class="dim-options">' + opts + '</div></div>';
+    }).join('');
+
+    container.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        const key = cb.dataset.key;
+        if (cb.checked) selectedKeys.add(key);
+        else {
+          if (selectedKeys.size <= 1) {
+            cb.checked = true;
+            alert('至少保留 1 个区间维度');
+            return;
+          }
+          selectedKeys.delete(key);
+        }
+        rebuildTree(true);
+        renderConfig();
+      });
+    });
+  }
+
+  function validateInterval(dim, minStr, maxStr) {
+    const errors = [];
+    const isPieces = dim.type === 'pieces';
+    const isTime = dim.type === 'time';
+    if (minStr === '' || maxStr === '') {
+      errors.push(isTime ? '起止时间均为必填' : '上下限均为必填');
+      return errors;
+    }
+    if (isTime) {
+      if (HOUR_OPTS.indexOf(minStr) < 0 || HOUR_OPTS.indexOf(maxStr) < 0) {
+        errors.push('请选择 0点～23点');
+        return errors;
+      }
+      var minH = parseInt(minStr, 10);
+      var maxH = parseInt(maxStr, 10);
+      if (minH >= maxH) errors.push('开始点须小于结束点');
+      return errors;
+    }
+    if (isPieces) {
+      if (!/^\d+$/.test(minStr) || !/^\d+$/.test(maxStr)) {
+        errors.push('件数段仅支持正整数');
+        return errors;
+      }
+      const min = parseInt(minStr, 10);
+      const max = parseInt(maxStr, 10);
+      if (min <= 0 || max <= 0) errors.push('件数须为正整数');
+      if (min >= max) errors.push('下限须小于上限（前闭后开）');
+    } else {
+      if (!/^\d{1,5}(\.\d{1,2})?$/.test(minStr) || !/^\d{1,5}(\.\d{1,2})?$/.test(maxStr)) {
+        errors.push('最多 5 位整数 + 2 位小数');
+        return errors;
+      }
+      if (parseFloat(minStr) >= parseFloat(maxStr)) errors.push('下限须小于上限（前闭后开）');
+      if (parseFloat(maxStr) > MAX_WV) errors.push('上限不超过 ' + MAX_WV);
+    }
+    return errors;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  function renderRow(node, depth, dim, siblings, sibIndex, parentPath) {
+    const dims = getSortedSelectedDims();
+    const isLeaf = depth === dims.length - 1;
+    const indent = depth * 28;
+    const seq = sibIndex + 1;
+    const path = parentPath + '/' + node.id;
+    const errors = validateInterval(dim, node.min, node.max);
+    const errHtml = errors.length ? '<span class="interval-err">' + errors[0] + '</span>' : '';
+
+    let intervalHtml;
+    if (dim.type === 'time') {
+      intervalHtml =
+        '<div class="row-interval" style="padding-left:' + indent + 'px">' +
+        '<span class="time-seg-label">时间段1</span>' +
+        '<select class="hour-select" data-path="' + path + '" data-field="min">' + hourOptionsHtml(node.min) + '</select>' +
+        '<span class="interval-sep">~</span>' +
+        '<span class="time-seg-label">时间段2</span>' +
+        '<select class="hour-select" data-path="' + path + '" data-field="max">' + hourOptionsHtml(node.max) + '</select>' +
+        errHtml + '</div>';
+    } else {
+      intervalHtml =
+        '<div class="row-interval" style="padding-left:' + indent + 'px">' +
+        '<span class="row-label">' + dim.label + ' ' + seq + '</span>' +
+        '<input class="interval-input" type="text" data-path="' + path + '" data-field="min" value="' + esc(node.min) + '" placeholder="下限" />' +
+        '<span class="interval-sep">—</span>' +
+        '<input class="interval-input" type="text" data-path="' + path + '" data-field="max" value="' + esc(node.max) + '" placeholder="上限" />' +
+        errHtml + '</div>';
+    }
+
+    let adjHtml;
+    if (isLeaf) {
+      adjHtml =
+        '<div class="col-adj-cell"><div class="price-input-wrap"><input class="form-control" type="text" data-field="ownTon" data-path="' + path + '" value="' + (node.ownTon || '') + '" placeholder="请输入" /><span class="price-unit">元</span></div></div>' +
+        '<div class="col-adj-cell"><div class="price-input-wrap"><input class="form-control" type="text" data-field="ownPallet" data-path="' + path + '" value="' + (node.ownPallet || '') + '" placeholder="请输入" /><span class="price-unit">元</span></div></div>' +
+        '<div class="col-adj-cell"><div class="price-input-wrap"><input class="form-control" type="text" data-field="outTon" data-path="' + path + '" value="' + (node.outTon || '') + '" placeholder="请输入" /><span class="price-unit">元</span></div></div>' +
+        '<div class="col-adj-cell"><div class="price-input-wrap"><input class="form-control" type="text" data-field="outPallet" data-path="' + path + '" value="' + (node.outPallet || '') + '" placeholder="请输入" /><span class="price-unit">元</span></div></div>';
+    } else {
+      adjHtml =
+        '<div class="col-adj-cell empty"></div>' +
+        '<div class="col-adj-cell empty"></div>' +
+        '<div class="col-adj-cell empty"></div>' +
+        '<div class="col-adj-cell empty"></div>';
+    }
+
+    const showDel = siblings.length > 1;
+    const opsHtml =
+      '<div class="row-ops">' +
+      '<button type="button" class="btn-circle btn-add" data-action="add" data-path="' + path + '" data-depth="' + depth + '" title="新增同层级行">+</button>' +
+      (showDel ? '<button type="button" class="btn-circle btn-del" data-action="del" data-path="' + path + '" data-depth="' + depth + '" title="删除当前行">−</button>' : '') +
+      '</div>';
+
+    let html = '<div class="config-row" data-path="' + path + '">' + intervalHtml + adjHtml + opsHtml + '</div>';
+    if (!isLeaf && node.children) {
+      const childDim = dims[depth + 1];
+      node.children.forEach(function (child, ci) {
+        html += renderRow(child, depth + 1, childDim, node.children, ci, path);
+      });
+    }
+    return html;
+  }
+
+  function renderConfig() {
+    const body = document.getElementById('configBody');
+    const dims = getSortedSelectedDims();
+    if (dims.length === 0) {
+      body.innerHTML = '<div class="config-empty">请先勾选至少 1 个区间维度</div>';
+      return;
+    }
+    body.innerHTML = tree.map(function (root, ri) {
+      return '<div class="config-group">' + renderRow(root, 0, dims[0], tree, ri, '') + '</div>';
+    }).join('');
+    bindEvents();
+  }
+
+  function findNodeByPath(pathStr) {
+    const parts = pathStr.split('/').filter(Boolean);
+    let list = tree;
+    let node = null;
+    for (let i = 0; i < parts.length; i++) {
+      node = list.find(function (n) { return n.id === parts[i]; });
+      if (!node) return null;
+      list = node.children || [];
+    }
+    return node;
+  }
+
+  function findParentList(pathStr) {
+    const parts = pathStr.split('/').filter(Boolean);
+    if (parts.length === 1) {
+      return { list: tree, index: tree.findIndex(function (n) { return n.id === parts[0]; }) };
+    }
+    const parentPath = '/' + parts.slice(0, -1).join('/');
+    const parent = findNodeByPath(parentPath);
+    const id = parts[parts.length - 1];
+    return { list: parent.children, index: parent.children.findIndex(function (n) { return n.id === id; }) };
+  }
+
+  function sanitizeInput(dim, field, raw) {
+    if (field !== 'min' && field !== 'max') return raw;
+    if (dim.type === 'time') return raw;
+    if (dim.type === 'pieces') return raw.replace(/\D/g, '').slice(0, 6);
+    const cleaned = raw.replace(/[^\d.]/g, '');
+    const parts = cleaned.split('.');
+    const intPart = parts[0].slice(0, 5);
+    const decPart = parts.length > 1 ? parts[1].slice(0, 2) : '';
+    return decPart ? intPart + '.' + decPart : intPart;
+  }
+
+  function bindEvents() {
+    document.querySelectorAll('#configBody [data-field]').forEach(function (el) {
+      const handler = function () {
+        const node = findNodeByPath(el.dataset.path);
+        if (!node) return;
+        const parts = el.dataset.path.split('/').filter(Boolean);
+        const depth = parts.length - 1;
+        const dims = getSortedSelectedDims();
+        const dim = dims[depth];
+        let val = el.value;
+        if (el.dataset.field === 'min' || el.dataset.field === 'max') {
+          val = sanitizeInput(dim, el.dataset.field, val);
+          el.value = val;
+        }
+        node[el.dataset.field] = val;
+        if (el.dataset.field === 'light') el.classList.toggle('has-value', el.value !== '');
+        if (el.dataset.field === 'min' || el.dataset.field === 'max') {
+          const errs = validateInterval(dim, node.min, node.max);
+          el.classList.toggle('error', errs.length > 0 && (node.min !== '' || node.max !== ''));
+        }
+      };
+      el.addEventListener('input', handler);
+      el.addEventListener('change', handler);
+      el.addEventListener('blur', handler);
+    });
+
+    document.querySelectorAll('#configBody [data-action]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const depth = parseInt(btn.dataset.depth, 10);
+        const info = findParentList(btn.dataset.path);
+        if (btn.dataset.action === 'add') {
+          const newRow = createRow(depth, getSortedSelectedDims().map(function (d) { return d.key; }));
+          info.list.splice(info.index + 1, 0, newRow);
+        } else if (btn.dataset.action === 'del' && info.list.length > 1) {
+          info.list.splice(info.index, 1);
+        }
+        renderConfig();
+      });
+    });
+  }
+
+
+  rebuildTree(false);
+  renderDimGroups();
+  syncOpTypeOptions();
+
+  document.getElementById('btnImport').addEventListener('click', function () {
+    document.getElementById('modalOverlapImport').classList.add('show');
+  });
+  var btnFormOk = document.getElementById('btnFormOk');
+  if (btnFormOk) {
+    btnFormOk.addEventListener('click', function () {
+      document.getElementById('modalForm').classList.remove('show');
+      document.getElementById('modalOverlapSave').classList.add('show');
+    });
+  }
+  var btnOverlapSaveOk = document.getElementById('btnOverlapSaveOk');
+  if (btnOverlapSaveOk) {
+    btnOverlapSaveOk.addEventListener('click', function () {
+      document.getElementById('modalOverlapSave').classList.remove('show');
+    });
+  }
+  syncFilterMode();
+  syncActionBar();
+  renderTable();
+  syncAdjPanels();
+})();
+</script>
+
+</body>
+</html>
