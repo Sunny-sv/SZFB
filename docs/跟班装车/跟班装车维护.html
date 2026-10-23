@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>跟班装车维护</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0659d9;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 48px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+
+    /* 顶部整栏：左品牌 + 右蓝底标签栏 */
+    .top-header {
+      height: var(--header-height);
+      display: flex;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .brand-area {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: width .2s;
+      letter-spacing: .5px;
+    }
+    .layout.sidebar-collapsed .brand-area {
+      width: var(--sidebar-collapsed);
+      padding: 0 8px;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .layout.sidebar-collapsed .brand-area .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-area .brand-short { display: inline; }
+    .brand-area .brand-short { display: none; }
+
+    .top-tabs {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      background: var(--header-blue);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px 0 4px;
+    }
+    .top-tabs .collapse-btn,
+    .top-tabs .home-btn {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 18px;
+      flex-shrink: 0;
+      opacity: .95;
+    }
+    .top-tabs .collapse-btn:hover,
+    .top-tabs .home-btn:hover { background: rgba(255,255,255,.15); }
+
+    .page-tabs {
+      display: flex;
+      align-items: flex-end;
+      flex: 1;
+      overflow-x: auto;
+      gap: 4px;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 36px;
+      border-radius: 6px 6px 0 0;
+      color: rgba(255,255,255,.95);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
+      background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active {
+      background: #fff;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .7;
+      margin-left: 2px;
+    }
+    .page-tab.active .tab-close { opacity: .45; color: var(--text-secondary); }
+    .page-tab .tab-close:hover { opacity: 1; color: #ff4d4f; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px 6px 12px;
+      color: #fff;
+      flex-shrink: 0;
+      align-self: flex-end;
+      height: 42px;
+    }
+    .top-right .icon-btn {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .top-right .icon-btn .badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 8px;
+      padding: 0 4px 0 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 32px;
+    }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #722ed1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .8; }
+
+    /* 下方：侧栏 + 主内容 */
+    .body-row { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .2s;
+      overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 40px;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    /* 主内容区：卡片撑满可视高度，分页贴底 */
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    /* 1. 筛选条件区：名称左+控件右；3 列网格；重置/查询与最后一行底对齐 */
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    /* 2. 标签切换区 */
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* 3. 操作按钮区 */
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    /* 4. 数据列表区：占满剩余高度，分页始终在底部 */
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .data-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .data-table th,
+    .data-table td { border: 1px solid var(--border); padding: 10px 12px; text-align: center; }
+    .data-table th { background: #fafafa; font-weight: 500; color: var(--text); white-space: nowrap; }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+    .cell-placeholder { color: var(--text-secondary); }
+    .status-tag {
+      display: inline-block;
+      padding: 0 8px;
+      height: 22px;
+      line-height: 22px;
+      border-radius: 2px;
+      font-size: 12px;
+    }
+    .status-tag.ok { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+    .status-tag.del { background: #fff1f0; color: #ff4d4f; border: 1px solid #ffa39e; }
+
+    .panel-filter { display: none; }
+    .panel-filter.active { display: flex; align-items: flex-start; gap: 16px; width: 100%; }
+    .panel-filter.active .filter-grid { flex: 1; }
+    .panel-filter.active .filter-actions { padding-top: 4px; align-self: flex-end; }
+    .panel-action { display: none; }
+    .panel-action.active { display: flex; gap: 8px; flex-wrap: wrap; }
+    .panel-table { display: none; flex: 1; min-height: 0; flex-direction: column; }
+    .panel-table.active { display: flex; }
+
+    .filter-check-group {
+      display: flex; gap: 12px; align-items: center; height: 32px; flex-wrap: wrap;
+    }
+    .filter-check-group label {
+      display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 14px; white-space: nowrap;
+    }
+    .filter-check-group input { accent-color: var(--primary); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .modal-mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 4px;
+      width: 720px;
+      max-width: 96vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 24px rgba(0,0,0,.15);
+    }
+    .modal.modal-sm { width: 520px; }
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      font-size: 16px;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-close { cursor: pointer; font-size: 20px; color: var(--text-secondary); line-height: 1; border: none; background: none; }
+    .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      padding: 12px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 24px; }
+    .form-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .form-item.span-row { grid-column: 1 / -1; }
+    .form-item.align-start { align-items: flex-start; }
+    .form-item.align-start > label:first-child { padding-top: 6px; }
+    .form-item > label:first-child {
+      flex: 0 0 120px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .form-item > label:first-child .req { color: #ff4d4f; margin-right: 2px; }
+    .form-item > .select-wrap,
+    .form-item > .form-control,
+    .form-item > .checkbox-group { flex: 1; min-width: 0; }
+    .form-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-control:disabled { background: #f5f5f5; color: var(--text-secondary); }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .checkbox-group { display: flex; gap: 12px 16px; align-items: center; flex-wrap: wrap; min-height: 32px; }
+    .checkbox-group label { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px; margin: 0; white-space: nowrap; }
+    .checkbox-group input { accent-color: var(--primary); }
+
+    .link-btn {
+      border: none; background: none; color: var(--primary);
+      cursor: pointer; font-size: 14px; padding: 0;
+    }
+    .link-btn:hover { text-decoration: underline; }
+    .link-btn.disabled { color: rgba(0,0,0,.25); cursor: not-allowed; text-decoration: none; }
+    .th-freeze, .td-freeze {
+      position: sticky; right: 0; background: #fff; z-index: 1;
+      box-shadow: -4px 0 8px rgba(0,0,0,.04);
+    }
+    .th-freeze { background: #fafafa; z-index: 2; }
+    .compare-meta {
+      display: flex; gap: 32px; margin-bottom: 16px;
+      font-size: 14px; color: var(--text-secondary);
+    }
+    .compare-block { margin-bottom: 16px; }
+    .compare-block:last-child { margin-bottom: 0; }
+    .compare-title {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 500; margin-bottom: 8px;
+    }
+    .compare-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    }
+    .compare-dot.before { background: #D9001B; }
+    .compare-dot.after { background: #4B7902; }
+    .compare-scroll { overflow: auto; border: 1px solid var(--border); border-radius: 4px; }
+    .compare-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
+    .compare-table th, .compare-table td {
+      border: 1px solid var(--border); padding: 8px 10px; text-align: center; white-space: nowrap;
+    }
+    .compare-table th { background: #fafafa; font-weight: 500; }
+    .compare-changed-before { color: #D9001B; }
+    .compare-changed-after { color: #4B7902; }
+    .modal.compare-modal { width: 960px; max-width: 96vw; }
+    .confirm-text { font-size: 14px; line-height: 1.6; color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <header class="top-header">
+    <div class="brand-area">
+      <span class="brand-full">数智分拨 | DLC</span>
+      <span class="brand-short">DLC</span>
+    </div>
+    <div class="top-tabs">
+      <div class="collapse-btn" id="sidebarToggle" title="折叠/展开">☰</div>
+      <div class="home-btn" title="首页">⌂</div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active" data-tab="page1">跟班装车维护 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="文档">📄</span>
+        <span class="icon-btn" title="下载">⬇</span>
+        <span class="icon-btn" title="搜索">🔍</span>
+        <span class="icon-btn" title="通知">🔔<span class="badge">3</span></span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="body-row">
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-menu">
+        <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+        <div class="menu-item active">
+          <span class="menu-icon">☰</span><span class="menu-label">操作标准</span><span class="menu-arrow">▼</span>
+        </div>
+        <div class="menu-sub">
+          <div class="menu-item active">跟班装车维护</div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-wrapper">
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area">
+          <div class="panel-filter active" data-panel="site">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <span class="filter-label">网点名称</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请输入" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">所属分拨</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="分拨中心组件" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">清仓类型</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>一派</option>
+                      <option>二派</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">移动自动出库逻辑</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>自动出库</option>
+                      <option>二派自动出库</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">二次移动自动出库</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>是</option>
+                      <option>否</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn" type="button">重置</button>
+              <button class="btn btn-primary" type="button">查询</button>
+            </div>
+          </div>
+
+          <div class="panel-filter" data-panel="advance">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <span class="filter-label">维度</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>全国</option>
+                      <option>分拨</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">分拨中心</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="分拨中心组件" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">适用分拨</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>直营分拨中心</option>
+                      <option>非直营分拨中心</option>
+                      <option>服务站</option>
+                      <option>直营集配站</option>
+                      <option>非直营集配站</option>
+                      <option>智运分拨中心</option>
+                      <option>航空转运枢纽</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn" type="button">重置</button>
+              <button class="btn btn-primary" type="button">查询</button>
+            </div>
+          </div>
+
+          <div class="panel-filter" data-panel="log">
+            <div class="filter-grid">
+              <div class="filter-item">
+                <span class="filter-label">网点名称</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请输入" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">所属分拨</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="分拨中心组件" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">清仓类型</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>一派</option>
+                      <option>二派</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">移动自动出库逻辑</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>自动出库</option>
+                      <option>二派自动出库</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">二次移动自动出库</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>是</option>
+                      <option>否</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">变更类型</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option value="" selected>请选择变更类型</option>
+                      <option>新增</option>
+                      <option>编辑</option>
+                      <option>删除</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">周期</span>
+                <div class="filter-control-wrap">
+                  <div class="date-range">
+                    <input class="filter-control" type="text" placeholder="开始时间" readonly />
+                    <span class="sep">~</span>
+                    <input class="filter-control" type="text" placeholder="结束时间" readonly />
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">变更人</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="请选择变更人" />
+                </div>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">变更时间</span>
+                <div class="filter-control-wrap">
+                  <div class="date-range">
+                    <input class="filter-control" type="text" placeholder="开始时间" readonly />
+                    <span class="sep">~</span>
+                    <input class="filter-control" type="text" placeholder="结束时间" readonly />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn" type="button">重置</button>
+              <button class="btn btn-primary" type="button">查询</button>
+            </div>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-ctab="site">网点跟班名单</div>
+          <div class="content-tab" data-ctab="advance">发车时间提前</div>
+          <div class="content-tab" data-ctab="log">变更记录</div>
+        </nav>
+
+        <section class="action-bar">
+          <div class="panel-action active" data-panel="site">
+            <button class="btn-action primary" type="button" data-open="modalSite">+ 新增</button>
+            <button class="btn-action" type="button" data-open="modalSiteEdit">编辑</button>
+            <button class="btn-action" type="button" data-open="modalSiteDelete">删除</button>
+            <button class="btn-action" type="button">模板下载</button>
+            <button class="btn-action" type="button">导入</button>
+            <button class="btn-action" type="button">导出</button>
+          </div>
+          <div class="panel-action" data-panel="advance">
+            <button class="btn-action primary" type="button" data-open="modalAdvance">+ 新增</button>
+            <button class="btn-action" type="button" data-open="modalAdvanceEdit">编辑</button>
+            <button class="btn-action" type="button" data-open="modalAdvanceDelete">删除</button>
+            <button class="btn-action" type="button">导出</button>
+          </div>
+          <div class="panel-action" data-panel="log">
+            <button class="btn-action" type="button">导出</button>
+          </div>
+        </section>
+
+        <section class="table-area panel-table active" data-panel="site">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" class="check-all" data-scope="site" /></th>
+                  <th>网点名称</th>
+                  <th>所属分拨</th>
+                  <th>清仓类型</th>
+                  <th>移动自动出库逻辑</th>
+                  <th>二次移动自动出库</th>
+                  <th>发车时间提前（分钟）</th>
+                  <th>创建人</th>
+                  <th>创建时间</th>
+                  <th>修改人</th>
+                  <th>修改时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" data-scope="site" /></td>
+                  <td>东莞大岭山城区</td>
+                  <td>东莞分拨中心</td>
+                  <td>二派</td>
+                  <td>自动出库</td>
+                  <td>否</td>
+                  <td>—</td>
+                  <td>李亚鹏</td>
+                  <td>2026-10-16 09:10:22</td>
+                  <td>—</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" data-scope="site" /></td>
+                  <td>松北中源</td>
+                  <td>哈尔滨分拨中心</td>
+                  <td>一派</td>
+                  <td>自动出库</td>
+                  <td>否</td>
+                  <td>10</td>
+                  <td>周佳来</td>
+                  <td>2025-11-02 14:22:01</td>
+                  <td>—</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" data-scope="site" /></td>
+                  <td>柳州银象</td>
+                  <td>柳州分拨中心</td>
+                  <td>二派</td>
+                  <td>二派自动出库</td>
+                  <td>是</td>
+                  <td>—</td>
+                  <td>龙俐欣</td>
+                  <td>2025-09-18 11:05:33</td>
+                  <td>肖鑫宇</td>
+                  <td>2026-09-24 17:20:32</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 572 条</span>
+            <button class="page-btn disabled" type="button">&lt;</button>
+            <button class="page-btn active" type="button">1</button>
+            <button class="page-btn" type="button">2</button>
+            <button class="page-btn" type="button">3</button>
+            <button class="page-btn" type="button">…</button>
+            <button class="page-btn" type="button">12</button>
+            <button class="page-btn" type="button">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+        <section class="table-area panel-table" data-panel="advance">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" class="check-all" data-scope="advance" /></th>
+                  <th>维度</th>
+                  <th>适用分拨</th>
+                  <th>分拨中心</th>
+                  <th>发车时间提前（分钟）</th>
+                  <th>创建人</th>
+                  <th>创建时间</th>
+                  <th>修改人</th>
+                  <th>修改时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" data-scope="advance" /></td>
+                  <td>全国</td>
+                  <td>直营分拨中心、服务站、直营集配站</td>
+                  <td>—</td>
+                  <td>10</td>
+                  <td>杨勇</td>
+                  <td>2026-10-20 15:00:00</td>
+                  <td>—</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" data-scope="advance" /></td>
+                  <td>分拨</td>
+                  <td>—</td>
+                  <td>成都分拨中心</td>
+                  <td>30</td>
+                  <td>杨勇</td>
+                  <td>2026-10-20 15:05:12</td>
+                  <td>—</td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 2 条</span>
+            <button class="page-btn disabled" type="button">&lt;</button>
+            <button class="page-btn active" type="button">1</button>
+            <button class="page-btn disabled" type="button">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+        <section class="table-area panel-table" data-panel="log">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>变更类型</th>
+                  <th>网点名称</th>
+                  <th>所属分拨</th>
+                  <th>清仓类型</th>
+                  <th>移动自动出库逻辑</th>
+                  <th>二次移动自动出库</th>
+                  <th>发车时间提前（分钟）</th>
+                  <th>周期</th>
+                  <th>变更人</th>
+                  <th>变更时间</th>
+                  <th class="th-freeze">变更对比</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>新增</td>
+                  <td>东莞大岭山城区</td>
+                  <td>东莞分拨中心</td>
+                  <td>二派</td>
+                  <td>自动出库</td>
+                  <td>否</td>
+                  <td>—</td>
+                  <td>2026-10-16 09:10:22 ~ 至今</td>
+                  <td>李亚鹏</td>
+                  <td>2026-10-16 09:10:22</td>
+                  <td class="td-freeze"><button type="button" class="link-btn disabled" disabled>变更对比</button></td>
+                </tr>
+                <tr>
+                  <td>编辑</td>
+                  <td>柳州银象</td>
+                  <td>柳州分拨中心</td>
+                  <td>二派</td>
+                  <td>二派自动出库</td>
+                  <td>是</td>
+                  <td>—</td>
+                  <td>2026-09-24 17:20:32 ~ 至今</td>
+                  <td>肖鑫宇</td>
+                  <td>2026-09-24 17:20:32</td>
+                  <td class="td-freeze"><button type="button" class="link-btn btn-compare">变更对比</button></td>
+                </tr>
+                <tr>
+                  <td>删除</td>
+                  <td>西安碑林一部</td>
+                  <td>西安分拨中心</td>
+                  <td>一派</td>
+                  <td>自动出库</td>
+                  <td>否</td>
+                  <td>30</td>
+                  <td>2023-09-15 16:08:00 ~ 2026-08-08 10:12:45</td>
+                  <td>闫开举</td>
+                  <td>2026-08-08 10:12:45</td>
+                  <td class="td-freeze"><button type="button" class="link-btn disabled" disabled>变更对比</button></td>
+                </tr>
+                <tr>
+                  <td>新增</td>
+                  <td>西安碑林一部</td>
+                  <td>西安分拨中心</td>
+                  <td>一派</td>
+                  <td>自动出库</td>
+                  <td>否</td>
+                  <td>30</td>
+                  <td>2023-09-15 16:08:00 ~ 2026-08-08 10:12:45</td>
+                  <td>薛亚斌</td>
+                  <td>2023-09-15 16:08:00</td>
+                  <td class="td-freeze"><button type="button" class="link-btn disabled" disabled>变更对比</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 128 条</span>
+            <button class="page-btn disabled" type="button">&lt;</button>
+            <button class="page-btn active" type="button">1</button>
+            <button class="page-btn" type="button">2</button>
+            <button class="page-btn" type="button">3</button>
+            <button class="page-btn" type="button">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalSite">
+  <div class="modal">
+    <div class="modal-header">
+      <span>新增网点跟班</span>
+      <button class="modal-close" type="button" data-close="modalSite">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item">
+          <label><span class="req">*</span>网点名称</label>
+          <input class="form-control" type="text" placeholder="请输入网点" />
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>所属分拨</label>
+          <input class="form-control" type="text" placeholder="网点所属分拨" />
+        </div>
+        <div class="form-item">
+          <label>清仓类型</label>
+          <input class="form-control" type="text" value="一派" disabled />
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>移动自动出库逻辑</label>
+          <div class="select-wrap" style="flex:1">
+            <select class="form-control">
+              <option value="">请选择</option>
+              <option selected>自动出库</option>
+              <option>二派自动出库</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>二次移动自动出库</label>
+          <div class="select-wrap" style="flex:1">
+            <select class="form-control">
+              <option>是</option>
+              <option selected>否</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-item">
+          <label>发车时间提前（分钟）</label>
+          <input class="form-control" type="text" placeholder="非必填，整数，≥0" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalSite">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalSite">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalSiteEdit">
+  <div class="modal">
+    <div class="modal-header">
+      <span>编辑网点跟班</span>
+      <button class="modal-close" type="button" data-close="modalSiteEdit">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item">
+          <label><span class="req">*</span>网点名称</label>
+          <input class="form-control" type="text" value="柳州银象" disabled />
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>所属分拨</label>
+          <input class="form-control" type="text" value="柳州分拨中心" disabled />
+        </div>
+        <div class="form-item">
+          <label>清仓类型</label>
+          <input class="form-control" type="text" value="二派" disabled />
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>移动自动出库逻辑</label>
+          <div class="select-wrap" style="flex:1">
+            <select class="form-control">
+              <option>自动出库</option>
+              <option selected>二派自动出库</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>二次移动自动出库</label>
+          <div class="select-wrap" style="flex:1">
+            <select class="form-control">
+              <option selected>是</option>
+              <option>否</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-item">
+          <label>发车时间提前（分钟）</label>
+          <input class="form-control" type="text" value="" placeholder="非必填，整数，≥0" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalSiteEdit">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalSiteEdit">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalSiteDelete">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>删除</span>
+      <button class="modal-close" type="button" data-close="modalSiteDelete">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text">删除后名单中不再展示，历史可在变更记录中查询；请确认是否删除！（共 1 条）</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalSiteDelete">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalSiteDelete">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalCompare">
+  <div class="modal compare-modal">
+    <div class="modal-header">
+      <span>变更对比</span>
+      <button class="modal-close" type="button" data-close="modalCompare">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="compare-meta">
+        <span>变更时间：2026-09-24 17:20:32</span>
+        <span>变更人：肖鑫宇</span>
+      </div>
+      <div class="compare-block">
+        <div class="compare-title"><span class="compare-dot before"></span>变更前</div>
+        <div class="compare-scroll">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>网点名称</th>
+                <th>所属分拨</th>
+                <th>清仓类型</th>
+                <th>移动自动出库逻辑</th>
+                <th>二次移动自动出库</th>
+                <th>发车时间提前（分钟）</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>柳州银象</td>
+                <td>柳州分拨中心</td>
+                <td>二派</td>
+                <td>二派自动出库</td>
+                <td class="compare-changed-before">否</td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="compare-block">
+        <div class="compare-title"><span class="compare-dot after"></span>变更后</div>
+        <div class="compare-scroll">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>网点名称</th>
+                <th>所属分拨</th>
+                <th>清仓类型</th>
+                <th>移动自动出库逻辑</th>
+                <th>二次移动自动出库</th>
+                <th>发车时间提前（分钟）</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>柳州银象</td>
+                <td>柳州分拨中心</td>
+                <td>二派</td>
+                <td>二派自动出库</td>
+                <td class="compare-changed-after">是</td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" data-close="modalCompare">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalAdvance">
+  <div class="modal">
+    <div class="modal-header">
+      <span>新增发车时间提前</span>
+      <button class="modal-close" type="button" data-close="modalAdvance">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item">
+          <label><span class="req">*</span>维度</label>
+          <div class="select-wrap" style="flex:1">
+            <select class="form-control" id="advanceDim">
+              <option value="">请选择</option>
+              <option value="nation">全国</option>
+              <option value="hub">分拨</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>发车时间提前（分钟）</label>
+          <input class="form-control" type="text" placeholder="整数，≥0" />
+        </div>
+        <div class="form-item" id="advanceHubRow">
+          <label><span class="req">*</span>分拨中心</label>
+          <input class="form-control" type="text" placeholder="分拨中心组件" disabled id="advanceHub" />
+        </div>
+        <div class="form-item span-row align-start" id="advanceScopeRow">
+          <label><span class="req">*</span>适用分拨</label>
+          <div class="checkbox-group" id="advanceScope">
+            <label><input type="checkbox" disabled /> 直营分拨中心</label>
+            <label><input type="checkbox" disabled /> 非直营分拨中心</label>
+            <label><input type="checkbox" disabled /> 服务站</label>
+            <label><input type="checkbox" disabled /> 直营集配站</label>
+            <label><input type="checkbox" disabled /> 非直营集配站</label>
+            <label><input type="checkbox" disabled /> 智运分拨中心</label>
+            <label><input type="checkbox" disabled /> 航空转运枢纽</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalAdvance">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalAdvance">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalAdvanceEdit">
+  <div class="modal">
+    <div class="modal-header">
+      <span>编辑发车时间提前</span>
+      <button class="modal-close" type="button" data-close="modalAdvanceEdit">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-item">
+          <label><span class="req">*</span>维度</label>
+          <div class="select-wrap" style="flex:1">
+            <select class="form-control" id="advanceEditDim" disabled>
+              <option value="hub" selected>分拨</option>
+              <option value="nation">全国</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>发车时间提前（分钟）</label>
+          <input class="form-control" type="text" value="30" placeholder="整数，≥0" />
+        </div>
+        <div class="form-item">
+          <label><span class="req">*</span>分拨中心</label>
+          <input class="form-control" type="text" value="成都分拨中心" disabled />
+        </div>
+        <div class="form-item span-row align-start">
+          <label>适用分拨</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" disabled /> 直营分拨中心</label>
+            <label><input type="checkbox" disabled /> 非直营分拨中心</label>
+            <label><input type="checkbox" disabled /> 服务站</label>
+            <label><input type="checkbox" disabled /> 直营集配站</label>
+            <label><input type="checkbox" disabled /> 非直营集配站</label>
+            <label><input type="checkbox" disabled /> 智运分拨中心</label>
+            <label><input type="checkbox" disabled /> 航空转运枢纽</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalAdvanceEdit">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalAdvanceEdit">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalAdvanceDelete">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>删除</span>
+      <button class="modal-close" type="button" data-close="modalAdvanceDelete">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text">删除后不可恢复，请确认是否删除！（共 1 条）</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close="modalAdvanceDelete">取消</button>
+      <button class="btn btn-primary" type="button" data-close="modalAdvanceDelete">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.page-tab');
+    if (!tab || e.target.classList.contains('tab-close')) return;
+    document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+
+  function switchPanel(key) {
+    document.querySelectorAll('.panel-filter, .panel-action, .panel-table').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-panel') === key);
+    });
+  }
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    switchPanel(tab.getAttribute('data-ctab'));
+  });
+
+  document.querySelectorAll('.check-all').forEach(all => {
+    all.addEventListener('change', function () {
+      const scope = this.getAttribute('data-scope');
+      document.querySelectorAll('.row-check[data-scope="' + scope + '"]').forEach(cb => {
+        cb.checked = this.checked;
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-open]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-open');
+      const mask = document.getElementById(id);
+      if (mask) mask.classList.add('show');
+    });
+  });
+  document.querySelectorAll('[data-close]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-close');
+      const mask = document.getElementById(id);
+      if (mask) mask.classList.remove('show');
+    });
+  });
+  document.querySelectorAll('.modal-mask').forEach(mask => {
+    mask.addEventListener('click', (e) => {
+      if (e.target === mask) mask.classList.remove('show');
+    });
+  });
+  document.querySelectorAll('.btn-compare').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('modalCompare').classList.add('show');
+    });
+  });
+
+  const dimSel = document.getElementById('advanceDim');
+  if (dimSel) {
+    dimSel.addEventListener('change', function () {
+      const isNation = this.value === 'nation';
+      const isHub = this.value === 'hub';
+      const hub = document.getElementById('advanceHub');
+      const scopeInputs = document.querySelectorAll('#advanceScope input');
+      hub.disabled = !isHub;
+      if (!isHub) hub.value = '';
+      scopeInputs.forEach(inp => {
+        inp.disabled = !isNation;
+        if (!isNation) inp.checked = false;
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
+
