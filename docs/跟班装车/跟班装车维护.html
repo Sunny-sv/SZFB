@@ -290,6 +290,18 @@
     .filter-item .filter-control-wrap > .date-range {
       width: 100%;
     }
+    select.filter-control[multiple] {
+      height: 32px;
+      min-height: 32px;
+      padding: 0 28px 0 11px;
+      overflow: hidden;
+    }
+    .form-control[multiple] {
+      height: 32px;
+      min-height: 32px;
+      padding: 0 28px 0 11px;
+      overflow: hidden;
+    }
     .filter-control {
       width: 100%;
       height: 32px;
@@ -700,8 +712,7 @@
                 <span class="filter-label">适用分拨</span>
                 <div class="filter-control-wrap">
                   <div class="select-wrap">
-                    <select class="filter-control">
-                      <option selected>全部</option>
+                    <select class="filter-control" multiple size="1" title="多选下拉框">
                       <option>直营分拨中心</option>
                       <option>非直营分拨中心</option>
                       <option>服务站</option>
@@ -723,18 +734,29 @@
           <div class="panel-filter" data-panel="log">
             <div class="filter-grid">
               <div class="filter-item">
+                <span class="filter-label">记录来源</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control" id="logSource">
+                      <option value="site" selected>网点跟班名单</option>
+                      <option value="advance">提前发车时长</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item log-src-site">
                 <span class="filter-label">网点名称</span>
                 <div class="filter-control-wrap">
                   <input class="filter-control" type="text" placeholder="请输入" />
                 </div>
               </div>
-              <div class="filter-item">
+              <div class="filter-item log-src-site">
                 <span class="filter-label">所属分拨</span>
                 <div class="filter-control-wrap">
                   <input class="filter-control" type="text" placeholder="分拨中心组件" />
                 </div>
               </div>
-              <div class="filter-item">
+              <div class="filter-item log-src-site">
                 <span class="filter-label">清仓类型</span>
                 <div class="filter-control-wrap">
                   <div class="select-wrap">
@@ -746,7 +768,7 @@
                   </div>
                 </div>
               </div>
-              <div class="filter-item">
+              <div class="filter-item log-src-site">
                 <span class="filter-label">移动自动出库逻辑</span>
                 <div class="filter-control-wrap">
                   <div class="select-wrap">
@@ -758,7 +780,7 @@
                   </div>
                 </div>
               </div>
-              <div class="filter-item">
+              <div class="filter-item log-src-site">
                 <span class="filter-label">二次移动自动出库</span>
                 <div class="filter-control-wrap">
                   <div class="select-wrap">
@@ -766,6 +788,40 @@
                       <option selected>全部</option>
                       <option>是</option>
                       <option>否</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item log-src-advance" style="display:none">
+                <span class="filter-label">维度</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control">
+                      <option selected>全部</option>
+                      <option>全国</option>
+                      <option>分拨</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item log-src-advance" style="display:none">
+                <span class="filter-label">分拨中心</span>
+                <div class="filter-control-wrap">
+                  <input class="filter-control" type="text" placeholder="分拨中心组件" />
+                </div>
+              </div>
+              <div class="filter-item log-src-advance" style="display:none">
+                <span class="filter-label">适用分拨</span>
+                <div class="filter-control-wrap">
+                  <div class="select-wrap">
+                    <select class="filter-control" multiple size="1" title="多选下拉框">
+                      <option>直营分拨中心</option>
+                      <option>非直营分拨中心</option>
+                      <option>服务站</option>
+                      <option>直营集配站</option>
+                      <option>非直营集配站</option>
+                      <option>智运分拨中心</option>
+                      <option>航空转运枢纽</option>
                     </select>
                   </div>
                 </div>
@@ -819,7 +875,7 @@
 
         <nav class="content-tabs" id="contentTabs">
           <div class="content-tab active" data-ctab="site">网点跟班名单</div>
-          <div class="content-tab" data-ctab="advance">发车时间提前</div>
+          <div class="content-tab" data-ctab="advance">提前发车时长</div>
           <div class="content-tab" data-ctab="log">变更记录</div>
         </nav>
 
@@ -828,7 +884,7 @@
             <button class="btn-action primary" type="button" data-open="modalSite">+ 新增</button>
             <button class="btn-action" type="button" data-open="modalSiteEdit">编辑</button>
             <button class="btn-action" type="button" data-open="modalSiteDelete">删除</button>
-            <button class="btn-action" type="button">模板下载</button>
+            <button class="btn-action" type="button">下载模版</button>
             <button class="btn-action" type="button">导入</button>
             <button class="btn-action" type="button">导出</button>
           </div>
@@ -836,6 +892,8 @@
             <button class="btn-action primary" type="button" data-open="modalAdvance">+ 新增</button>
             <button class="btn-action" type="button" data-open="modalAdvanceEdit">编辑</button>
             <button class="btn-action" type="button" data-open="modalAdvanceDelete">删除</button>
+            <button class="btn-action" type="button">下载模版</button>
+            <button class="btn-action" type="button">导入</button>
             <button class="btn-action" type="button">导出</button>
           </div>
           <div class="panel-action" data-panel="log">
@@ -854,7 +912,7 @@
                   <th>清仓类型</th>
                   <th>移动自动出库逻辑</th>
                   <th>二次移动自动出库</th>
-                  <th>发车时间提前（分钟）</th>
+                  <th>提前发车时长（分钟）</th>
                   <th>创建人</th>
                   <th>创建时间</th>
                   <th>修改人</th>
@@ -869,7 +927,7 @@
                   <td>二派</td>
                   <td>自动出库</td>
                   <td>否</td>
-                  <td>—</td>
+                  <td>10</td>
                   <td>李亚鹏</td>
                   <td>2026-10-16 09:10:22</td>
                   <td>—</td>
@@ -895,7 +953,7 @@
                   <td>二派</td>
                   <td>二派自动出库</td>
                   <td>是</td>
-                  <td>—</td>
+                  <td>10</td>
                   <td>龙俐欣</td>
                   <td>2025-09-18 11:05:33</td>
                   <td>肖鑫宇</td>
@@ -926,7 +984,7 @@
                   <th>维度</th>
                   <th>适用分拨</th>
                   <th>分拨中心</th>
-                  <th>发车时间提前（分钟）</th>
+                  <th>提前发车时长（分钟）</th>
                   <th>创建人</th>
                   <th>创建时间</th>
                   <th>修改人</th>
@@ -969,7 +1027,7 @@
         </section>
 
         <section class="table-area panel-table" data-panel="log">
-          <div class="table-scroll">
+          <div class="table-scroll log-table-wrap" data-log-table="site">
             <table class="data-table">
               <thead>
                 <tr>
@@ -979,7 +1037,7 @@
                   <th>清仓类型</th>
                   <th>移动自动出库逻辑</th>
                   <th>二次移动自动出库</th>
-                  <th>发车时间提前（分钟）</th>
+                  <th>提前发车时长（分钟）</th>
                   <th>周期</th>
                   <th>变更人</th>
                   <th>变更时间</th>
@@ -994,7 +1052,7 @@
                   <td>二派</td>
                   <td>自动出库</td>
                   <td>否</td>
-                  <td>—</td>
+                  <td>10</td>
                   <td>2026-10-16 09:10:22 ~ 至今</td>
                   <td>李亚鹏</td>
                   <td>2026-10-16 09:10:22</td>
@@ -1007,11 +1065,11 @@
                   <td>二派</td>
                   <td>二派自动出库</td>
                   <td>是</td>
-                  <td>—</td>
+                  <td>10</td>
                   <td>2026-09-24 17:20:32 ~ 至今</td>
                   <td>肖鑫宇</td>
                   <td>2026-09-24 17:20:32</td>
-                  <td class="td-freeze"><button type="button" class="link-btn btn-compare">变更对比</button></td>
+                  <td class="td-freeze"><button type="button" class="link-btn btn-compare" data-compare="site">变更对比</button></td>
                 </tr>
                 <tr>
                   <td>删除</td>
@@ -1042,13 +1100,83 @@
               </tbody>
             </table>
           </div>
-          <div class="pagination">
+          <div class="table-scroll log-table-wrap" data-log-table="advance" style="display:none">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>变更类型</th>
+                  <th>维度</th>
+                  <th>适用分拨</th>
+                  <th>分拨中心</th>
+                  <th>提前发车时长（分钟）</th>
+                  <th>周期</th>
+                  <th>变更人</th>
+                  <th>变更时间</th>
+                  <th class="th-freeze">变更对比</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>新增</td>
+                  <td>全国</td>
+                  <td>直营分拨中心、服务站、直营集配站</td>
+                  <td>—</td>
+                  <td>10</td>
+                  <td>2026-10-20 15:00:00 ~ 至今</td>
+                  <td>杨勇</td>
+                  <td>2026-10-20 15:00:00</td>
+                  <td class="td-freeze"><button type="button" class="link-btn disabled" disabled>变更对比</button></td>
+                </tr>
+                <tr>
+                  <td>新增</td>
+                  <td>分拨</td>
+                  <td>—</td>
+                  <td>成都分拨中心</td>
+                  <td>30</td>
+                  <td>2026-10-20 15:05:12 ~ 至今</td>
+                  <td>杨勇</td>
+                  <td>2026-10-20 15:05:12</td>
+                  <td class="td-freeze"><button type="button" class="link-btn disabled" disabled>变更对比</button></td>
+                </tr>
+                <tr>
+                  <td>编辑</td>
+                  <td>分拨</td>
+                  <td>—</td>
+                  <td>成都分拨中心</td>
+                  <td>30</td>
+                  <td>2026-10-22 09:18:00 ~ 至今</td>
+                  <td>杨勇</td>
+                  <td>2026-10-22 09:18:00</td>
+                  <td class="td-freeze"><button type="button" class="link-btn btn-compare" data-compare="advance">变更对比</button></td>
+                </tr>
+                <tr>
+                  <td>删除</td>
+                  <td>全国</td>
+                  <td>非直营分拨中心、非直营集配站</td>
+                  <td>—</td>
+                  <td>15</td>
+                  <td>2026-09-01 10:00:00 ~ 2026-10-18 14:30:00</td>
+                  <td>杨勇</td>
+                  <td>2026-10-18 14:30:00</td>
+                  <td class="td-freeze"><button type="button" class="link-btn disabled" disabled>变更对比</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="logPaginationSite">
             <span class="total">共 128 条</span>
             <button class="page-btn disabled" type="button">&lt;</button>
             <button class="page-btn active" type="button">1</button>
             <button class="page-btn" type="button">2</button>
             <button class="page-btn" type="button">3</button>
             <button class="page-btn" type="button">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+          <div class="pagination" id="logPaginationAdvance" style="display:none">
+            <span class="total">共 4 条</span>
+            <button class="page-btn disabled" type="button">&lt;</button>
+            <button class="page-btn active" type="button">1</button>
+            <button class="page-btn disabled" type="button">&gt;</button>
             <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
           </div>
         </section>
@@ -1099,8 +1227,8 @@
           </div>
         </div>
         <div class="form-item">
-          <label>发车时间提前（分钟）</label>
-          <input class="form-control" type="text" placeholder="非必填，整数，≥0" />
+          <label>提前发车时长（分钟）</label>
+          <input class="form-control" type="text" placeholder="空=回落；填0=本网点强制0" />
         </div>
       </div>
     </div>
@@ -1150,8 +1278,8 @@
           </div>
         </div>
         <div class="form-item">
-          <label>发车时间提前（分钟）</label>
-          <input class="form-control" type="text" value="" placeholder="非必填，整数，≥0" />
+          <label>提前发车时长（分钟）</label>
+          <input class="form-control" type="text" value="" placeholder="空=回落；填0=本网点强制0" />
         </div>
       </div>
     </div>
@@ -1200,7 +1328,7 @@
                 <th>清仓类型</th>
                 <th>移动自动出库逻辑</th>
                 <th>二次移动自动出库</th>
-                <th>发车时间提前（分钟）</th>
+                <th>提前发车时长（分钟）</th>
               </tr>
             </thead>
             <tbody>
@@ -1210,7 +1338,7 @@
                 <td>二派</td>
                 <td>二派自动出库</td>
                 <td class="compare-changed-before">否</td>
-                <td>—</td>
+                <td>10</td>
               </tr>
             </tbody>
           </table>
@@ -1227,7 +1355,7 @@
                 <th>清仓类型</th>
                 <th>移动自动出库逻辑</th>
                 <th>二次移动自动出库</th>
-                <th>发车时间提前（分钟）</th>
+                <th>提前发车时长（分钟）</th>
               </tr>
             </thead>
             <tbody>
@@ -1237,7 +1365,7 @@
                 <td>二派</td>
                 <td>二派自动出库</td>
                 <td class="compare-changed-after">是</td>
-                <td>—</td>
+                <td>10</td>
               </tr>
             </tbody>
           </table>
@@ -1250,10 +1378,74 @@
   </div>
 </div>
 
+<div class="modal-mask" id="modalCompareAdvance">
+  <div class="modal compare-modal">
+    <div class="modal-header">
+      <span>变更对比</span>
+      <button class="modal-close" type="button" data-close="modalCompareAdvance">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="compare-meta">
+        <span>变更时间：2026-10-22 09:18:00</span>
+        <span>变更人：杨勇</span>
+      </div>
+      <div class="compare-block">
+        <div class="compare-title"><span class="compare-dot before"></span>变更前</div>
+        <div class="compare-scroll">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>维度</th>
+                <th>适用分拨</th>
+                <th>分拨中心</th>
+                <th>提前发车时长（分钟）</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>分拨</td>
+                <td>—</td>
+                <td>成都分拨中心</td>
+                <td class="compare-changed-before">20</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="compare-block">
+        <div class="compare-title"><span class="compare-dot after"></span>变更后</div>
+        <div class="compare-scroll">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>维度</th>
+                <th>适用分拨</th>
+                <th>分拨中心</th>
+                <th>提前发车时长（分钟）</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>分拨</td>
+                <td>—</td>
+                <td>成都分拨中心</td>
+                <td class="compare-changed-after">30</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" type="button" data-close="modalCompareAdvance">确定</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-mask" id="modalAdvance">
   <div class="modal">
     <div class="modal-header">
-      <span>新增发车时间提前</span>
+      <span>新增提前发车时长</span>
       <button class="modal-close" type="button" data-close="modalAdvance">×</button>
     </div>
     <div class="modal-body">
@@ -1269,23 +1461,25 @@
           </div>
         </div>
         <div class="form-item">
-          <label><span class="req">*</span>发车时间提前（分钟）</label>
+          <label><span class="req">*</span>提前发车时长（分钟）</label>
           <input class="form-control" type="text" placeholder="整数，≥0" />
         </div>
         <div class="form-item" id="advanceHubRow">
           <label><span class="req">*</span>分拨中心</label>
           <input class="form-control" type="text" placeholder="分拨中心组件" disabled id="advanceHub" />
         </div>
-        <div class="form-item span-row align-start" id="advanceScopeRow">
+        <div class="form-item span-row" id="advanceScopeRow">
           <label><span class="req">*</span>适用分拨</label>
-          <div class="checkbox-group" id="advanceScope">
-            <label><input type="checkbox" disabled /> 直营分拨中心</label>
-            <label><input type="checkbox" disabled /> 非直营分拨中心</label>
-            <label><input type="checkbox" disabled /> 服务站</label>
-            <label><input type="checkbox" disabled /> 直营集配站</label>
-            <label><input type="checkbox" disabled /> 非直营集配站</label>
-            <label><input type="checkbox" disabled /> 智运分拨中心</label>
-            <label><input type="checkbox" disabled /> 航空转运枢纽</label>
+          <div class="select-wrap" style="flex:1">
+            <select class="form-control" id="advanceScope" multiple size="1" disabled title="多选下拉框">
+              <option>直营分拨中心</option>
+              <option>非直营分拨中心</option>
+              <option>服务站</option>
+              <option>直营集配站</option>
+              <option>非直营集配站</option>
+              <option>智运分拨中心</option>
+              <option>航空转运枢纽</option>
+            </select>
           </div>
         </div>
       </div>
@@ -1300,7 +1494,7 @@
 <div class="modal-mask" id="modalAdvanceEdit">
   <div class="modal">
     <div class="modal-header">
-      <span>编辑发车时间提前</span>
+      <span>编辑提前发车时长</span>
       <button class="modal-close" type="button" data-close="modalAdvanceEdit">×</button>
     </div>
     <div class="modal-body">
@@ -1315,23 +1509,25 @@
           </div>
         </div>
         <div class="form-item">
-          <label><span class="req">*</span>发车时间提前（分钟）</label>
+          <label><span class="req">*</span>提前发车时长（分钟）</label>
           <input class="form-control" type="text" value="30" placeholder="整数，≥0" />
         </div>
         <div class="form-item">
           <label><span class="req">*</span>分拨中心</label>
           <input class="form-control" type="text" value="成都分拨中心" disabled />
         </div>
-        <div class="form-item span-row align-start">
+        <div class="form-item span-row">
           <label>适用分拨</label>
-          <div class="checkbox-group">
-            <label><input type="checkbox" disabled /> 直营分拨中心</label>
-            <label><input type="checkbox" disabled /> 非直营分拨中心</label>
-            <label><input type="checkbox" disabled /> 服务站</label>
-            <label><input type="checkbox" disabled /> 直营集配站</label>
-            <label><input type="checkbox" disabled /> 非直营集配站</label>
-            <label><input type="checkbox" disabled /> 智运分拨中心</label>
-            <label><input type="checkbox" disabled /> 航空转运枢纽</label>
+          <div class="select-wrap" style="flex:1">
+            <select class="form-control" multiple size="1" disabled title="多选下拉框">
+              <option>直营分拨中心</option>
+              <option>非直营分拨中心</option>
+              <option>服务站</option>
+              <option>直营集配站</option>
+              <option>非直营集配站</option>
+              <option>智运分拨中心</option>
+              <option>航空转运枢纽</option>
+            </select>
           </div>
         </div>
       </div>
@@ -1415,9 +1611,66 @@
   });
   document.querySelectorAll('.btn-compare').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.getElementById('modalCompare').classList.add('show');
+      const kind = btn.getAttribute('data-compare') || 'site';
+      const id = kind === 'advance' ? 'modalCompareAdvance' : 'modalCompare';
+      document.getElementById(id).classList.add('show');
     });
   });
+
+  function switchLogSource(src) {
+    document.querySelectorAll('.log-src-site').forEach(el => {
+      el.style.display = src === 'site' ? '' : 'none';
+    });
+    document.querySelectorAll('.log-src-advance').forEach(el => {
+      el.style.display = src === 'advance' ? '' : 'none';
+    });
+    document.querySelectorAll('.log-table-wrap').forEach(el => {
+      el.style.display = el.getAttribute('data-log-table') === src ? '' : 'none';
+    });
+    const pgSite = document.getElementById('logPaginationSite');
+    const pgAdv = document.getElementById('logPaginationAdvance');
+    if (pgSite) pgSite.style.display = src === 'site' ? '' : 'none';
+    if (pgAdv) pgAdv.style.display = src === 'advance' ? '' : 'none';
+  }
+
+  const logSource = document.getElementById('logSource');
+  if (logSource) {
+    logSource.addEventListener('change', function () {
+      switchLogSource(this.value);
+    });
+  }
+
+  function jumpToLog(src, fillFn) {
+    document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
+    const logTab = document.querySelector('.content-tab[data-ctab="log"]');
+    if (logTab) logTab.classList.add('active');
+    switchPanel('log');
+    const logSource = document.getElementById('logSource');
+    if (logSource) {
+      logSource.value = src;
+      switchLogSource(src);
+    }
+    if (typeof fillFn === 'function') fillFn();
+  }
+
+  document.querySelectorAll('.panel-table[data-panel="site"] tbody tr').forEach(tr => {
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('dblclick', () => {
+      const cells = tr.querySelectorAll('td');
+      jumpToLog('site', () => {
+        const nameInput = document.querySelector('.panel-filter[data-panel="log"] .log-src-site input.filter-control');
+        if (nameInput && cells[1]) nameInput.value = cells[1].textContent.trim();
+      });
+    });
+  });
+
+  document.querySelectorAll('.panel-table[data-panel="advance"] tbody tr').forEach(tr => {
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('dblclick', () => {
+      jumpToLog('advance');
+    });
+  });
+
 
   const dimSel = document.getElementById('advanceDim');
   if (dimSel) {
@@ -1425,13 +1678,13 @@
       const isNation = this.value === 'nation';
       const isHub = this.value === 'hub';
       const hub = document.getElementById('advanceHub');
-      const scopeInputs = document.querySelectorAll('#advanceScope input');
+      const scopeSel = document.getElementById('advanceScope');
       hub.disabled = !isHub;
       if (!isHub) hub.value = '';
-      scopeInputs.forEach(inp => {
-        inp.disabled = !isNation;
-        if (!isNation) inp.checked = false;
-      });
+      if (scopeSel) {
+        scopeSel.disabled = !isNation;
+        if (!isNation) Array.from(scopeSel.options).forEach(o => { o.selected = false; });
+      }
     });
   }
 </script>
