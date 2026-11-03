@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>交接单人员提成</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1890ff; --primary-hover: #40a9ff; --header-blue: #0658d9;
+      --sidebar-bg: #1c2531; --sidebar-hover: #171e28; --sidebar-active: #0658d9;
+      --sidebar-sub: #1c2531; --sidebar-text: #fff; --bg: #f2f3f7; --card: #fff;
+      --border: #e8e8e8; --text: rgba(0,0,0,.85); --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 208px; --sidebar-collapsed: 54px; --header-height: 47px; --footer-height: 32px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px; color: var(--text); background: var(--bg); overflow: hidden;
+    }
+    .layout { display: flex; height: 100vh; width: 100%; position: relative; }
+    .sidebar {
+      width: var(--sidebar-width); background: var(--sidebar-bg); display: flex; flex-direction: column;
+      flex-shrink: 0; transition: width .28s; overflow: hidden; z-index: 1001;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+    .sidebar-logo {
+      height: 50px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    }
+    .sidebar-logo .brand-full { color: #fff; font-size: 20px; font-weight: 700; white-space: nowrap; }
+    .sidebar-logo .brand-full .brand-sep { position: relative; padding-left: 10px; margin-left: 5px; }
+    .sidebar-logo .brand-full .brand-sep::before {
+      content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+      width: 3px; height: 18px; background: #fff; border-radius: 1px;
+    }
+    .sidebar-logo .brand-mini {
+      display: none; width: 36px; height: 36px; border-radius: 8px; background: rgba(255,255,255,.95);
+      color: var(--header-blue); font-size: 12px; font-weight: 700; align-items: center; justify-content: center;
+    }
+    .layout.sidebar-collapsed .sidebar-logo .brand-full { display: none; }
+    .layout.sidebar-collapsed .sidebar-logo .brand-mini { display: flex; }
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 4px 0 12px; }
+    .menu-item {
+      display: flex; align-items: center; padding: 0 15px; height: 40px; color: var(--sidebar-text);
+      cursor: pointer; font-size: 14px; white-space: nowrap; gap: 8px;
+    }
+    .menu-item:hover { background: var(--sidebar-hover); }
+    .menu-item.active { background: var(--sidebar-active); }
+    .menu-icon { width: 18px; text-align: center; flex-shrink: 0; opacity: .9; }
+    .menu-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .menu-arrow { font-size: 10px; opacity: .7; }
+    .layout.sidebar-collapsed .menu-label, .layout.sidebar-collapsed .menu-arrow { display: none; }
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 42px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    .main-container { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+    .navbar {
+      height: var(--header-height); background: var(--header-blue); display: flex; align-items: center;
+      padding: 0 8px 0 4px; flex-shrink: 0; color: #fff;
+    }
+    .hamburger {
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border-radius: 4px; flex-shrink: 0;
+    }
+    .hamburger:hover { background: rgba(255,255,255,.15); }
+    .hamburger svg { width: 18px; height: 18px; fill: #fff; }
+    .page-tabs { display: flex; align-items: flex-end; flex: 1; overflow-x: auto; gap: 4px; padding: 0 4px; height: 100%; }
+    .page-tab {
+      display: flex; align-items: center; gap: 8px; padding: 0 14px; height: 36px;
+      border-radius: 6px 6px 0 0; color: rgba(255,255,255,.95); cursor: pointer;
+      white-space: nowrap; font-size: 13px; background: rgba(255,255,255,.18);
+    }
+    .page-tab.active { background: #fff; color: var(--text); font-weight: 500; }
+    .page-tab .tab-close { font-size: 14px; opacity: .7; }
+    .top-right { display: flex; align-items: center; gap: 4px; padding: 0 8px 0 12px; flex-shrink: 0; }
+    .icon-btn {
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border-radius: 4px;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .icon-btn svg { width: 18px; height: 18px; fill: #fff; }
+    .icon-btn.with-badge { position: relative; }
+    .icon-btn .badge {
+      position: absolute; top: 2px; right: 2px; min-width: 14px; height: 14px; padding: 0 3px;
+      border-radius: 7px; background: #ff4d4f; color: #fff; font-size: 10px; line-height: 14px; text-align: center;
+    }
+    .user-info { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding: 0 4px 0 8px; cursor: pointer; border-radius: 4px; height: 32px; }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 28px; height: 28px; border-radius: 50%; background: #722ed1;
+      display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff;
+    }
+    .user-name { font-size: 13px; }
+    .user-arrow { font-size: 10px; opacity: .85; }
+
+    .content-area { flex: 1; min-height: 0; overflow: hidden; padding: 16px; display: flex; flex-direction: column; }
+    .content-card {
+      background: var(--card); border-radius: 4px; padding: 16px; flex: 1; min-height: 0;
+      display: flex; flex-direction: column; gap: 12px; overflow: hidden;
+    }
+    .filter-area { display: flex; align-items: flex-end; gap: 16px; flex-shrink: 0; }
+    .filter-grid { flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; align-items: center; }
+    .filter-item { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; }
+    .filter-item .filter-label { flex: 0 0 96px; text-align: right; font-size: 14px; color: var(--text); white-space: nowrap; }
+    .filter-item .filter-control-wrap { flex: 1; min-width: 0; }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range { width: 100%; }
+    .filter-control {
+      width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 11px; font-size: 14px; color: var(--text); background: #fff; outline: none;
+    }
+    .filter-control::placeholder { color: #bfbfbf; }
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control { appearance: none; -webkit-appearance: none; padding-right: 28px; cursor: pointer; }
+    .select-wrap::after {
+      content: "▼"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-secondary); pointer-events: none;
+    }
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px; padding: 0 16px; border-radius: 4px; font-size: 14px; cursor: pointer;
+      border: 1px solid var(--border); background: #fff; color: var(--text); white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    .content-tabs {
+      display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; flex-shrink: 0;
+    }
+    .content-tab {
+      padding: 8px 12px; cursor: pointer; color: var(--text); font-size: 13px;
+      border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+    .btn-action {
+      height: 28px; padding: 0 12px; border-radius: 3px; font-size: 12px; cursor: pointer;
+      border: 1px solid var(--border); background: #fff; color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    .table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .table-scroll { flex: 1; min-height: 0; overflow: auto; }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th, .data-table td {
+      border: 1px solid var(--border); padding: 8px 10px; text-align: center; white-space: nowrap;
+    }
+    .data-table th { background: #fafafa; font-weight: 500; }
+    .panel-body { display: none; flex: 1; min-height: 0; flex-direction: column; gap: 12px; }
+    .panel-body.active { display: flex; }
+    .pagination {
+      display: flex; align-items: center; gap: 6px; padding-top: 10px; flex-shrink: 0; font-size: 13px;
+    }
+    .pagination .total { margin-right: 8px; color: var(--text-secondary); }
+    .page-btn {
+      min-width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      background: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0 8px;
+    }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px; border: 1px solid var(--border); border-radius: 4px; text-align: center; font-size: 13px; outline: none;
+    }
+    .app-footer {
+      height: var(--footer-height); flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      gap: 12px; font-size: 12px; color: var(--text-secondary); background: var(--bg);
+    }
+    .app-footer a { color: var(--text-secondary); text-decoration: none; }
+    .filter-check { display: flex; align-items: center; gap: 6px; font-size: 13px; height: 32px; }
+  </style>
+</head>
+<body>
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="brand-full">数智分拨 <span class="brand-sep">DLC</span></span>
+      <span class="brand-mini">DLC</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+      <div class="menu-item active">
+        <span class="menu-icon">☰</span><span class="menu-label">薪资线上化</span><span class="menu-arrow">▼</span>
+      </div>
+      <div class="menu-sub">
+        <div class="menu-item">基础提成方案维护</div>
+        <div class="menu-item active">交接单人员提成</div>
+        <div class="menu-item">转运人员薪资</div>
+      </div>
+    </nav>
+  </aside>
+
+  <div class="main-container">
+    <header class="navbar">
+      <div class="hamburger" id="sidebarToggle" title="折叠/展开">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+          <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7z"/>
+        </svg>
+      </div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active">交接单人员提成 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="导出任务管理">
+          <svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm7-18l-5 5h3v6h4v-6h3l-5-5z"/></svg>
+        </span>
+        <span class="icon-btn with-badge" title="消息">
+          <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          <span class="badge">3</span>
+        </span>
+        <div class="user-info">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+        <section class="filter-area">
+          <div class="filter-grid" id="filterGrid">
+            <div class="filter-item">
+              <span class="filter-label">交接单号</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入，多个逗号分隔" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">扫描时间</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" value="2026-11-01 15:00:00" readonly />
+                  <span class="sep">至</span>
+                  <input class="filter-control" type="text" value="2026-12-01 14:59:59" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" id="fiOperateType">
+              <span class="filter-label">操作类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control" id="selOperateType" multiple size="4" title="多选">
+                    <option value="">请选择</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">省区</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap"><select class="filter-control"><option>请选择</option><option>渝川</option><option>滇黔</option></select></div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap"><select class="filter-control"><option>请选择</option><option>重庆分拨</option><option>昆明分拨</option></select></div>
+              </div>
+            </div>
+            <div class="filter-item" id="fiSiteLabel">
+              <span class="filter-label" id="lblSite">上/下一站</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入分拨中心" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">操作人</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请选择人员" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">岗位类型</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option>全部</option>
+                    <option selected>武职</option>
+                    <option>文职</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">岗位</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap"><select class="filter-control"><option selected>请选择</option><option>装卸工</option><option>装卸组长</option></select></div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">是否包含支援</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>是</option>
+                    <option>否</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">在职状态</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control">
+                    <option selected>全部</option>
+                    <option>在职</option>
+                    <option>离职</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">外包公司</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="请输入" />
+              </div>
+            </div>
+            <div class="filter-item" id="fiWage" style="display:none;">
+              <span class="filter-label"></span>
+              <div class="filter-control-wrap">
+                <label class="filter-check"><input type="checkbox" checked /> 提成货量</label>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn" type="button">重置</button>
+            <button class="btn btn-primary" type="button">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab" data-panel="other">装卸</div>
+          <div class="content-tab" data-panel="other">移动</div>
+          <div class="content-tab" data-panel="other">流水线卸货</div>
+          <div class="content-tab" data-panel="other">流水线码货</div>
+          <div class="content-tab" data-panel="other">流水线直装</div>
+          <div class="content-tab" data-panel="openLoad">开单大票装卸</div>
+          <div class="content-tab" data-panel="openMove">开单大票移动</div>
+          <div class="content-tab active" data-panel="opLoad">操作大票装卸</div>
+          <div class="content-tab" data-panel="other">皮带机卸车</div>
+          <div class="content-tab" data-panel="other">皮带机码货</div>
+          <div class="content-tab" data-panel="other">皮带机移动</div>
+        </nav>
+
+        <section class="action-bar">
+          <button class="btn-action primary" type="button">导出</button>
+        </section>
+
+        <div class="panel-body active" id="bodyOpenLoad">
+          <section class="table-area">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>省区</th><th>分拨中心</th><th>交接单号</th><th>操作类型</th><th>货量状态</th><th>上/下一站</th>
+                    <th>交接单重量(kg)</th><th>操作人</th><th>工号</th><th>岗位</th><th>是否支援</th><th>支援分拨</th>
+                    <th>计算薪资分拨</th><th>支援使用方案</th><th>外包公司</th><th>入职时间</th><th>在职状态</th>
+                    <th>操作重量(kg)</th><th>提成单价</th><th>提成金额</th><th>方案编号</th><th>总提成金额</th>
+                    <th>卸车完成/封签发车时间</th><th>第一件扫描时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>渝川</td><td>重庆分拨</td><td>CQ20261103001</td><td>网点卸车</td><td>有效</td><td>渝北网点</td>
+                    <td>12680.000</td><td>张三</td><td>02123456</td><td>装卸工</td><td>否</td><td>—</td>
+                    <td>重庆分拨</td><td>—</td><td>—</td><td>2024-03-01 00:00:00</td><td>在职</td>
+                    <td>3200.000</td><td>1.200</td><td>3.840000</td><td>CZDP202611001</td><td>3.840000</td>
+                    <td>2026-11-02 18:20:00</td><td>2026-11-02 16:05:00</td>
+                  </tr>
+                  <tr>
+                    <td>渝川</td><td>重庆分拨</td><td>CQ20261103002</td><td>干线装车</td><td>有效</td><td>成都分拨</td>
+                    <td>18500.000</td><td>李四</td><td>02123457</td><td>装卸组长</td><td>是</td><td>成都分拨</td>
+                    <td>重庆分拨</td><td>支援分拨方案</td><td>—</td><td>2023-08-15 00:00:00</td><td>在职</td>
+                    <td>4500.000</td><td>1.350</td><td>6.075000</td><td>CZDP202611002</td><td>6.075000</td>
+                    <td>2026-11-02 20:10:00</td><td>2026-11-02 17:40:00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total">共 2 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+        </div>
+
+        <div class="panel-body" id="bodyOpenMove">
+          <section class="table-area">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>省区</th><th>分拨中心</th><th>交接单号</th><th>操作类型</th><th>上一站</th>
+                    <th>交接单重量(kg)</th><th>交接单移动托数</th><th>操作人</th><th>工号</th><th>岗位</th>
+                    <th>是否支援</th><th>支援分拨</th><th>计算薪资分拨</th><th>支援使用方案</th><th>外包公司</th>
+                    <th>入职时间</th><th>在职状态</th><th>移动重量(kg)</th><th>移动托数</th>
+                    <th>移动重量单价</th><th>移动托数单价</th><th>提成金额</th><th>方案编号</th><th>总提成金额</th>
+                    <th>卸车完成时间</th><th>第一件扫描时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>渝川</td><td>重庆分拨</td><td>CQ20261103010</td><td>网点移动</td><td>渝北网点</td>
+                    <td>9800.000</td><td>12</td><td>王五</td><td>02123458</td><td>电叉司机</td>
+                    <td>否</td><td>—</td><td>重庆分拨</td><td>—</td><td>—</td>
+                    <td>2022-05-01 00:00:00</td><td>在职</td><td>2100.000</td><td>3</td>
+                    <td>0.800</td><td>2.000</td><td>7.680000</td><td>CZDP202611010</td><td>7.680000</td>
+                    <td>2026-11-02 19:00:00</td><td>2026-11-02 15:30:00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total">共 1 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+        </div>
+
+        <div class="panel-body" id="bodyOpLoad">
+          <section class="table-area">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>省区</th><th>分拨中心</th><th>交接单号</th><th>操作类型</th><th>货量状态</th><th>上/下一站</th>
+                    <th>交接单重量(kg)</th><th>操作人</th><th>工号</th><th>岗位</th><th>是否支援</th><th>支援分拨</th>
+                    <th>计算薪资分拨</th><th>支援使用方案</th><th>外包公司</th><th>入职时间</th><th>在职状态</th>
+                    <th>操作重量(kg)</th><th>提成单价</th><th>提成金额</th><th>方案编号</th><th>总提成金额</th>
+                    <th>卸车完成/封签发车时间</th><th>第一件扫描时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>渝川</td><td>重庆分拨</td><td>CQ20261103101</td><td>网点卸车</td><td>有效</td><td>渝北网点</td>
+                    <td>15200.000</td><td>赵六</td><td>02123459</td><td>装卸工</td><td>否</td><td>—</td>
+                    <td>重庆分拨</td><td>—</td><td>—</td><td>2024-11-01 00:00:00</td><td>在职</td>
+                    <td>5100.000</td><td>1.100</td><td>5.610000</td><td>CZOP202611001</td><td>5.610000</td>
+                    <td>2026-11-02 21:05:00</td><td>2026-11-02 18:12:00</td>
+                  </tr>
+                  <tr>
+                    <td>滇黔</td><td>昆明分拨</td><td>KM20261103102</td><td>干线卸车</td><td>有效</td><td>贵阳分拨</td>
+                    <td>22000.000</td><td>钱七</td><td>08710001</td><td>装卸组长</td><td>是</td><td>贵阳分拨</td>
+                    <td>昆明分拨</td><td>自定义方案</td><td>—</td><td>2021-02-18 00:00:00</td><td>在职</td>
+                    <td>7800.000</td><td>1.250</td><td>9.750000</td><td>CZOP202611002</td><td>9.750000</td>
+                    <td>2026-11-02 22:40:00</td><td>2026-11-02 19:55:00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total">共 2 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+        </div>
+
+        <div class="panel-body" id="bodyOther">
+          <section class="table-area">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>省区</th><th>分拨中心</th><th>交接单号</th><th>操作类型</th><th>操作人</th><th>工号</th><th>岗位</th><th>提成金额</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>渝川</td><td>重庆分拨</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total">共 0 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      中通快运 © 版权所有
+      <a href="https://beian.miit.gov.cn/" target="_blank">浙ICP备2020042419号</a>
+      中通版权所有 企业邮箱：ztky@zto56.com
+    </footer>
+  </div>
+</div>
+
+<script>
+  const LOAD_OPTS = [
+    { v: '', t: '请选择' },
+    { v: '网点卸车', t: '网点卸车' },
+    { v: '干线卸车', t: '干线卸车' },
+    { v: '网点装车', t: '网点装车' },
+    { v: '干线装车', t: '干线装车' }
+  ];
+  const MOVE_OPTS = [
+    { v: '', t: '请选择' },
+    { v: '网点移动', t: '网点移动' },
+    { v: '干线移动', t: '干线移动' }
+  ];
+  const OTHER_OPTS = [
+    { v: '', t: '请选择' },
+    { v: '网点卸车', t: '网点卸车' },
+    { v: '干线卸车', t: '干线卸车' }
+  ];
+
+  const panelMap = {
+    openLoad: 'bodyOpenLoad',
+    openMove: 'bodyOpenMove',
+    opLoad: 'bodyOpLoad',
+    other: 'bodyOther'
+  };
+
+  function fillOperateType(opts) {
+    const sel = document.getElementById('selOperateType');
+    sel.innerHTML = opts.map((o) => '<option value="' + o.v + '">' + o.t + '</option>').join('');
+  }
+
+  function applyTab(panel) {
+    document.querySelectorAll('.panel-body').forEach((p) => p.classList.remove('active'));
+    document.getElementById(panelMap[panel] || 'bodyOther').classList.add('active');
+
+    const lbl = document.getElementById('lblSite');
+    const wage = document.getElementById('fiWage');
+    if (panel === 'openMove') {
+      lbl.textContent = '上一站';
+      fillOperateType(MOVE_OPTS);
+      wage.style.display = 'none';
+    } else if (panel === 'openLoad' || panel === 'opLoad') {
+      lbl.textContent = '上/下一站';
+      fillOperateType(LOAD_OPTS);
+      wage.style.display = 'none';
+    } else {
+      lbl.textContent = '上/下一站';
+      fillOperateType(OTHER_OPTS);
+      wage.style.display = '';
+    }
+  }
+
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('.content-tab').forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    applyTab(tab.getAttribute('data-panel'));
+  });
+
+  applyTab('opLoad');
+</script>
+</body>
+</html>

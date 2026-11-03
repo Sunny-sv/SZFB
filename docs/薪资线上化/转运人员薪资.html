@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>转运人员薪资</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #9174ea; --primary-hover: #7058c4; --header-blue: #9174ea;
+      --sidebar-bg: #011040; --sidebar-hover: #9174ea; --sidebar-active: #8263e0;
+      --sidebar-sub: #0a1850; --sidebar-text: #fff; --bg: #f0f2f5; --card: #fff;
+      --border: #e8e8e8; --text: rgba(0,0,0,.85); --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 208px; --sidebar-collapsed: 54px; --header-height: 46px; --footer-height: 32px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px; color: var(--text); background: var(--bg); overflow: hidden;
+    }
+    .layout { display: flex; height: 100vh; width: 100%; }
+    .sidebar {
+      width: var(--sidebar-width); background: var(--sidebar-bg); display: flex; flex-direction: column;
+      flex-shrink: 0; transition: width .28s; overflow: hidden; z-index: 1001;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+    .sidebar-logo { height: 46px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .sidebar-logo .brand-full { display: inline-flex; align-items: center; gap: 12px; color: #fff; white-space: nowrap; }
+    .sidebar-logo .brand-mark {
+      height: 18px; padding: 0 8px; border-radius: 3px; background: #fff; color: var(--header-blue);
+      font-size: 11px; font-weight: 700; line-height: 18px;
+    }
+    .sidebar-logo .brand-title { font-size: 18px; font-weight: 700; }
+    .sidebar-logo .brand-mini {
+      display: none; width: 36px; height: 36px; border-radius: 8px; background: #fff;
+      color: var(--header-blue); font-size: 11px; font-weight: 700; align-items: center; justify-content: center;
+    }
+    .layout.sidebar-collapsed .brand-full { display: none; }
+    .layout.sidebar-collapsed .brand-mini { display: flex; }
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 4px 0 12px; }
+    .menu-item {
+      display: flex; align-items: center; padding: 0 15px; height: 40px; color: var(--sidebar-text);
+      cursor: pointer; font-size: 14px; white-space: nowrap; gap: 8px;
+    }
+    .menu-item:hover { background: var(--sidebar-hover); }
+    .menu-item.active { background: var(--sidebar-active); }
+    .menu-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .menu-arrow { font-size: 10px; opacity: .7; }
+    .layout.sidebar-collapsed .menu-label, .layout.sidebar-collapsed .menu-arrow { display: none; }
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 42px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    .main-container { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+    .navbar {
+      height: var(--header-height); background: var(--header-blue); display: flex; align-items: center;
+      padding: 0 0 0 4px; flex-shrink: 0; color: #fff;
+    }
+    .hamburger {
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border-radius: 4px; flex-shrink: 0;
+    }
+    .hamburger:hover { background: rgba(0,0,0,.08); }
+    .hamburger svg { width: 20px; height: 20px; fill: #fff; }
+    .page-tabs { flex: 1; min-width: 0; display: flex; align-items: flex-end; overflow-x: auto; padding: 0 4px; height: 100%; }
+    .page-tab {
+      display: inline-flex; align-items: center; height: 38px; margin: 8px 0 0 10px;
+      color: #fff; cursor: pointer; white-space: nowrap; font-size: 14px;
+    }
+    .page-tab .tab-label {
+      display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; height: 28px; border-radius: 7px;
+    }
+    .page-tab.active {
+      background: #f3f4f6; color: #333; border-radius: 10px 10px 0 0; padding: 0 5px; font-weight: 500;
+    }
+    .page-tab.active .tab-label { background: #f3f4f6; color: #333; }
+    .top-right { display: flex; align-items: center; gap: 2px; padding: 0 12px 0 8px; flex-shrink: 0; }
+    .icon-btn {
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border-radius: 4px;
+    }
+    .icon-btn svg { width: 18px; height: 18px; fill: #fff; }
+    .user-info { display: flex; align-items: center; gap: 8px; margin-left: 4px; padding: 0 4px 0 6px; cursor: pointer; height: 40px; }
+    .avatar {
+      width: 35px; height: 35px; border-radius: 50%; background: #fff; color: var(--header-blue);
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600;
+    }
+    .user-name { font-size: 14px; }
+    .user-arrow { font-size: 10px; opacity: .85; }
+
+    .content-area { flex: 1; min-height: 0; overflow: hidden; padding: 5px 5px 0; display: flex; flex-direction: column; }
+    .content-card {
+      background: var(--card); border-radius: 4px; padding: 12px 16px; flex: 1; min-height: 0;
+      display: flex; flex-direction: column; gap: 12px; overflow: hidden;
+    }
+    .filter-area { display: flex; align-items: flex-end; gap: 16px; flex-shrink: 0; }
+    .filter-grid { flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; align-items: center; }
+    .filter-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .filter-label { flex: 0 0 110px; text-align: right; font-size: 14px; white-space: nowrap; }
+    .filter-control-wrap { flex: 1; min-width: 0; }
+    .filter-control {
+      width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 11px; font-size: 14px; color: var(--text); background: #fff; outline: none;
+    }
+    .select-wrap { position: relative; width: 100%; }
+    .select-wrap .filter-control { appearance: none; -webkit-appearance: none; padding-right: 28px; cursor: pointer; }
+    .select-wrap::after {
+      content: "▼"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-secondary); pointer-events: none;
+    }
+    .date-range { display: flex; align-items: center; gap: 8px; width: 100%; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); flex-shrink: 0; }
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .filter-check { display: flex; align-items: center; gap: 6px; height: 32px; font-size: 13px; }
+    .btn {
+      height: 32px; padding: 0 16px; border-radius: 4px; font-size: 14px; cursor: pointer;
+      border: 1px solid var(--border); background: #fff; color: var(--text); white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .content-tab {
+      padding: 8px 16px; cursor: pointer; color: var(--text); font-size: 14px;
+      border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .action-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+    .action-bar .spacer { flex: 1; }
+    .btn-action {
+      height: 28px; padding: 0 12px; border-radius: 3px; font-size: 12px; cursor: pointer;
+      border: 1px solid var(--border); background: #fff; color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:disabled { opacity: .45; cursor: not-allowed; }
+    .set-btn {
+      width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 3px; background: #fff;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--text-secondary);
+    }
+
+    .panel-body { display: none; flex: 1; min-height: 0; flex-direction: column; gap: 8px; }
+    .panel-body.active { display: flex; }
+    .table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .table-scroll { flex: 1; min-height: 0; overflow: auto; }
+    .data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th, .data-table td {
+      border: 1px solid var(--border); padding: 8px 10px; text-align: center; white-space: nowrap;
+    }
+    .data-table th { background: #fafafa; font-weight: 500; }
+    .col-expand { width: 48px; }
+    .col-checkbox { width: 40px; }
+    .expand-btn {
+      width: 18px; height: 18px; border: 1px solid var(--border); border-radius: 2px; background: #fff;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1;
+      color: var(--text-secondary);
+    }
+    .expand-btn.open { color: var(--primary); border-color: var(--primary); }
+    .nested-wrap { background: #fafafa; padding: 8px 12px; text-align: left; }
+    .nested-wrap .data-table { background: #fff; }
+    .link-act { color: var(--primary); cursor: pointer; text-decoration: none; }
+    .link-act:hover { text-decoration: underline; }
+    .row-selected { background: #f5f0ff; }
+    .pagination {
+      display: flex; align-items: center; gap: 6px; padding-top: 10px; flex-shrink: 0; font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .page-btn {
+      min-width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      background: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0 8px;
+    }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px; height: 32px; border: 1px solid var(--border); border-radius: 4px; text-align: center; outline: none;
+    }
+    .app-footer {
+      height: var(--footer-height); flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      gap: 12px; font-size: 12px; color: var(--text-secondary); background: var(--bg);
+    }
+
+    .modal-mask {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 2000;
+      align-items: center; justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      background: #fff; border-radius: 4px; width: 560px; max-width: calc(100vw - 40px);
+      max-height: calc(100vh - 40px); display: flex; flex-direction: column; box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    }
+    .modal.wide { width: 1100px; }
+    .modal-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 15px; font-weight: 600;
+    }
+    .modal-close { border: none; background: transparent; font-size: 18px; cursor: pointer; color: var(--text-secondary); line-height: 1; }
+    .modal-bd { padding: 16px; overflow: auto; flex: 1; min-height: 0; }
+    .modal-ft {
+      display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border);
+    }
+    .form-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+    .form-label { flex: 0 0 130px; text-align: right; line-height: 32px; font-size: 13px; }
+    .form-label .req { color: #f56c6c; margin-right: 2px; }
+    .form-ctrl { flex: 1; min-width: 0; }
+    .form-ctrl .filter-control, .form-ctrl textarea {
+      width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 6px 11px; font-size: 13px; outline: none;
+    }
+    .form-ctrl textarea { min-height: 72px; resize: vertical; font-family: inherit; }
+    .upload-box {
+      border: 1px dashed var(--border); border-radius: 4px; padding: 24px; text-align: center;
+      color: var(--text-secondary); font-size: 13px; cursor: pointer;
+    }
+    .upload-box:hover { border-color: var(--primary); color: var(--primary); }
+    .toast {
+      display: none; position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,.75); color: #fff; padding: 8px 16px; border-radius: 4px; z-index: 3000; font-size: 13px;
+    }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+<div class="layout" id="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="brand-full"><span class="brand-mark">ZTO</span><span class="brand-title">TVM</span></span>
+      <span class="brand-mini">TVM</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+      <div class="menu-item active">
+        <span class="menu-icon">☰</span><span class="menu-label">考勤薪资</span><span class="menu-arrow">▼</span>
+      </div>
+      <div class="menu-sub">
+        <div class="menu-item active">转运人员薪资</div>
+        <div class="menu-item">交接单人员提成</div>
+      </div>
+    </nav>
+  </aside>
+
+  <div class="main-container">
+    <header class="navbar">
+      <div class="hamburger" id="sidebarToggle" title="折叠/展开">
+        <svg viewBox="0 0 1024 1024"><path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"/></svg>
+      </div>
+      <div class="page-tabs">
+        <div class="page-tab active"><span class="tab-label">转运人员薪资 <span class="tab-close">×</span></span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="导出任务管理">
+          <svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm7-18l-5 5h3v6h4v-6h3l-5-5z"/></svg>
+        </span>
+        <div class="user-info">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </header>
+
+        <main class="content-area">
+      <div class="content-card">
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item"><span class="filter-label">省区</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option>请选择</option><option>渝川</option><option>滇黔</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">分拨中心</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option>请选择</option><option>重庆分拨</option><option>昆明分拨</option></select></div></div></div>
+            <div class="filter-item">
+              <span class="filter-label">结算年月</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" value="2026-11" readonly />
+                  <span class="sep">至</span>
+                  <input class="filter-control" type="text" value="2026-11" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item"><span class="filter-label">岗位类型</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option selected>全部</option><option>文职岗</option><option>武职岗</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">岗位</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option selected>请选择</option><option>装卸工</option><option>装卸组长</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">操作人</span><div class="filter-control-wrap"><input class="filter-control" type="text" placeholder="请选择人员" /></div></div>
+            <div class="filter-item"><span class="filter-label">在职状态</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option selected>全部</option><option>在职</option><option>离职</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">是否新员工</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option selected>全部</option><option>是</option><option>否</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">是否调整出勤</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option selected>全部</option><option>是</option><option>否</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">是否调整其他提成</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option selected>全部</option><option>是</option><option>否</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">是否复职</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option selected>全部</option><option>是</option><option>否</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label">是否有复职提成</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option selected>全部</option><option>是</option><option>否</option></select></div></div></div>
+            <div class="filter-item"><span class="filter-label"></span><div class="filter-control-wrap"><label class="filter-check"><input type="checkbox" /> 只查询分拨下员工</label></div></div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn" type="button" id="btnReset">重置</button>
+            <button class="btn btn-primary" type="button" id="btnSearch">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab" data-panel="count">人员汇总</div>
+          <div class="content-tab active" data-panel="detail">人员工资明细</div>
+        </nav>
+
+        <section class="action-bar">
+          <button class="btn-action" type="button" data-toast="已提交导出任务：转运人员薪资-人员汇总 / 人员工资明细">导出</button>
+          <button class="btn-action btn-count" type="button" style="display:none;" data-toast="已提交导出任务：转运人员薪资-货量汇总">货量汇总导出</button>
+          <button class="btn-action btn-detail" type="button" data-toast="已提交导出任务：转运人员薪资-人员明细">人员明细导出</button>
+          <button class="btn-action btn-detail" type="button" data-toast="已提交导出任务：转运人员薪资-货量明细">货量明细导出</button>
+          <button class="btn-action" type="button" data-toast="已开始下载：转运人员薪资-导入模板.xlsx">模版下载</button>
+          <button class="btn-action" type="button" id="btnImport">导入</button>
+          <button class="btn-action btn-detail" type="button" id="btnEditAttend" disabled>修改出勤天数</button>
+          <button class="btn-action btn-detail" type="button" data-toast="已提交导出任务：转运人员薪资-修改后人员明细">修改后人员明细导出</button>
+          <div class="spacer"></div>
+          <button class="set-btn" type="button" id="btnCustom" title="自定义列">⚙</button>
+        </section>
+
+        <div class="panel-body" id="bodyCount">
+          <section class="table-area">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead><tr><th class="col-expand">展开</th><th>省区</th><th>分拨中心</th><th>结算月份</th><th>操作人</th><th>工号</th><th>岗位</th><th>在职状态</th><th>入职时间</th><th>支援状态</th><th>被支援分拨</th><th>是否新员工</th><th>应出勤天数</th><th>实际出勤天数</th><th>计算薪资出勤天数</th><th>出勤系数</th><th>基本薪资</th><th>责任货量提成</th><th>新员工减免责任货量提成</th><th>基础提成</th><th>阶梯提成</th><th>上限调整</th><th>绩效工资</th><th>质量绩效</th><th>支援补贴</th><th>操作补贴</th><th>同票同位</th><th>破损</th><th>无效合托提成</th><th>分批</th><th>错分</th><th>协助提成</th><th>智运提成</th><th>开单大票提成</th><th>操作大票提成</th><th>移动自动合托</th><th>特殊货物</th><th>特殊车线</th><th>特殊时段</th><th>装卸提成</th><th>移动提成</th><th>流水线卸车提成</th><th>流水线码货提成</th><th>流水线移动提成</th><th>流水线直装提成</th><th>首分拨集笼提成</th><th>目的分拨集笼提成</th><th>中转分拨集笼提成</th><th>内推奖</th><th>岗位津贴</th><th>加班补贴</th><th>超吨补贴</th><th>复职提成</th><th>导入复职提成</th><th>皮带机卸车提成</th><th>皮带机码货提成</th><th>皮带机移动提成</th><th>其他提成</th><th>其他提成备注</th><th>车线调整差异</th><th>总工资合计初版</th><th>总工资合计终版</th><th>终版总调整差异</th><th>其他提成终版调整</th><th>其他提成终版调整备注</th><th>出勤调整差异</th><th>导入目的分拨集笼提成</th><th>导入中转分拨集笼提成</th><th>导入皮带机卸车提成</th><th>导入皮带机码货提成</th><th>导入皮带机移动提成</th></tr></thead>
+                <tbody id="countBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total">共 2 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+        </div>
+
+        <div class="panel-body active" id="bodyDetail">
+          <section class="table-area">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead><tr><th class="col-expand">展开</th><th>省区</th><th>分拨中心</th><th>结算月份</th><th>操作人</th><th>工号</th><th>岗位</th><th>在职状态</th><th>入职时间</th><th>支援状态</th><th>被支援分拨</th><th>是否新员工</th><th>应出勤天数</th><th>实际出勤天数</th><th>计算薪资出勤天数</th><th>出勤系数</th><th>基本薪资</th><th>责任货量提成</th><th>新员工减免责任货量提成</th><th>基础提成</th><th>阶梯提成</th><th>上限调整</th><th>绩效工资</th><th>质量绩效</th><th>支援补贴</th><th>操作补贴</th><th>同票同位</th><th>破损</th><th>无效合托提成</th><th>分批</th><th>错分</th><th>协助提成</th><th>智运提成</th><th>开单大票提成</th><th>操作大票提成</th><th>移动自动合托</th><th>特殊货物</th><th>特殊车线</th><th>特殊时段</th><th>装卸提成</th><th>移动提成</th><th>流水线卸车提成</th><th>流水线码货提成</th><th>流水线移动提成</th><th>流水线直装提成</th><th>首分拨集笼提成</th><th>目的分拨集笼提成</th><th>中转分拨集笼提成</th><th>内推奖</th><th>岗位津贴</th><th>加班补贴</th><th>超吨补贴</th><th>复职提成</th><th>导入复职提成</th><th>皮带机卸车提成</th><th>皮带机码货提成</th><th>皮带机移动提成</th><th>其他提成</th><th>其他提成备注</th><th>车线调整差异</th><th>总工资合计初版</th><th>总工资合计终版</th><th>终版总调整差异</th><th>其他提成终版调整</th><th>其他提成终版调整备注</th><th>出勤调整差异</th><th>导入目的分拨集笼提成</th><th>导入中转分拨集笼提成</th><th>导入皮带机卸车提成</th><th>导入皮带机码货提成</th><th>导入皮带机移动提成</th></tr></thead>
+                <tbody id="detailBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span class="total">共 2 条</span>
+              <button class="page-btn disabled" type="button">&lt;</button>
+              <button class="page-btn active" type="button">1</button>
+              <button class="page-btn disabled" type="button">&gt;</button>
+              <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+    <footer class="app-footer">中通快运 © 版权所有</footer>
+  </div>
+</div>
+
+<!-- 修改出勤天数 -->
+<div class="modal-mask" id="modalAttend">
+  <div class="modal">
+    <div class="modal-hd">修改计算薪资出勤天数 <button class="modal-close" type="button" data-close="modalAttend">×</button></div>
+    <div class="modal-bd">
+      <div class="form-item">
+        <span class="form-label"><span class="req">*</span>计算薪资出勤天数</span>
+        <div class="form-ctrl"><input class="filter-control" id="attendDays" type="text" placeholder="请输入" value="28" /></div>
+      </div>
+      <div class="form-item">
+        <span class="form-label"><span class="req">*</span>修改备注</span>
+        <div class="form-ctrl"><textarea id="attendRemark" placeholder="请输入">现场核对后调整</textarea></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" type="button" data-close="modalAttend">取消</button>
+      <button class="btn btn-primary" type="button" id="attendOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 修改记录 -->
+<div class="modal-mask" id="modalHistory">
+  <div class="modal wide">
+    <div class="modal-hd">修改记录 <button class="modal-close" type="button" data-close="modalHistory">×</button></div>
+    <div class="modal-bd">
+      <div class="table-scroll" style="max-height: 420px;">
+        <table class="data-table">
+          <thead><tr><th>修改记录</th><th>省区</th><th>分拨中心</th><th>结算月份</th><th>操作人</th><th>工号</th><th>岗位</th><th>在职状态</th><th>入职时间</th><th>支援状态</th><th>被支援分拨</th><th>是否新员工</th><th>应出勤天数</th><th>实际出勤天数</th><th>计算薪资出勤天数</th><th>修改后计算薪资出勤天数</th><th>出勤系数</th><th>基本薪资</th><th>责任货量提成</th><th>新员工减免责任货量提成</th><th>基础提成</th><th>阶梯提成</th><th>上限调整</th><th>绩效工资</th><th>质量绩效</th><th>支援补贴</th><th>操作补贴</th><th>同票同位</th><th>破损</th><th>无效合托提成</th><th>分批</th><th>错分</th><th>协助提成</th><th>智运提成</th><th>开单大票提成</th><th>操作大票提成</th><th>移动自动合托</th><th>特殊货物</th><th>特殊车线</th><th>特殊时段</th><th>装卸提成</th><th>移动提成</th><th>流水线卸车提成</th><th>流水线码货提成</th><th>流水线移动提成</th><th>流水线直装提成</th><th>首分拨集笼提成</th><th>中转分拨集笼提成</th><th>目的分拨集笼提成</th><th>内推奖</th><th>岗位津贴</th><th>加班补贴</th><th>超吨补贴</th><th>复职提成</th><th>导入复职提成</th><th>其他提成</th><th>其他提成备注</th><th>车线调整差异</th><th>总工资合计初版</th><th>总工资合计终版</th><th>终版总调整差异</th><th>其他提成终版调整</th><th>其他提成终版调整备注</th><th>出勤调整差异</th><th>创建人</th><th>创建时间</th><th>修改备注</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>修改出勤天数</td>
+              <td>渝川</td><td>重庆分拨</td><td>2026-11</td><td>张三</td><td>02123456</td><td>装卸工</td><td>在职</td><td>2024-03-01</td><td>非支援</td><td>—</td><td>否</td><td>30</td><td>28</td><td>28</td><td>28</td><td>0.9333</td><td>2500.00</td><td>180.00</td><td>0.00</td><td>1280.50</td><td>320.00</td><td>0.00</td><td>600.00</td><td>200.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>80.00</td><td>0.00</td><td>156.20</td><td>48.60</td><td>12.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>—</td><td>0.00</td><td>4860.30</td><td>4860.30</td><td>0.00</td><td>0.00</td><td>—</td><td>0.00</td>
+              <td>王哲</td><td>2026-11-03 10:20:00</td><td>现场核对后调整</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-primary" type="button" data-close="modalHistory">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导入 -->
+<div class="modal-mask" id="modalImport">
+  <div class="modal">
+    <div class="modal-hd">导入 <button class="modal-close" type="button" data-close="modalImport">×</button></div>
+    <div class="modal-bd">
+      <div class="upload-box" id="uploadBox">点击或拖拽上传 Excel 文件<br /><span style="font-size:12px;">模版：转运人员薪资-导入模板.xlsx</span></div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-secondary);" id="uploadName">未选择文件</div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" type="button" data-close="modalImport">取消</button>
+      <button class="btn btn-primary" type="button" id="importOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 自定义列 -->
+<div class="modal-mask" id="modalCustom">
+  <div class="modal">
+    <div class="modal-hd">自定义列 <button class="modal-close" type="button" data-close="modalCustom">×</button></div>
+    <div class="modal-bd" style="font-size:13px;line-height:1.8;max-height:360px;overflow:auto;">
+      <label><input type="checkbox" checked /> 省区</label><br />
+      <label><input type="checkbox" checked /> 分拨中心</label><br />
+      <label><input type="checkbox" checked /> 结算月份</label><br />
+      <label><input type="checkbox" checked /> 操作人</label><br />
+      <label><input type="checkbox" checked /> 工号</label><br />
+      <label><input type="checkbox" checked /> 岗位</label><br />
+      <label><input type="checkbox" checked /> 在职状态</label><br />
+      <label><input type="checkbox" checked /> 入职时间</label><br />
+      <label><input type="checkbox" checked /> 支援状态</label><br />
+      <label><input type="checkbox" checked /> 被支援分拨</label><br />
+      <label><input type="checkbox" checked /> 是否新员工</label><br />
+      <label><input type="checkbox" checked /> 应出勤天数</label><br />
+      <label><input type="checkbox" checked /> 实际出勤天数</label><br />
+      <label><input type="checkbox" checked /> 计算薪资出勤天数</label><br />
+      <label><input type="checkbox" checked /> 出勤系数</label><br />
+      <label><input type="checkbox" checked /> 基本薪资</label><br />
+      <label><input type="checkbox" checked /> 责任货量提成</label><br />
+      <label><input type="checkbox" checked /> 新员工减免责任货量提成</label><br />
+      <label><input type="checkbox" checked /> 基础提成</label><br />
+      <label><input type="checkbox" checked /> 阶梯提成</label><br />
+      <label><input type="checkbox" checked /> 上限调整</label><br />
+      <label><input type="checkbox" checked /> 绩效工资</label><br />
+      <label><input type="checkbox" checked /> 质量绩效</label><br />
+      <label><input type="checkbox" checked /> 支援补贴</label><br />
+      <label><input type="checkbox" checked /> 操作补贴</label><br />
+      <label><input type="checkbox" checked /> 同票同位</label><br />
+      <label><input type="checkbox" checked /> 破损</label><br />
+      <label><input type="checkbox" checked /> 无效合托提成</label><br />
+      <label><input type="checkbox" checked /> 分批</label><br />
+      <label><input type="checkbox" checked /> 错分</label><br />
+      <label><input type="checkbox" checked /> 协助提成</label><br />
+      <label><input type="checkbox" checked /> 智运提成</label><br />
+      <label><input type="checkbox" checked /> 开单大票提成</label><br />
+      <label><input type="checkbox" checked /> 操作大票提成</label><br />
+      <label><input type="checkbox" checked /> 移动自动合托</label><br />
+      <label><input type="checkbox" checked /> 特殊货物</label><br />
+      <label><input type="checkbox" checked /> 特殊车线</label><br />
+      <label><input type="checkbox" checked /> 特殊时段</label><br />
+      <label><input type="checkbox" checked /> 装卸提成</label><br />
+      <label><input type="checkbox" checked /> 移动提成</label><br />
+      <label><input type="checkbox" checked /> 流水线卸车提成</label><br />
+      <label><input type="checkbox" checked /> 流水线码货提成</label><br />
+      <label><input type="checkbox" checked /> 流水线移动提成</label><br />
+      <label><input type="checkbox" checked /> 流水线直装提成</label><br />
+      <label><input type="checkbox" checked /> 首分拨集笼提成</label><br />
+      <label><input type="checkbox" checked /> 目的分拨集笼提成</label><br />
+      <label><input type="checkbox" checked /> 中转分拨集笼提成</label><br />
+      <label><input type="checkbox" checked /> 内推奖</label><br />
+      <label><input type="checkbox" checked /> 岗位津贴</label><br />
+      <label><input type="checkbox" checked /> 加班补贴</label><br />
+      <label><input type="checkbox" checked /> 超吨补贴</label><br />
+      <label><input type="checkbox" checked /> 复职提成</label><br />
+      <label><input type="checkbox" checked /> 导入复职提成</label><br />
+      <label><input type="checkbox" checked /> 皮带机卸车提成</label><br />
+      <label><input type="checkbox" checked /> 皮带机码货提成</label><br />
+      <label><input type="checkbox" checked /> 皮带机移动提成</label><br />
+      <label><input type="checkbox" checked /> 其他提成</label><br />
+      <label><input type="checkbox" checked /> 其他提成备注</label><br />
+      <label><input type="checkbox" checked /> 车线调整差异</label><br />
+      <label><input type="checkbox" checked /> 总工资合计初版</label><br />
+      <label><input type="checkbox" checked /> 总工资合计终版</label><br />
+      <label><input type="checkbox" checked /> 终版总调整差异</label><br />
+      <label><input type="checkbox" checked /> 其他提成终版调整</label><br />
+      <label><input type="checkbox" checked /> 其他提成终版调整备注</label><br />
+      <label><input type="checkbox" checked /> 出勤调整差异</label><br />
+      <label><input type="checkbox" checked /> 导入目的分拨集笼提成</label><br />
+      <label><input type="checkbox" checked /> 导入中转分拨集笼提成</label><br />
+      <label><input type="checkbox" checked /> 导入皮带机卸车提成</label><br />
+      <label><input type="checkbox" checked /> 导入皮带机码货提成</label><br />
+      <label><input type="checkbox" checked /> 导入皮带机移动提成</label><br />
+    </div>
+    <div class="modal-ft">
+      <button class="btn" type="button" data-close="modalCustom">取消</button>
+      <button class="btn btn-primary" type="button" id="customOk">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const OUTER_FIELDS = ["省区", "分拨中心", "结算月份", "操作人", "工号", "岗位", "在职状态", "入职时间", "支援状态", "被支援分拨", "是否新员工", "应出勤天数", "实际出勤天数", "计算薪资出勤天数", "出勤系数", "基本薪资", "责任货量提成", "新员工减免责任货量提成", "基础提成", "阶梯提成", "上限调整", "绩效工资", "质量绩效", "支援补贴", "操作补贴", "同票同位", "破损", "无效合托提成", "分批", "错分", "协助提成", "智运提成", "开单大票提成", "操作大票提成", "移动自动合托", "特殊货物", "特殊车线", "特殊时段", "装卸提成", "移动提成", "流水线卸车提成", "流水线码货提成", "流水线移动提成", "流水线直装提成", "首分拨集笼提成", "目的分拨集笼提成", "中转分拨集笼提成", "内推奖", "岗位津贴", "加班补贴", "超吨补贴", "复职提成", "导入复职提成", "皮带机卸车提成", "皮带机码货提成", "皮带机移动提成", "其他提成", "其他提成备注", "车线调整差异", "总工资合计初版", "总工资合计终版", "终版总调整差异", "其他提成终版调整", "其他提成终版调整备注", "出勤调整差异", "导入目的分拨集笼提成", "导入中转分拨集笼提成", "导入皮带机卸车提成", "导入皮带机码货提成", "导入皮带机移动提成"];
+  const NESTED_FIELDS = ["省区", "分拨中心", "结算月份", "操作人", "工号", "岗位", "在职状态", "入职时间", "是否复职", "支援状态", "被支援分拨", "是否新员工", "应出勤天数", "实际出勤天数", "计算薪资出勤天数", "修改后计算薪资出勤天数", "出勤系数", "基本薪资", "责任货量提成", "新员工减免责任货量提成", "基础提成", "阶梯提成", "上限调整", "绩效工资", "质量绩效", "支援补贴", "操作补贴", "同票同位", "破损", "无效合托提成", "分批", "错分", "协助提成", "智运提成", "开单大票提成", "操作大票提成", "移动自动合托", "特殊货物", "特殊车线", "特殊时段", "装卸提成", "移动提成", "流水线卸车提成", "流水线码货提成", "流水线移动提成", "流水线直装提成", "首分拨集笼提成", "中转分拨集笼提成", "目的分拨集笼提成", "内推奖", "岗位津贴", "加班补贴", "超吨补贴", "复职提成", "导入复职提成", "皮带机卸车提成", "皮带机码货提成", "皮带机移动提成", "其他提成", "其他提成备注", "车线调整差异", "总工资合计初版", "总工资合计终版", "终版总调整差异", "其他提成终版调整", "其他提成终版调整备注", "出勤调整差异", "导入目的分拨集笼提成", "导入中转分拨集笼提成", "导入皮带机卸车提成", "导入皮带机码货提成", "导入皮带机移动提成"];
+  const OUTER_COLSPAN = 71;
+  const NESTED_COLSPAN = 75;
+
+  const cargoHtml = `
+    <table class="data-table">
+      <thead><tr><th>应出勤天数</th><th>实际出勤天数</th><th>计算薪资出勤天数</th><th>修改后计算薪资出勤天数</th><th>出勤系数</th><th>干线卸车货量(吨)</th><th>干线装车货量(吨)</th><th>网点卸车货量(吨)</th><th>网点装车货量(吨)</th><th>总操作货量(吨)</th><th>干线移动托数</th><th>干线移动吨位</th><th>网点移动托数</th><th>网点移动吨位</th><th>总移动托数</th><th>总移动吨位</th><th>特殊货物货量(吨)</th><th>特殊车线货量(吨)</th><th>特殊时段货量(吨)</th><th>总特殊货量(吨)</th><th>流水线网点卸车货量(吨)</th><th>流水线干线卸车货量(吨)</th><th>流水线总卸车货量(吨)</th><th>流水线网点码货货量(吨)</th><th>流水线干线码货货量(吨)</th><th>流水线总码货货量(吨)</th><th>流水线移动货量(吨)</th><th>流水线移动托数</th><th>流水线网点直装货量(吨)</th><th>流水线干线直装货量(吨)</th><th>流水线总直装货量(吨)</th><th>协助货量(吨)</th><th>被协助货量(吨)</th><th>开单大票干线卸车货量(吨)</th><th>开单大票干线装车货量(吨)</th><th>开单大票网点卸车货量(吨)</th><th>开单大票网点装车货量(吨)</th><th>开单大票总操作货量(吨)</th><th>开单大票干线移动托数</th><th>开单大票干线移动吨位</th><th>开单大票网点移动托数</th><th>开单大票网点移动吨位</th><th>开单大票总移动托数</th><th>开单大票总移动吨位</th><th>操作大票干线卸车货量(吨)</th><th>操作大票干线装车货量(吨)</th><th>操作大票网点卸车货量(吨)</th><th>操作大票网点装车货量(吨)</th><th>操作大票总操作货量(吨)</th></tr></thead>
+      <tbody><tr><td>30</td><td>28</td><td>28</td><td>28</td><td>0.9333</td><td>12.500</td><td>8.200</td><td>6.100</td><td>4.300</td><td>31.100</td><td>120</td><td>8.500</td><td>80</td><td>5.200</td><td>200</td><td>13.700</td><td>1.200</td><td>0.800</td><td>0.500</td><td>2.500</td><td>3.100</td><td>2.400</td><td>5.500</td><td>2.200</td><td>1.800</td><td>4.000</td><td>6.000</td><td>90</td><td>1.500</td><td>1.200</td><td>2.700</td><td>0.600</td><td>0.300</td><td>5.200</td><td>3.100</td><td>2.400</td><td>1.800</td><td>12.500</td><td>2</td><td>1.200</td><td>1</td><td>0.800</td><td>3</td><td>2.000</td><td>2.100</td><td>1.400</td><td>0.900</td><td>0.600</td><td>5.000</td></tr></tbody>
+    </table>`;
+
+  const countRows = [{"id": "c1", "省区": "渝川", "分拨中心": "重庆分拨", "结算月份": "2026-11", "操作人": "张三", "工号": "02123456", "岗位": "装卸工", "在职状态": "在职", "入职时间": "2024-03-01", "支援状态": "非支援", "被支援分拨": "—", "是否新员工": "否", "应出勤天数": "30", "实际出勤天数": "28", "计算薪资出勤天数": "28", "出勤系数": "0.9333", "基本薪资": "2500.00", "责任货量提成": "180.00", "新员工减免责任货量提成": "0.00", "基础提成": "1280.50", "阶梯提成": "320.00", "上限调整": "0.00", "绩效工资": "600.00", "质量绩效": "200.00", "支援补贴": "0.00", "操作补贴": "0.00", "同票同位": "0.00", "破损": "0.00", "无效合托提成": "0.00", "分批": "0.00", "错分": "0.00", "协助提成": "80.00", "智运提成": "0.00", "开单大票提成": "156.20", "操作大票提成": "48.60", "移动自动合托": "12.00", "特殊货物": "0.00", "特殊车线": "0.00", "特殊时段": "0.00", "装卸提成": "0.00", "移动提成": "0.00", "流水线卸车提成": "0.00", "流水线码货提成": "0.00", "流水线移动提成": "0.00", "流水线直装提成": "0.00", "首分拨集笼提成": "0.00", "目的分拨集笼提成": "0.00", "中转分拨集笼提成": "0.00", "内推奖": "0.00", "岗位津贴": "0.00", "加班补贴": "0.00", "超吨补贴": "0.00", "复职提成": "0.00", "导入复职提成": "0.00", "皮带机卸车提成": "0.00", "皮带机码货提成": "0.00", "皮带机移动提成": "0.00", "其他提成": "0.00", "其他提成备注": "—", "车线调整差异": "0.00", "总工资合计初版": "4860.30", "总工资合计终版": "4860.30", "终版总调整差异": "0.00", "其他提成终版调整": "0.00", "其他提成终版调整备注": "—", "出勤调整差异": "0.00", "导入目的分拨集笼提成": "0.00", "导入中转分拨集笼提成": "0.00", "导入皮带机卸车提成": "0.00", "导入皮带机码货提成": "0.00", "导入皮带机移动提成": "0.00"}, {"id": "c2", "省区": "滇黔", "分拨中心": "昆明分拨", "结算月份": "2026-11", "操作人": "李四", "工号": "08710001", "岗位": "装卸组长", "在职状态": "在职", "入职时间": "2024-03-01", "支援状态": "支援", "被支援分拨": "贵阳分拨", "是否新员工": "否", "应出勤天数": "30", "实际出勤天数": "30", "计算薪资出勤天数": "30", "出勤系数": "1.0000", "基本薪资": "2800.00", "责任货量提成": "260.00", "新员工减免责任货量提成": "0.00", "基础提成": "2100.00", "阶梯提成": "560.00", "上限调整": "0.00", "绩效工资": "800.00", "质量绩效": "300.00", "支援补贴": "150.00", "操作补贴": "0.00", "同票同位": "0.00", "破损": "0.00", "无效合托提成": "0.00", "分批": "0.00", "错分": "0.00", "协助提成": "120.00", "智运提成": "0.00", "开单大票提成": "230.00", "操作大票提成": "95.40", "移动自动合托": "0.00", "特殊货物": "0.00", "特殊车线": "0.00", "特殊时段": "0.00", "装卸提成": "0.00", "移动提成": "0.00", "流水线卸车提成": "0.00", "流水线码货提成": "0.00", "流水线移动提成": "0.00", "流水线直装提成": "0.00", "首分拨集笼提成": "0.00", "目的分拨集笼提成": "0.00", "中转分拨集笼提成": "0.00", "内推奖": "0.00", "岗位津贴": "0.00", "加班补贴": "0.00", "超吨补贴": "0.00", "复职提成": "0.00", "导入复职提成": "0.00", "皮带机卸车提成": "0.00", "皮带机码货提成": "0.00", "皮带机移动提成": "0.00", "其他提成": "0.00", "其他提成备注": "—", "车线调整差异": "0.00", "总工资合计初版": "6120.80", "总工资合计终版": "6120.80", "终版总调整差异": "0.00", "其他提成终版调整": "0.00", "其他提成终版调整备注": "—", "出勤调整差异": "0.00", "导入目的分拨集笼提成": "0.00", "导入中转分拨集笼提成": "0.00", "导入皮带机卸车提成": "0.00", "导入皮带机码货提成": "0.00", "导入皮带机移动提成": "0.00"}];
+  const detailGroups = [{"id": "d1", "省区": "渝川", "分拨中心": "重庆分拨", "结算月份": "2026-11", "操作人": "张三", "工号": "02123456", "岗位": "装卸工", "在职状态": "在职", "入职时间": "2024-03-01", "支援状态": "非支援", "被支援分拨": "—", "是否新员工": "否", "应出勤天数": "30", "实际出勤天数": "28", "计算薪资出勤天数": "28", "出勤系数": "0.9333", "基本薪资": "2500.00", "责任货量提成": "180.00", "新员工减免责任货量提成": "0.00", "基础提成": "1280.50", "阶梯提成": "320.00", "上限调整": "0.00", "绩效工资": "600.00", "质量绩效": "200.00", "支援补贴": "0.00", "操作补贴": "0.00", "同票同位": "0.00", "破损": "0.00", "无效合托提成": "0.00", "分批": "0.00", "错分": "0.00", "协助提成": "80.00", "智运提成": "0.00", "开单大票提成": "156.20", "操作大票提成": "48.60", "移动自动合托": "12.00", "特殊货物": "0.00", "特殊车线": "0.00", "特殊时段": "0.00", "装卸提成": "0.00", "移动提成": "0.00", "流水线卸车提成": "0.00", "流水线码货提成": "0.00", "流水线移动提成": "0.00", "流水线直装提成": "0.00", "首分拨集笼提成": "0.00", "目的分拨集笼提成": "0.00", "中转分拨集笼提成": "0.00", "内推奖": "0.00", "岗位津贴": "0.00", "加班补贴": "0.00", "超吨补贴": "0.00", "复职提成": "0.00", "导入复职提成": "0.00", "皮带机卸车提成": "0.00", "皮带机码货提成": "0.00", "皮带机移动提成": "0.00", "其他提成": "0.00", "其他提成备注": "—", "车线调整差异": "0.00", "总工资合计初版": "4860.30", "总工资合计终版": "4860.30", "终版总调整差异": "0.00", "其他提成终版调整": "0.00", "其他提成终版调整备注": "—", "出勤调整差异": "0.00", "导入目的分拨集笼提成": "0.00", "导入中转分拨集笼提成": "0.00", "导入皮带机卸车提成": "0.00", "导入皮带机码货提成": "0.00", "导入皮带机移动提成": "0.00", "details": [{"id": "d1-1", "省区": "渝川", "分拨中心": "重庆分拨", "结算月份": "2026-11", "操作人": "张三", "工号": "02123456", "岗位": "装卸工", "在职状态": "在职", "入职时间": "2024-03-01", "是否复职": "否", "支援状态": "非支援", "被支援分拨": "—", "是否新员工": "否", "应出勤天数": "30", "实际出勤天数": "28", "计算薪资出勤天数": "28", "修改后计算薪资出勤天数": "28", "出勤系数": "0.9333", "基本薪资": "2500.00", "责任货量提成": "180.00", "新员工减免责任货量提成": "0.00", "基础提成": "1280.50", "阶梯提成": "320.00", "上限调整": "0.00", "绩效工资": "600.00", "质量绩效": "200.00", "支援补贴": "0.00", "操作补贴": "0.00", "同票同位": "0.00", "破损": "0.00", "无效合托提成": "0.00", "分批": "0.00", "错分": "0.00", "协助提成": "80.00", "智运提成": "0.00", "开单大票提成": "156.20", "操作大票提成": "48.60", "移动自动合托": "12.00", "特殊货物": "0.00", "特殊车线": "0.00", "特殊时段": "0.00", "装卸提成": "0.00", "移动提成": "0.00", "流水线卸车提成": "0.00", "流水线码货提成": "0.00", "流水线移动提成": "0.00", "流水线直装提成": "0.00", "首分拨集笼提成": "0.00", "中转分拨集笼提成": "0.00", "目的分拨集笼提成": "0.00", "内推奖": "0.00", "岗位津贴": "0.00", "加班补贴": "0.00", "超吨补贴": "0.00", "复职提成": "0.00", "导入复职提成": "0.00", "皮带机卸车提成": "0.00", "皮带机码货提成": "0.00", "皮带机移动提成": "0.00", "其他提成": "0.00", "其他提成备注": "—", "车线调整差异": "0.00", "总工资合计初版": "4860.30", "总工资合计终版": "4860.30", "终版总调整差异": "0.00", "其他提成终版调整": "0.00", "其他提成终版调整备注": "—", "出勤调整差异": "0.00", "导入目的分拨集笼提成": "0.00", "导入中转分拨集笼提成": "0.00", "导入皮带机卸车提成": "0.00", "导入皮带机码货提成": "0.00", "导入皮带机移动提成": "0.00"}]}, {"id": "d2", "省区": "滇黔", "分拨中心": "昆明分拨", "结算月份": "2026-11", "操作人": "李四", "工号": "08710001", "岗位": "装卸组长", "在职状态": "在职", "入职时间": "2024-03-01", "支援状态": "支援", "被支援分拨": "贵阳分拨", "是否新员工": "否", "应出勤天数": "30", "实际出勤天数": "30", "计算薪资出勤天数": "30", "出勤系数": "1.0000", "基本薪资": "2800.00", "责任货量提成": "260.00", "新员工减免责任货量提成": "0.00", "基础提成": "2100.00", "阶梯提成": "560.00", "上限调整": "0.00", "绩效工资": "800.00", "质量绩效": "300.00", "支援补贴": "150.00", "操作补贴": "0.00", "同票同位": "0.00", "破损": "0.00", "无效合托提成": "0.00", "分批": "0.00", "错分": "0.00", "协助提成": "120.00", "智运提成": "0.00", "开单大票提成": "230.00", "操作大票提成": "95.40", "移动自动合托": "0.00", "特殊货物": "0.00", "特殊车线": "0.00", "特殊时段": "0.00", "装卸提成": "0.00", "移动提成": "0.00", "流水线卸车提成": "0.00", "流水线码货提成": "0.00", "流水线移动提成": "0.00", "流水线直装提成": "0.00", "首分拨集笼提成": "0.00", "目的分拨集笼提成": "0.00", "中转分拨集笼提成": "0.00", "内推奖": "0.00", "岗位津贴": "0.00", "加班补贴": "0.00", "超吨补贴": "0.00", "复职提成": "0.00", "导入复职提成": "0.00", "皮带机卸车提成": "0.00", "皮带机码货提成": "0.00", "皮带机移动提成": "0.00", "其他提成": "0.00", "其他提成备注": "—", "车线调整差异": "0.00", "总工资合计初版": "6120.80", "总工资合计终版": "6120.80", "终版总调整差异": "0.00", "其他提成终版调整": "0.00", "其他提成终版调整备注": "—", "出勤调整差异": "0.00", "导入目的分拨集笼提成": "0.00", "导入中转分拨集笼提成": "0.00", "导入皮带机卸车提成": "0.00", "导入皮带机码货提成": "0.00", "导入皮带机移动提成": "0.00", "details": [{"id": "d2-1", "省区": "滇黔", "分拨中心": "昆明分拨", "结算月份": "2026-11", "操作人": "李四", "工号": "08710001", "岗位": "装卸组长", "在职状态": "在职", "入职时间": "2024-03-01", "是否复职": "否", "支援状态": "支援", "被支援分拨": "贵阳分拨", "是否新员工": "否", "应出勤天数": "30", "实际出勤天数": "30", "计算薪资出勤天数": "30", "修改后计算薪资出勤天数": "30", "出勤系数": "1.0000", "基本薪资": "2800.00", "责任货量提成": "260.00", "新员工减免责任货量提成": "0.00", "基础提成": "2100.00", "阶梯提成": "560.00", "上限调整": "0.00", "绩效工资": "800.00", "质量绩效": "300.00", "支援补贴": "150.00", "操作补贴": "0.00", "同票同位": "0.00", "破损": "0.00", "无效合托提成": "0.00", "分批": "0.00", "错分": "0.00", "协助提成": "120.00", "智运提成": "0.00", "开单大票提成": "230.00", "操作大票提成": "95.40", "移动自动合托": "0.00", "特殊货物": "0.00", "特殊车线": "0.00", "特殊时段": "0.00", "装卸提成": "0.00", "移动提成": "0.00", "流水线卸车提成": "0.00", "流水线码货提成": "0.00", "流水线移动提成": "0.00", "流水线直装提成": "0.00", "首分拨集笼提成": "0.00", "中转分拨集笼提成": "0.00", "目的分拨集笼提成": "0.00", "内推奖": "0.00", "岗位津贴": "0.00", "加班补贴": "0.00", "超吨补贴": "0.00", "复职提成": "0.00", "导入复职提成": "0.00", "皮带机卸车提成": "0.00", "皮带机码货提成": "0.00", "皮带机移动提成": "0.00", "其他提成": "0.00", "其他提成备注": "—", "车线调整差异": "0.00", "总工资合计初版": "6120.80", "总工资合计终版": "6120.80", "终版总调整差异": "0.00", "其他提成终版调整": "0.00", "其他提成终版调整备注": "—", "出勤调整差异": "0.00", "导入目的分拨集笼提成": "0.00", "导入中转分拨集笼提成": "0.00", "导入皮带机卸车提成": "0.00", "导入皮带机码货提成": "0.00", "导入皮带机移动提成": "0.00"}]}];
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove('show'), 1800);
+  }
+  function openModal(id) { document.getElementById(id).classList.add('show'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+  function cell(v) { return `<td>${v ?? ''}</td>`; }
+  function cells(fields, row) { return fields.map(f => cell(row[f])).join(''); }
+
+  function renderCount() {
+    document.getElementById('countBody').innerHTML = countRows.map((r) => `
+      <tr data-id="${r.id}">
+        <td class="col-expand"><button class="expand-btn" type="button" data-expand="count" data-id="${r.id}">+</button></td>
+        ${cells(OUTER_FIELDS, r)}
+      </tr>
+      <tr class="expand-row" id="count-exp-${r.id}" style="display:none;">
+        <td colspan="${OUTER_COLSPAN}"><div class="nested-wrap">${cargoHtml}</div></td>
+      </tr>`).join('');
+  }
+
+  function salaryDetailTable(d) {
+    return `
+      <table class="data-table">
+        <thead><tr><th class="col-expand">展开</th><th class="col-checkbox"><input type="checkbox" class="detail-check-all" /></th><th>省区</th><th>分拨中心</th><th>结算月份</th><th>操作人</th><th>工号</th><th>岗位</th><th>在职状态</th><th>入职时间</th><th>是否复职</th><th>支援状态</th><th>被支援分拨</th><th>是否新员工</th><th>应出勤天数</th><th>实际出勤天数</th><th>计算薪资出勤天数</th><th>修改后计算薪资出勤天数</th><th>出勤系数</th><th>基本薪资</th><th>责任货量提成</th><th>新员工减免责任货量提成</th><th>基础提成</th><th>阶梯提成</th><th>上限调整</th><th>绩效工资</th><th>质量绩效</th><th>支援补贴</th><th>操作补贴</th><th>同票同位</th><th>破损</th><th>无效合托提成</th><th>分批</th><th>错分</th><th>协助提成</th><th>智运提成</th><th>开单大票提成</th><th>操作大票提成</th><th>移动自动合托</th><th>特殊货物</th><th>特殊车线</th><th>特殊时段</th><th>装卸提成</th><th>移动提成</th><th>流水线卸车提成</th><th>流水线码货提成</th><th>流水线移动提成</th><th>流水线直装提成</th><th>首分拨集笼提成</th><th>中转分拨集笼提成</th><th>目的分拨集笼提成</th><th>内推奖</th><th>岗位津贴</th><th>加班补贴</th><th>超吨补贴</th><th>复职提成</th><th>导入复职提成</th><th>皮带机卸车提成</th><th>皮带机码货提成</th><th>皮带机移动提成</th><th>其他提成</th><th>其他提成备注</th><th>车线调整差异</th><th>总工资合计初版</th><th>总工资合计终版</th><th>终版总调整差异</th><th>其他提成终版调整</th><th>其他提成终版调整备注</th><th>出勤调整差异</th><th>导入目的分拨集笼提成</th><th>导入中转分拨集笼提成</th><th>导入皮带机卸车提成</th><th>导入皮带机码货提成</th><th>导入皮带机移动提成</th><th>修改记录</th></tr></thead>
+        <tbody>
+          <tr data-detail-id="${d.id}">
+            <td class="col-expand"><button class="expand-btn" type="button" data-expand="cargo" data-id="${d.id}">+</button></td>
+            <td class="col-checkbox"><input type="checkbox" class="detail-row-check" value="${d.id}" /></td>
+            ${cells(NESTED_FIELDS, d)}
+            <td><a class="link-act" href="javascript:;" data-history="${d.id}">修改记录</a></td>
+          </tr>
+          <tr class="expand-row" id="cargo-exp-${d.id}" style="display:none;">
+            <td colspan="${NESTED_COLSPAN}"><div class="nested-wrap">${cargoHtml}</div></td>
+          </tr>
+        </tbody>
+      </table>`;
+  }
+
+  function renderDetail() {
+    document.getElementById('detailBody').innerHTML = detailGroups.map((g) => `
+      <tr data-id="${g.id}">
+        <td class="col-expand"><button class="expand-btn" type="button" data-expand="detail" data-id="${g.id}">+</button></td>
+        ${cells(OUTER_FIELDS, g)}
+      </tr>
+      <tr class="expand-row" id="detail-exp-${g.id}" style="display:none;">
+        <td colspan="${OUTER_COLSPAN}"><div class="nested-wrap">${g.details.map(salaryDetailTable).join('')}</div></td>
+      </tr>`).join('');
+  }
+
+  function toggleExpand(type, id, btn) {
+    const map = { count: 'count-exp-', detail: 'detail-exp-', cargo: 'cargo-exp-' };
+    const row = document.getElementById(map[type] + id);
+    if (!row) return;
+    const open = row.style.display === 'none';
+    row.style.display = open ? 'table-row' : 'none';
+    btn.textContent = open ? '−' : '+';
+    btn.classList.toggle('open', open);
+  }
+
+  function syncEditAttendBtn() {
+    const checked = document.querySelectorAll('.detail-row-check:checked').length;
+    document.getElementById('btnEditAttend').disabled = checked !== 1;
+  }
+
+  function switchPanel(name) {
+    document.getElementById('bodyCount').classList.toggle('active', name === 'count');
+    document.getElementById('bodyDetail').classList.toggle('active', name === 'detail');
+    document.querySelectorAll('.btn-count').forEach((b) => { b.style.display = name === 'count' ? '' : 'none'; });
+    document.querySelectorAll('.btn-detail').forEach((b) => { b.style.display = name === 'detail' ? '' : 'none'; });
+  }
+
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('.content-tab').forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    switchPanel(tab.getAttribute('data-panel'));
+  });
+  document.body.addEventListener('click', (e) => {
+    const exp = e.target.closest('[data-expand]');
+    if (exp) { toggleExpand(exp.getAttribute('data-expand'), exp.getAttribute('data-id'), exp); return; }
+    const toastBtn = e.target.closest('[data-toast]');
+    if (toastBtn) { toast(toastBtn.getAttribute('data-toast')); return; }
+    const close = e.target.closest('[data-close]');
+    if (close) { closeModal(close.getAttribute('data-close')); return; }
+    const hist = e.target.closest('[data-history]');
+    if (hist) { openModal('modalHistory'); return; }
+  });
+  document.body.addEventListener('change', (e) => {
+    if (e.target.classList.contains('detail-row-check')) {
+      const tr = e.target.closest('tr');
+      if (tr) tr.classList.toggle('row-selected', e.target.checked);
+      syncEditAttendBtn();
+    }
+    if (e.target.classList.contains('detail-check-all')) {
+      const wrap = e.target.closest('.data-table');
+      wrap.querySelectorAll('.detail-row-check').forEach((cb) => {
+        cb.checked = e.target.checked;
+        const tr = cb.closest('tr');
+        if (tr) tr.classList.toggle('row-selected', e.target.checked);
+      });
+      syncEditAttendBtn();
+    }
+  });
+  document.getElementById('btnSearch').addEventListener('click', () => toast('查询完成'));
+  document.getElementById('btnReset').addEventListener('click', () => toast('已重置'));
+  document.getElementById('btnImport').addEventListener('click', () => openModal('modalImport'));
+  document.getElementById('btnCustom').addEventListener('click', () => openModal('modalCustom'));
+  document.getElementById('btnEditAttend').addEventListener('click', () => openModal('modalAttend'));
+  document.getElementById('attendOk').addEventListener('click', () => { closeModal('modalAttend'); toast('修改出勤天数成功'); });
+  document.getElementById('importOk').addEventListener('click', () => { closeModal('modalImport'); toast('导入成功'); });
+  document.getElementById('customOk').addEventListener('click', () => { closeModal('modalCustom'); toast('自定义列已保存'); });
+  document.getElementById('uploadBox').addEventListener('click', () => {
+    document.getElementById('uploadName').textContent = '已选择：转运人员薪资导入.xlsx';
+  });
+  document.querySelectorAll('.modal-mask').forEach((mask) => {
+    mask.addEventListener('click', (e) => { if (e.target === mask) mask.classList.remove('show'); });
+  });
+
+  renderCount();
+  renderDetail();
+  switchPanel('detail');
+</script>
+</body>
+</html>
