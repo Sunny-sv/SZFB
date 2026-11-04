@@ -7,6 +7,11 @@ feishu-mcp/
 .tmp/
 dev-temp/
 data/
+.workbuddy/
+
+# 公司前端源码（独立 Git 仓库，不入库本原型仓库）
+DLC Project/
+TVM Project/
 
 # 编辑器 / 环境
 .env

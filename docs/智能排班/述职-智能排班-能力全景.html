@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>智能排班 · 能力全景</title>
+<style>
+  :root {
+    --p: #7b5fc7;
+    --p2: #9b7fd9;
+    --bar: #ebe4f7;
+    --ink: #222;
+    --muted: #6a7380;
+    --line: #e4e0ef;
+    --card: #fff;
+    --later: #9aa3ad;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: #2b3036;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+  }
+  .stage {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .slide {
+    width: 1920px; height: 1080px;
+    background: #f7f5fb;
+    padding: 28px 40px 22px;
+    display: flex; flex-direction: column; gap: 14px;
+    flex-shrink: 0;
+  }
+
+  /* 标题 */
+  .title-row {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .title-mark {
+    width: 14px; height: 36px;
+    background: var(--p);
+    clip-path: polygon(0 0, 100% 18%, 100% 82%, 0 100%);
+    border-radius: 2px;
+  }
+  .title-row h1 {
+    font-size: 40px; font-weight: 700; letter-spacing: 0.04em;
+  }
+  .title-row .scope {
+    margin-left: 8px;
+    font-size: 16px; color: var(--p);
+    background: #efe9fa; border-radius: 999px;
+    padding: 6px 14px; font-weight: 600;
+  }
+  .title-row .note {
+    margin-left: auto;
+    font-size: 16px; color: var(--muted);
+  }
+
+  /* 层 */
+  .layer {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .side {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    background: var(--p);
+    color: #fff;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700; letter-spacing: 0.28em;
+    padding: 10px 0;
+  }
+  .side.mid { background: var(--p2); }
+  .side.opt { background: #6d5a9e; }
+
+  .cards4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .cards6 {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px 12px;
+    box-shadow: 0 4px 14px rgba(80, 60, 140, 0.04);
+  }
+  .card.later {
+    border-style: dashed;
+    background: #fafafb;
+  }
+  .card-h {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .ico {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--bar); color: var(--p);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; flex-shrink: 0;
+  }
+  .card-h h3 {
+    font-size: 20px; font-weight: 700;
+  }
+  .badge {
+    margin-left: auto;
+    font-size: 12px; font-weight: 700;
+    border-radius: 999px; padding: 2px 8px;
+  }
+  .badge.now { background: #eaf6ef; color: #1e7a46; }
+  .badge.later { background: #f0f2f4; color: var(--later); }
+
+  .card ul {
+    list-style: none;
+    font-size: 15px; line-height: 1.45;
+    color: #3a424c;
+  }
+  .card li {
+    position: relative;
+    padding-left: 12px;
+    margin-bottom: 5px;
+  }
+  .card li::before {
+    content: "";
+    position: absolute; left: 0; top: 0.55em;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--p); opacity: 0.55;
+  }
+  .card.later li::before { background: var(--later); }
+
+  /* 中间执行六格 */
+  .flow .card {
+    text-align: left;
+    padding-top: 12px;
+    min-height: 168px;
+  }
+  .num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--p); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .flow .card.later .num {
+    background: #b8bec6;
+  }
+  .flow h3 {
+    font-size: 18px; margin-bottom: 6px;
+  }
+  .flow p {
+    font-size: 14px; color: var(--muted); line-height: 1.45;
+  }
+
+  /* 底部节奏 */
+  .road {
+    margin-top: 2px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 20px 14px;
+  }
+  .road-h {
+    font-size: 16px; font-weight: 700; color: var(--p);
+    margin-bottom: 10px;
+  }
+  .road-steps {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .r-step {
+    flex: 1; text-align: center;
+  }
+  .r-step .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--p); margin: 0 auto 8px;
+  }
+  .r-step b {
+    display: block; font-size: 16px; margin-bottom: 2px;
+  }
+  .r-step span {
+    font-size: 13px; color: var(--muted);
+  }
+  .r-line {
+    flex: 0.35; height: 2px; background: #d5ccec; margin-bottom: 28px;
+  }
+
+  .hint {
+    position: fixed; left: 16px; bottom: 12px;
+    color: #c5d0dc; font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="hint">1920×1080 · 浏览器打开后整页截图放进 PPT</div>
+<div class="stage">
+  <div class="slide" id="slide">
+
+    <div class="title-row">
+      <div class="title-mark"></div>
+      <h1>智能排班</h1>
+      <span class="scope">适用：直营分拨中心、服务站</span>
+      <span class="note">实线 = 首期建议做　虚线 = 后置（车级指派等）</span>
+    </div>
+
+    <!-- 数据底座 -->
+    <div class="layer">
+      <div class="side">数据底座</div>
+      <div class="cards4">
+        <div class="card">
+          <div class="card-h">
+            <div class="ico">人</div>
+            <h3>人员与出勤</h3>
+            <span class="badge now">首期</span>
+          </div>
+          <ul>
+            <li>在职名单：正式工 / 外包分开看</li>
+            <li>岗位与技能：装卸、移动、叉车等</li>
+            <li>出勤状态：请假、旷工、在岗</li>
+            <li>班次偏好（有则用，没有可后补）</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <div class="ico">岗</div>
+            <h3>班次与编制标准</h3>
+            <span class="badge now">首期</span>
+          </div>
+          <ul>
+            <li>本分拨有几个班次、起止时间</li>
+            <li>各班大概要多少人、岗位结构</li>
+            <li>倒班间隔：需间隔时空一个自然日</li>
+            <li>外包编制规则另定（不和正式工混用）</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <div class="ico">货</div>
+            <h3>货量预测</h3>
+            <span class="badge now">首期</span>
+          </div>
+          <ul>
+            <li>提前约一周：分拨 / 环节 / 小时要多少货</li>
+            <li>据此算出「要多少人、哪类岗」</li>
+            <li>没有预测时，可先人工导入过渡</li>
+            <li>行业常见：预测偏差要进排班约束</li>
+          </ul>
+        </div>
+        <div class="card later">
+          <div class="card-h">
+            <div class="ico">场</div>
+            <h3>到车与场地</h3>
+            <span class="badge later">后置</span>
+          </div>
+          <ul>
+            <li>预计到达、靠台、卡班</li>
+            <li>用于「谁卸 / 装哪辆车」</li>
+            <li>首期不做车级指派，不强绑</li>
+            <li>数据摸清后再开，避免空转</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 排班执行 -->
+    <div class="layer">
+      <div class="side mid">排班执行</div>
+      <div class="cards6 flow">
+        <div class="card">
+          <div class="num">1</div>
+          <h3>算人要多少</h3>
+          <p>按预测货量，给出未来各班需要人数与岗位结构。</p>
+        </div>
+        <div class="card">
+          <div class="num">2</div>
+          <h3>出建议名单</h3>
+          <p>结合技能、出勤、用工类型，生成可调整的建议名单。</p>
+        </div>
+        <div class="card">
+          <div class="num">3</div>
+          <h3>倒班与约束提示</h3>
+          <p>班次切换需空一天时给出提示；只提示，不拦死发布。哪些班次对要空，试点调研后定。</p>
+        </div>
+        <div class="card">
+          <div class="num">4</div>
+          <h3>调度确认发布</h3>
+          <p>算法只建议。调度改完确认才发布；已发布班表不能静默改写，变更要告知。</p>
+        </div>
+        <div class="card">
+          <div class="num">5</div>
+          <h3>班次级补位</h3>
+          <p>请假、旷工后给补位候选人；调度确认，记下补位时长。行业常做的「空缺班次推荐」落在这里。</p>
+        </div>
+        <div class="card later">
+          <div class="num">6</div>
+          <h3>车级指派</h3>
+          <p>到车后建议谁卸 / 装哪辆车。复盘通过且到车数据可读再开，不进首期承诺。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 监控优化 -->
+    <div class="layer">
+      <div class="side opt">监控优化</div>
+      <div class="cards4">
+        <div class="card">
+          <div class="card-h">
+            <div class="ico">看</div>
+            <h3>班次看板</h3>
+            <span class="badge now">首期</span>
+          </div>
+          <ul>
+            <li>各班发布人数 vs 实际出勤</li>
+            <li>缺员、补位进行中一目了然</li>
+            <li>员工可查本人班次（复用现有入口优先）</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <div class="ico">警</div>
+            <h3>异常提示</h3>
+            <span class="badge now">首期</span>
+          </div>
+          <ul>
+            <li>缺员未补、倒班连排、发布超时</li>
+            <li>推给调度 / 班组长，不全员刷屏</li>
+            <li>货量与人数偏差过大时提醒重看编制</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <div class="ico">比</div>
+            <h3>计划对照实际</h3>
+            <span class="badge now">首期</span>
+          </div>
+          <ul>
+            <li>预测货量 vs 实际货量</li>
+            <li>建议名单被改动比例（调度改动率）</li>
+            <li>人效、补位时长：先采约 4 周基线再定目标</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <div class="ico">馈</div>
+            <h3>反馈校准</h3>
+            <span class="badge now">首期</span>
+          </div>
+          <ul>
+            <li>驳回 / 改班原因可填、可沉淀</li>
+            <li>反哺下一轮建议，不追责合理现场调整</li>
+            <li>行业常见：半自动发布，全自动后置</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 推进节奏 -->
+    <div class="road">
+      <div class="road-h">推进节奏（先现状，后系统）</div>
+      <div class="road-steps">
+        <div class="r-step">
+          <div class="dot"></div>
+          <b>1 摸清现状</b>
+          <span>跟完一个排班周期</span>
+        </div>
+        <div class="r-line"></div>
+        <div class="r-step">
+          <div class="dot"></div>
+          <b>2 问题定义</b>
+          <span>班前人数还是班中补人</span>
+        </div>
+        <div class="r-line"></div>
+        <div class="r-step">
+          <div class="dot"></div>
+          <b>3 方案边界</b>
+          <span>班次层；车级后置</span>
+        </div>
+        <div class="r-line"></div>
+        <div class="r-step">
+          <div class="dot"></div>
+          <b>4 数据准备</b>
+          <span>人员·考勤·预测最小集</span>
+        </div>
+        <div class="r-line"></div>
+        <div class="r-step">
+          <div class="dot"></div>
+          <b>5 原型与文档</b>
+          <span>可评审再开发</span>
+        </div>
+        <div class="r-line"></div>
+        <div class="r-step">
+          <div class="dot"></div>
+          <b>6 试点再推广</b>
+          <span>白名单仓，不准出不扩</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<script>
+  function fit() {
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    document.getElementById('slide').style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+</script>
+</body>
+</html>

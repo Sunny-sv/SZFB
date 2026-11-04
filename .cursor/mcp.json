@@ -8,6 +8,14 @@
         "--config",
         "${workspaceFolder}/feishu-mcp/config.json"
       ]
+    },
+    "oracle-test": {
+      "command": "${userHome}/.cursor/bin/oracle-test-mcp.sh",
+      "envFile": "${userHome}/.cursor/env/oracle-test.env"
+    },
+    "tidb-test": {
+      "command": "${userHome}/.cursor/bin/tidb-test-mcp.sh",
+      "envFile": "${userHome}/.cursor/env/tidb-test.env"
     }
   }
 }

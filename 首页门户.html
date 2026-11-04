@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>首页 — 数智分拨</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0659d9;
+      --sidebar-bg: #001529;
+      --sidebar-sub: #000c17;
+      --sidebar-text: rgba(255,255,255,.65);
+      --sidebar-text-active: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --danger: #ff4d4f;
+      --sidebar-width: 200px;
+      --sidebar-collapsed: 64px;
+      --header-height: 48px;
+      --radius: 6px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .layout { display: flex; flex-direction: column; height: 100vh; }
+
+    .top-header { height: var(--header-height); display: flex; flex-shrink: 0; z-index: 10; }
+    .brand-area {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      flex-shrink: 0;
+      transition: width .2s;
+    }
+    .layout.sidebar-collapsed .brand-area { width: var(--sidebar-collapsed); padding: 0 8px; justify-content: center; }
+    .layout.sidebar-collapsed .brand-full { display: none; }
+    .brand-logo {
+      width: 28px; height: 28px; border-radius: 4px; background: #fff; color: var(--header-blue);
+      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+
+    .top-tabs {
+      flex: 1; min-width: 0; height: 100%; background: var(--header-blue);
+      display: flex; align-items: flex-end; padding: 0 8px 0 4px;
+    }
+    .collapse-btn, .home-btn {
+      width: 36px; height: 36px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center;
+      color: #fff; cursor: pointer; border-radius: 4px; font-size: 18px; flex-shrink: 0; user-select: none;
+    }
+    .collapse-btn:hover, .home-btn:hover { background: rgba(255,255,255,.15); }
+
+    .page-tabs { display: flex; align-items: flex-end; flex: 1; overflow-x: auto; gap: 4px; padding: 0 4px; height: 100%; }
+    .page-tab {
+      display: flex; align-items: center; gap: 8px; padding: 0 14px; height: 36px;
+      border-radius: 6px 6px 0 0; color: rgba(255,255,255,.95); cursor: pointer; white-space: nowrap;
+      font-size: 13px; background: rgba(255,255,255,.18);
+    }
+    .page-tab:hover { background: rgba(255,255,255,.28); }
+    .page-tab.active { background: #fff; color: var(--text); font-weight: 500; }
+
+    .top-right {
+      display: flex; align-items: center; gap: 4px; padding: 0 8px 6px 12px; color: #fff;
+      flex-shrink: 0; align-self: flex-end; height: 42px;
+    }
+    .icon-btn {
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border-radius: 4px; font-size: 16px;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,.15); }
+    .user-info {
+      display: flex; align-items: center; gap: 8px; margin-left: 8px; padding: 0 8px; height: 32px;
+      border-radius: 4px; cursor: pointer; font-size: 13px;
+    }
+    .user-info:hover { background: rgba(255,255,255,.15); }
+    .avatar {
+      width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,.35);
+      display: flex; align-items: center; justify-content: center; font-size: 12px;
+    }
+
+    .body-row { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+
+    .sidebar {
+      width: var(--sidebar-width); background: var(--sidebar-bg); display: flex; flex-direction: column;
+      flex-shrink: 0; transition: width .2s; overflow: hidden;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+    .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .menu-item {
+      display: flex; align-items: center; padding: 0 16px; height: 40px; color: var(--sidebar-text);
+      cursor: pointer; white-space: nowrap; gap: 10px; font-size: 14px;
+    }
+    .menu-item:hover { color: var(--sidebar-text-active); }
+    .menu-item.active { background: var(--primary); color: #fff; }
+    .menu-item .menu-icon { width: 16px; text-align: center; flex-shrink: 0; opacity: .75; }
+    .menu-item .menu-arrow { margin-left: auto; font-size: 10px; opacity: .5; }
+    .layout.sidebar-collapsed .menu-label, .layout.sidebar-collapsed .menu-arrow { display: none; }
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item { padding-left: 48px; height: 36px; font-size: 13px; }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+    .content-area { flex: 1; min-height: 0; overflow: hidden; padding: 16px; display: flex; flex-direction: column; }
+
+    /* 快捷入口主卡片 */
+    .portal-card {
+      background: var(--card); border-radius: 4px; flex: 1; min-height: 0;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .portal-head {
+      display: flex; align-items: center; gap: 16px; padding: 16px 20px 12px;
+      border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+    }
+    .portal-title { font-size: 16px; font-weight: 500; white-space: nowrap; }
+    .search-wrap { flex: 1; max-width: 360px; position: relative; }
+    .search-wrap input {
+      width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 12px 0 32px; font-size: 14px; outline: none; background: #fafafa;
+    }
+    .search-wrap input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 2px rgba(24,144,255,.15); }
+    .search-wrap .search-icon {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: var(--text-secondary); font-size: 14px; pointer-events: none;
+    }
+    .portal-head-actions { margin-left: auto; display: flex; gap: 8px; }
+
+    .btn {
+      height: 32px; padding: 0 15px; border-radius: 4px; font-size: 14px; cursor: pointer;
+      border: 1px solid var(--border); background: #fff; color: var(--text); white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+    .btn-danger { color: var(--danger); border-color: var(--danger); }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+    .btn-text {
+      height: auto; padding: 0 4px; border: none; background: transparent; color: var(--primary); font-size: 13px;
+    }
+    .btn-text:hover { background: transparent; color: var(--primary-hover); }
+    .btn-text.danger { color: var(--danger); }
+    .btn-text.danger:hover { color: #ff7875; }
+
+    /* 顶部分类导航 */
+    .cat-nav {
+      display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+      border-bottom: 1px solid #f0f0f0; overflow-x: auto; flex-shrink: 0;
+    }
+    .cat-nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 72px;
+      cursor: pointer; position: relative; flex-shrink: 0;
+    }
+    .cat-nav-icon {
+      width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; color: #fff; transition: transform .15s, box-shadow .15s;
+    }
+    .cat-nav-item:hover .cat-nav-icon { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+    .cat-nav-item.active .cat-nav-icon { box-shadow: 0 0 0 3px rgba(24,144,255,.25); }
+    .cat-nav-label { font-size: 12px; color: var(--text); text-align: center; max-width: 72px; line-height: 1.3; }
+    .cat-nav-item.active .cat-nav-label { color: var(--primary); font-weight: 500; }
+
+    .cat-nav-ops {
+      position: absolute; top: -4px; right: -2px; display: none; gap: 2px;
+    }
+    .cat-nav-item:hover .cat-nav-ops, .cat-nav-item.active .cat-nav-ops { display: flex; }
+    .cat-op-btn {
+      width: 18px; height: 18px; border-radius: 50%; border: none; background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.15); font-size: 10px; cursor: pointer; color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cat-op-btn:hover { color: var(--primary); }
+    .cat-op-btn.del:hover { color: var(--danger); }
+
+    .cat-nav-add {
+      display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 72px;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .cat-nav-add .add-circle {
+      width: 44px; height: 44px; border-radius: 50%; border: 1px dashed var(--border);
+      display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--text-secondary);
+      background: #fafafa;
+    }
+    .cat-nav-add:hover .add-circle { border-color: var(--primary); color: var(--primary); background: #e6f7ff; }
+    .cat-nav-add span { font-size: 12px; color: var(--text-secondary); }
+
+    .portal-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px 24px; }
+
+    .section-card {
+      background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+      margin-bottom: 12px; overflow: hidden;
+    }
+    .section-card.hidden { display: none; }
+
+    .section-head {
+      display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+      border-bottom: 1px solid #f0f0f0; background: #fafafa;
+    }
+    .section-mark { width: 3px; height: 14px; border-radius: 2px; background: var(--primary); flex-shrink: 0; }
+    .section-title { font-size: 14px; font-weight: 500; }
+    .section-meta { font-size: 12px; color: var(--text-secondary); margin-left: 4px; }
+    .section-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+    .link-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 4px 8px; padding: 12px 12px 8px;
+    }
+    .link-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius);
+      cursor: pointer; color: var(--text); font-size: 13px; line-height: 1.3; position: relative;
+      transition: background .12s;
+    }
+    .link-item:hover { background: #e6f7ff; color: var(--primary); }
+    .link-icon {
+      width: 28px; height: 28px; border-radius: 6px; background: #e6f7ff; color: var(--primary);
+      display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0;
+    }
+    .link-item:hover .link-icon { background: var(--primary); color: #fff; }
+    .link-name { flex: 1; min-width: 0; }
+    .link-ops {
+      display: none; gap: 4px; flex-shrink: 0;
+    }
+    .link-item:hover .link-ops { display: flex; }
+    .link-op {
+      width: 22px; height: 22px; border: none; background: transparent; border-radius: 4px;
+      cursor: pointer; font-size: 12px; color: var(--text-secondary);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .link-op:hover { background: rgba(24,144,255,.12); color: var(--primary); }
+    .link-op.del:hover { background: rgba(255,77,79,.12); color: var(--danger); }
+
+    .section-add-row { padding: 0 12px 12px; }
+    .add-entry-btn {
+      width: 100%; height: 36px; border: 1px dashed var(--border); border-radius: var(--radius);
+      background: #fafafa; color: var(--text-secondary); font-size: 13px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .add-entry-btn:hover { border-color: var(--primary); color: var(--primary); background: #e6f7ff; }
+
+    .empty-tip {
+      display: none; text-align: center; padding: 48px 16px; color: var(--text-secondary); font-size: 14px;
+    }
+    .empty-tip.show { display: block; }
+
+    /* 弹框 */
+    .modal-mask {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000;
+      display: none; align-items: center; justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      width: 520px; max-width: calc(100vw - 32px); background: #fff; border-radius: 4px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.15); overflow: hidden;
+    }
+    .modal-head {
+      padding: 16px 24px; border-bottom: 1px solid #f0f0f0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: 16px; font-weight: 500; }
+    .modal-close {
+      width: 28px; height: 28px; border: none; background: transparent; cursor: pointer;
+      font-size: 18px; color: var(--text-secondary); border-radius: 4px;
+    }
+    .modal-close:hover { background: #f5f5f5; color: var(--text); }
+    .modal-body { padding: 20px 24px 8px; }
+    .form-row {
+      display: flex; align-items: center; margin-bottom: 16px; gap: 8px;
+    }
+    .form-label {
+      flex: 0 0 96px; text-align: right; font-size: 14px; color: var(--text);
+    }
+    .form-label.required::before { content: "* "; color: var(--danger); }
+    .form-control-wrap { flex: 1; min-width: 0; }
+    .form-control {
+      width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 11px; font-size: 14px; outline: none;
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .select-wrap { position: relative; }
+    .select-wrap select.form-control {
+      appearance: none; padding-right: 28px; cursor: pointer;
+    }
+    .select-wrap::after {
+      content: "▼"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 10px; color: var(--text-secondary); pointer-events: none;
+    }
+    .modal-foot {
+      padding: 12px 24px 16px; display: flex; justify-content: flex-end; gap: 8px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .confirm-text { font-size: 14px; line-height: 1.6; color: var(--text); padding: 8px 0 16px; }
+  </style>
+</head>
+<body>
+  <div class="layout" id="layout">
+    <header class="top-header">
+      <div class="brand-area">
+        <div class="brand-logo">ZTO</div>
+        <span class="brand-full">数智分拨 | DLC</span>
+      </div>
+      <div class="top-tabs">
+        <div class="collapse-btn" id="sidebarToggle" title="折叠菜单">☰</div>
+        <div class="home-btn" title="首页">⌂</div>
+        <div class="page-tabs">
+          <div class="page-tab active">首页</div>
+          <div class="page-tab">车货管理</div>
+        </div>
+        <div class="top-right">
+          <div class="icon-btn" title="搜索">⌕</div>
+          <div class="icon-btn" title="消息">◉</div>
+          <div class="icon-btn" title="全屏">⛶</div>
+          <div class="user-info">
+            <div class="avatar">管</div>
+            <span>02100.10091</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="body-row">
+      <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-menu">
+          <div class="menu-item active"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+          <div class="menu-item"><span class="menu-icon">🚚</span><span class="menu-label">车货管理</span><span class="menu-arrow">▶</span></div>
+          <div class="menu-item"><span class="menu-icon">⚙</span><span class="menu-label">操作管理</span><span class="menu-arrow">▶</span></div>
+          <div class="menu-item"><span class="menu-icon">📊</span><span class="menu-label">报表中心</span><span class="menu-arrow">▶</span></div>
+          <div class="menu-item"><span class="menu-icon">👥</span><span class="menu-label">人员管理</span><span class="menu-arrow">▶</span></div>
+          <div class="menu-item"><span class="menu-icon">🔧</span><span class="menu-label">系统配置</span><span class="menu-arrow">▶</span></div>
+        </nav>
+      </aside>
+
+      <div class="main-wrapper">
+        <main class="content-area">
+          <div class="portal-card">
+            <div class="portal-head">
+              <div class="portal-title">快捷入口</div>
+              <div class="search-wrap">
+                <span class="search-icon">⌕</span>
+                <input type="text" id="menuSearch" placeholder="搜索入口名称" />
+              </div>
+              <div class="portal-head-actions">
+                <button type="button" class="btn btn-primary" id="btnAddModule">新增模块</button>
+              </div>
+            </div>
+
+            <div class="cat-nav" id="catNav">
+              <div class="cat-nav-item active" data-cat="all">
+                <div class="cat-nav-icon" style="background:#595959;">全</div>
+                <div class="cat-nav-label">全部</div>
+              </div>
+              <div class="cat-nav-item" data-cat="ops" data-id="ops">
+                <div class="cat-nav-icon" style="background:#1890ff;">操</div>
+                <div class="cat-nav-label">操作指标监控</div>
+                <div class="cat-nav-ops">
+                  <button type="button" class="cat-op-btn edit" title="编辑模块">✎</button>
+                  <button type="button" class="cat-op-btn del" title="删除模块">×</button>
+                </div>
+              </div>
+              <div class="cat-nav-item" data-cat="flow" data-id="flow">
+                <div class="cat-nav-icon" style="background:#722ed1;">流</div>
+                <div class="cat-nav-label">流水运行</div>
+                <div class="cat-nav-ops">
+                  <button type="button" class="cat-op-btn edit" title="编辑模块">✎</button>
+                  <button type="button" class="cat-op-btn del" title="删除模块">×</button>
+                </div>
+              </div>
+              <div class="cat-nav-item" data-cat="vehicle" data-id="vehicle">
+                <div class="cat-nav-icon" style="background:#fa8c16;">车</div>
+                <div class="cat-nav-label">车辆异常</div>
+                <div class="cat-nav-ops">
+                  <button type="button" class="cat-op-btn edit" title="编辑模块">✎</button>
+                  <button type="button" class="cat-op-btn del" title="删除模块">×</button>
+                </div>
+              </div>
+              <div class="cat-nav-item" data-cat="query" data-id="query">
+                <div class="cat-nav-icon" style="background:#52c41a;">查</div>
+                <div class="cat-nav-label">运营查询</div>
+                <div class="cat-nav-ops">
+                  <button type="button" class="cat-op-btn edit" title="编辑模块">✎</button>
+                  <button type="button" class="cat-op-btn del" title="删除模块">×</button>
+                </div>
+              </div>
+              <div class="cat-nav-add" id="catNavAdd" title="新增模块">
+                <div class="add-circle">+</div>
+                <span>新增</span>
+              </div>
+            </div>
+
+            <div class="portal-body">
+              <div id="sections">
+                <section class="section-card" data-cat="ops" data-id="ops">
+                  <div class="section-head">
+                    <span class="section-mark" style="background:#1890ff;"></span>
+                    <span class="section-title">操作指标监控</span>
+                    <span class="section-meta">4 个入口</span>
+                    <div class="section-actions">
+                      <button type="button" class="btn-text btn-edit-module">编辑</button>
+                      <button type="button" class="btn-text danger btn-del-module">删除</button>
+                    </div>
+                  </div>
+                  <div class="link-grid">
+                    <div class="link-item" data-id="ops-1">
+                      <span class="link-icon">分</span>
+                      <span class="link-name">分拣到件监控</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                    <div class="link-item" data-id="ops-2">
+                      <span class="link-icon">日</span>
+                      <span class="link-name">日累计指标</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                    <div class="link-item" data-id="ops-3">
+                      <span class="link-icon">卸</span>
+                      <span class="link-name">卸车进度监控</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                    <div class="link-item" data-id="ops-4">
+                      <span class="link-icon">滞</span>
+                      <span class="link-name">滞留件监控</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="section-add-row">
+                    <button type="button" class="add-entry-btn btn-add-entry">+ 添加入口</button>
+                  </div>
+                </section>
+
+                <section class="section-card" data-cat="flow" data-id="flow">
+                  <div class="section-head">
+                    <span class="section-mark" style="background:#722ed1;"></span>
+                    <span class="section-title">流水运行</span>
+                    <span class="section-meta">3 个入口</span>
+                    <div class="section-actions">
+                      <button type="button" class="btn-text btn-edit-module">编辑</button>
+                      <button type="button" class="btn-text danger btn-del-module">删除</button>
+                    </div>
+                  </div>
+                  <div class="link-grid">
+                    <div class="link-item" data-id="flow-1">
+                      <span class="link-icon">流</span>
+                      <span class="link-name">流水线运行</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                    <div class="link-item" data-id="flow-2">
+                      <span class="link-icon">格</span>
+                      <span class="link-name">格口状态</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                    <div class="link-item" data-id="flow-3">
+                      <span class="link-icon">堵</span>
+                      <span class="link-name">堵包预警</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="section-add-row">
+                    <button type="button" class="add-entry-btn btn-add-entry">+ 添加入口</button>
+                  </div>
+                </section>
+
+                <section class="section-card" data-cat="vehicle" data-id="vehicle">
+                  <div class="section-head">
+                    <span class="section-mark" style="background:#fa8c16;"></span>
+                    <span class="section-title">车辆异常</span>
+                    <span class="section-meta">3 个入口</span>
+                    <div class="section-actions">
+                      <button type="button" class="btn-text btn-edit-module">编辑</button>
+                      <button type="button" class="btn-text danger btn-del-module">删除</button>
+                    </div>
+                  </div>
+                  <div class="link-grid">
+                    <div class="link-item" data-id="vehicle-1">
+                      <span class="link-icon">到</span>
+                      <span class="link-name">到车异常</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                    <div class="link-item" data-id="vehicle-2">
+                      <span class="link-icon">压</span>
+                      <span class="link-name">压车预警</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                    <div class="link-item" data-id="vehicle-3">
+                      <span class="link-icon">异</span>
+                      <span class="link-name">异常处理</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="section-add-row">
+                    <button type="button" class="add-entry-btn btn-add-entry">+ 添加入口</button>
+                  </div>
+                </section>
+
+                <section class="section-card" data-cat="query" data-id="query">
+                  <div class="section-head">
+                    <span class="section-mark" style="background:#52c41a;"></span>
+                    <span class="section-title">运营查询</span>
+                    <span class="section-meta">3 个入口</span>
+                    <div class="section-actions">
+                      <button type="button" class="btn-text btn-edit-module">编辑</button>
+                      <button type="button" class="btn-text danger btn-del-module">删除</button>
+                    </div>
+                  </div>
+                  <div class="link-grid">
+                    <div class="link-item" data-id="query-1">
+                      <span class="link-icon">运</span>
+                      <span class="link-name">运单查询</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                    <div class="link-item" data-id="query-2">
+                      <span class="link-icon">扫</span>
+                      <span class="link-name">扫描记录</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                    <div class="link-item" data-id="query-3">
+                      <span class="link-icon">日</span>
+                      <span class="link-name">日报表</span>
+                      <span class="link-ops">
+                        <button type="button" class="link-op edit" title="编辑">✎</button>
+                        <button type="button" class="link-op del" title="删除">×</button>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="section-add-row">
+                    <button type="button" class="add-entry-btn btn-add-entry">+ 添加入口</button>
+                  </div>
+                </section>
+              </div>
+              <div class="empty-tip" id="emptyTip">未找到匹配的入口，请调整关键词或分类</div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增/编辑模块 -->
+  <div class="modal-mask" id="moduleModal">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title" id="moduleModalTitle">新增模块</div>
+        <button type="button" class="modal-close" data-close="moduleModal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <span class="form-label required">模块名称</span>
+          <div class="form-control-wrap">
+            <input type="text" class="form-control" id="moduleName" placeholder="请输入模块名称" />
+          </div>
+        </div>
+        <div class="form-row">
+          <span class="form-label required">排序</span>
+          <div class="form-control-wrap">
+            <input type="number" class="form-control" id="moduleSort" placeholder="数字越小越靠前" value="1" />
+          </div>
+        </div>
+        <div class="form-row">
+          <span class="form-label">图标颜色</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" id="moduleColor">
+                <option value="#1890ff">蓝色</option>
+                <option value="#722ed1">紫色</option>
+                <option value="#fa8c16">橙色</option>
+                <option value="#52c41a">绿色</option>
+                <option value="#eb2f96">粉色</option>
+                <option value="#13c2c2">青色</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-close="moduleModal">取消</button>
+        <button type="button" class="btn btn-primary" id="moduleModalSave">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增/编辑入口 -->
+  <div class="modal-mask" id="entryModal">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title" id="entryModalTitle">新增入口</div>
+        <button type="button" class="modal-close" data-close="entryModal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <span class="form-label required">所属模块</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" id="entryModule">
+                <option value="ops">操作指标监控</option>
+                <option value="flow">流水运行</option>
+                <option value="vehicle">车辆异常</option>
+                <option value="query">运营查询</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <span class="form-label required">入口名称</span>
+          <div class="form-control-wrap">
+            <input type="text" class="form-control" id="entryName" placeholder="请输入入口名称" />
+          </div>
+        </div>
+        <div class="form-row">
+          <span class="form-label required">关联菜单</span>
+          <div class="form-control-wrap">
+            <div class="select-wrap">
+              <select class="form-control" id="entryMenu">
+                <option value="">请选择系统菜单</option>
+                <option value="menu1">分拣到件监控</option>
+                <option value="menu2">日累计指标</option>
+                <option value="menu3">卸车进度监控</option>
+                <option value="menu4">运单查询</option>
+                <option value="menu5">扫描记录</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <span class="form-label required">排序</span>
+          <div class="form-control-wrap">
+            <input type="number" class="form-control" id="entrySort" placeholder="数字越小越靠前" value="1" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-close="entryModal">取消</button>
+        <button type="button" class="btn btn-primary" id="entryModalSave">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除确认 -->
+  <div class="modal-mask" id="confirmModal">
+    <div class="modal" style="width:420px;">
+      <div class="modal-head">
+        <div class="modal-title">删除确认</div>
+        <button type="button" class="modal-close" data-close="confirmModal">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="confirm-text" id="confirmText">确定删除该模块吗？删除后模块下全部入口一并移除。</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-close="confirmModal">取消</button>
+        <button type="button" class="btn btn-danger" id="confirmOk">确定删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var layout = document.getElementById('layout');
+      var activeCat = 'all';
+      var editingModuleId = null;
+      var editingEntryEl = null;
+      var pendingDelete = null;
+
+      document.getElementById('sidebarToggle').addEventListener('click', function () {
+        layout.classList.toggle('sidebar-collapsed');
+      });
+
+      function showModal(id) { document.getElementById(id).classList.add('show'); }
+      function hideModal(id) { document.getElementById(id).classList.remove('show'); }
+
+      document.querySelectorAll('[data-close]').forEach(function (btn) {
+        btn.addEventListener('click', function () { hideModal(btn.getAttribute('data-close')); });
+      });
+
+      document.querySelectorAll('.modal-mask').forEach(function (mask) {
+        mask.addEventListener('click', function (e) {
+          if (e.target === mask) hideModal(mask.id);
+        });
+      });
+
+      function applyFilter() {
+        var keyword = (document.getElementById('menuSearch').value || '').trim().toLowerCase();
+        var sections = document.querySelectorAll('.section-card');
+        var visibleCount = 0;
+
+        sections.forEach(function (section) {
+          var cat = section.getAttribute('data-cat');
+          var catMatch = activeCat === 'all' || cat === activeCat;
+          var links = section.querySelectorAll('.link-item');
+          var linkVisible = 0;
+
+          links.forEach(function (link) {
+            var name = link.querySelector('.link-name').textContent.toLowerCase();
+            var show = catMatch && (!keyword || name.indexOf(keyword) !== -1);
+            link.style.display = show ? '' : 'none';
+            if (show) linkVisible += 1;
+          });
+
+          var showSection = catMatch && linkVisible > 0;
+          section.classList.toggle('hidden', !showSection);
+          if (showSection) visibleCount += 1;
+        });
+
+        document.getElementById('emptyTip').classList.toggle('show', visibleCount === 0);
+      }
+
+      document.getElementById('catNav').addEventListener('click', function (e) {
+        var opBtn = e.target.closest('.cat-op-btn');
+        var item = e.target.closest('.cat-nav-item');
+        if (!item) return;
+
+        if (opBtn) {
+          e.stopPropagation();
+          var id = item.getAttribute('data-id');
+          if (opBtn.classList.contains('edit')) openModuleModal('edit', id, item.querySelector('.cat-nav-label').textContent);
+          if (opBtn.classList.contains('del')) openDeleteConfirm('module', id, item.querySelector('.cat-nav-label').textContent);
+          return;
+        }
+
+        document.querySelectorAll('.cat-nav-item').forEach(function (i) { i.classList.remove('active'); });
+        item.classList.add('active');
+        activeCat = item.getAttribute('data-cat');
+        applyFilter();
+      });
+
+      document.getElementById('menuSearch').addEventListener('input', applyFilter);
+
+      function openModuleModal(mode, id, name) {
+        editingModuleId = mode === 'edit' ? id : null;
+        document.getElementById('moduleModalTitle').textContent = mode === 'edit' ? '编辑模块' : '新增模块';
+        document.getElementById('moduleName').value = name || '';
+        document.getElementById('moduleSort').value = '1';
+        showModal('moduleModal');
+      }
+
+      document.getElementById('btnAddModule').addEventListener('click', function () { openModuleModal('add'); });
+      document.getElementById('catNavAdd').addEventListener('click', function () { openModuleModal('add'); });
+
+      document.getElementById('sections').addEventListener('click', function (e) {
+        var section = e.target.closest('.section-card');
+        if (!section) return;
+        var moduleId = section.getAttribute('data-id');
+        var moduleName = section.querySelector('.section-title').textContent;
+
+        if (e.target.closest('.btn-edit-module')) {
+          openModuleModal('edit', moduleId, moduleName);
+          return;
+        }
+        if (e.target.closest('.btn-del-module')) {
+          openDeleteConfirm('module', moduleId, moduleName);
+          return;
+        }
+        if (e.target.closest('.btn-add-entry')) {
+          openEntryModal('add', moduleId);
+          return;
+        }
+
+        var linkItem = e.target.closest('.link-item');
+        if (!linkItem) return;
+
+        if (e.target.closest('.link-op.edit')) {
+          openEntryModal('edit', moduleId, linkItem);
+          return;
+        }
+        if (e.target.closest('.link-op.del')) {
+          openDeleteConfirm('entry', linkItem, linkItem.querySelector('.link-name').textContent);
+        }
+      });
+
+      function openEntryModal(mode, moduleId, linkEl) {
+        editingEntryEl = mode === 'edit' ? linkEl : null;
+        document.getElementById('entryModalTitle').textContent = mode === 'edit' ? '编辑入口' : '新增入口';
+        document.getElementById('entryModule').value = moduleId || 'ops';
+        document.getElementById('entryName').value = linkEl ? linkEl.querySelector('.link-name').textContent : '';
+        document.getElementById('entryMenu').value = '';
+        document.getElementById('entrySort').value = '1';
+        showModal('entryModal');
+      }
+
+      function openDeleteConfirm(type, target, name) {
+        pendingDelete = { type: type, target: target, name: name };
+        var text = type === 'module'
+          ? '确定删除模块「' + name + '」吗？删除后该模块下全部入口一并移除。'
+          : '确定删除入口「' + name + '」吗？';
+        document.getElementById('confirmText').textContent = text;
+        showModal('confirmModal');
+      }
+
+      document.getElementById('confirmOk').addEventListener('click', function () {
+        if (!pendingDelete) return;
+        if (pendingDelete.type === 'entry' && pendingDelete.target) {
+          var section = pendingDelete.target.closest('.section-card');
+          pendingDelete.target.remove();
+          updateSectionMeta(section);
+        }
+        hideModal('confirmModal');
+        pendingDelete = null;
+        applyFilter();
+      });
+
+      function updateSectionMeta(section) {
+        var count = section.querySelectorAll('.link-item').length;
+        section.querySelector('.section-meta').textContent = count + ' 个入口';
+      }
+
+      document.getElementById('moduleModalSave').addEventListener('click', function () {
+        hideModal('moduleModal');
+      });
+
+      document.getElementById('entryModalSave').addEventListener('click', function () {
+        hideModal('entryModal');
+      });
+    })();
+  </script>
+</body>
+</html>

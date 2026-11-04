@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>智能排班落地规划图</title>
+<style>
+  :root {
+    --ink: #1c2833;
+    --muted: #5d6d7e;
+    --line: #d5dde6;
+    --blue: #1f4e79;
+    --blue-2: #2e86ab;
+    --green: #1e7a46;
+    --green-bg: #e8f6ee;
+    --amber: #b86e00;
+    --amber-bg: #fff6e5;
+    --red: #a33b3b;
+    --red-bg: #fdecec;
+    --gray-bg: #f4f7fa;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0e141b; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--ink); }
+  .hint {
+    position: fixed; left: 16px; bottom: 14px; z-index: 5;
+    color: #c5d0dc; font-size: 13px; letter-spacing: .02em;
+  }
+  .nav {
+    position: fixed; right: 16px; bottom: 12px; z-index: 5;
+    display: flex; gap: 8px; align-items: center; color: #fff;
+  }
+  .nav button {
+    background: #1f4e79; color: #fff; border: 0; border-radius: 6px;
+    padding: 8px 14px; font-size: 14px; cursor: pointer;
+  }
+  .nav span { font-size: 13px; color: #c5d0dc; min-width: 64px; text-align: center; }
+  .stage { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .slide {
+    display: none; width: 1920px; height: 1080px; background: #f7f9fb;
+    padding: 48px 56px 40px; position: relative; flex-direction: column;
+  }
+  .slide.active { display: flex; }
+  .kicker { font-size: 18px; color: var(--blue); letter-spacing: .12em; font-weight: 600; }
+  h1 { margin: 8px 0 0; font-size: 46px; font-weight: 700; line-height: 1.2; }
+  .sub { margin-top: 10px; font-size: 22px; color: var(--muted); }
+  .foot {
+    position: absolute; left: 56px; right: 56px; bottom: 28px;
+    display: flex; justify-content: space-between; color: #8a97a6; font-size: 16px;
+  }
+  .row { display: flex; gap: 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 22px 24px; box-shadow: 0 8px 24px rgba(28,40,51,.04);
+  }
+  .tag {
+    display: inline-block; font-size: 14px; font-weight: 700; border-radius: 999px;
+    padding: 4px 10px; margin-bottom: 8px;
+  }
+  .tag.ok { background: var(--green-bg); color: var(--green); }
+  .tag.wait { background: var(--amber-bg); color: var(--amber); }
+  .tag.no { background: var(--red-bg); color: var(--red); }
+  .tag.now { background: #e7f1fa; color: var(--blue); }
+  ul.clean { margin: 8px 0 0; padding-left: 20px; font-size: 20px; line-height: 1.55; }
+  ul.clean li { margin: 4px 0; }
+
+  .arch { margin-top: 28px; display: grid; grid-template-columns: 280px 1fr 280px; gap: 18px; align-items: stretch; flex: 1; }
+  .col-title { font-size: 18px; font-weight: 700; color: var(--muted); margin-bottom: 10px; }
+  .src, .out {
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; font-size: 18px; font-weight: 600;
+    border: 1px solid var(--line); background: #fff;
+  }
+  .src small, .out small { display: block; font-weight: 500; color: var(--muted); margin-top: 4px; font-size: 14px; }
+  .src.dim, .box.dim { border-style: dashed; color: #7b8794; background: #fbfcfd; }
+  .engine {
+    background: #fff; border: 2px solid var(--blue); border-radius: 18px; padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 12px; height: 100%;
+  }
+  .box {
+    border-radius: 12px; padding: 14px 16px; background: #eef5fb; border: 1px solid #c5d9ec;
+  }
+  .box b { display: block; font-size: 20px; }
+  .box span { font-size: 16px; color: var(--muted); }
+  .box.core { background: #e8f6ee; border-color: #b7e0c6; }
+  .arrow-note { text-align: center; color: var(--blue); font-weight: 700; font-size: 16px; }
+
+  .seq { margin-top: 18px; flex: 1; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+  .days { margin-top: 36px; display: grid; grid-template-columns: 1fr 40px 1fr 40px 1fr; align-items: center; }
+  .day {
+    background: #fff; border: 2px solid var(--line); border-radius: 18px; min-height: 280px; padding: 28px;
+  }
+  .day h3 { margin: 0 0 8px; font-size: 28px; }
+  .day p { margin: 0; font-size: 22px; color: var(--muted); line-height: 1.5; }
+  .day.rest { background: var(--amber-bg); border-color: #f0d7a2; }
+  .day.bad { background: var(--red-bg); border-color: #f0c2c2; opacity: .95; }
+  .chev { text-align: center; font-size: 36px; color: var(--blue); font-weight: 700; }
+
+  .gantt { margin-top: 36px; }
+  .axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 16px; margin: 0 8px 8px; }
+  .track { position: relative; height: 86px; background: #e8eef4; border-radius: 12px; margin: 14px 0; }
+  .bar {
+    position: absolute; top: 16px; height: 54px; border-radius: 10px; color: #fff;
+    display: flex; align-items: center; padding: 0 16px; font-size: 20px; font-weight: 700;
+  }
+  .legend { display: flex; gap: 18px; margin-top: 18px; font-size: 16px; color: var(--muted); }
+  .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: -2px; }
+
+  @media print {
+    body { background: #fff; }
+    .hint, .nav { display: none; }
+    .stage { display: block; height: auto; }
+    .slide, .slide.active { display: flex; page-break-after: always; transform: none !important; }
+    @page { size: 1920px 1080px; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="hint">方向键翻页。每一页是 1920×1080，可整页截图放进 PPT。</div>
+<div class="nav">
+  <button type="button" id="prev">上一页</button>
+  <span id="page"></span>
+  <button type="button" id="next">下一页</button>
+</div>
+<div class="stage" id="stage">
+
+  <section class="slide">
+    <div class="kicker">智能排班 · 领导汇报</div>
+    <h1>先把班次排稳，再谈派到哪辆车</h1>
+    <p class="sub">适用：直营分拨中心、服务站。不适用：非直营分拨中心、直营集配站、非直营集配站。</p>
+    <div class="row" style="margin-top:36px; flex:1;">
+      <div class="card" style="flex:1.2;">
+        <span class="tag now">主路径</span>
+        <div style="display:flex; align-items:center; gap:12px; margin-top:18px; flex-wrap:wrap;">
+          <div class="box core" style="flex:1; min-width:180px;"><b>货量预测</b><span>分拨 / 环节 / 小时</span></div>
+          <div style="font-size:28px;color:#1f4e79;">→</div>
+          <div class="box core" style="flex:1; min-width:180px;"><b>班次编制</b><span>人数、岗位、建议名单</span></div>
+          <div style="font-size:28px;color:#1f4e79;">→</div>
+          <div class="box" style="flex:1; min-width:180px;"><b>调度确认发布</b><span>员工可查本人班次</span></div>
+          <div style="font-size:28px;color:#1f4e79;">→</div>
+          <div class="box" style="flex:1; min-width:180px;"><b>班次级补位</b><span>请假、旷工可追踪</span></div>
+        </div>
+        <p style="margin:22px 0 0; font-size:20px; color:#5d6d7e;">算法只给建议。已发布班表变更必须告知，不能静默改写。</p>
+      </div>
+      <div class="card" style="width:460px;">
+        <span class="tag no">首期不做</span>
+        <ul class="clean">
+          <li>谁卸 / 装哪辆车</li>
+          <li>装车码放</li>
+          <li>适用类型里一次全开</li>
+          <li>无人确认就改已发布班表</li>
+          <li>替代考勤合规裁定</li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot"><span>建议默认，试点仓与环节仍待拍板</span><span>1 / 6</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">架构图</div>
+    <h1>数据进来，建议出去，人来确认</h1>
+    <p class="sub">实线是首期最小对接。虚线是后做，不作为本期阻塞。</p>
+    <div class="arch">
+      <div>
+        <div class="col-title">只读接入</div>
+        <div class="src">人员主数据<small>在职、岗位技能、用工类型</small></div>
+        <div class="src">考勤<small>请假、出勤、旷工</small></div>
+        <div class="src">货量 / 预测<small>历史货量与预测；没有预测可先人工导入</small></div>
+        <div class="src">WMS 货量<small>建议只读任务结构</small></div>
+        <div class="src dim">到车 / 靠台 / 卡班<small>首期弱依赖，车级指派再用</small></div>
+      </div>
+      <div class="engine">
+        <div class="arrow-note">首期引擎</div>
+        <div class="box"><b>L1 货量与人力预测</b><span>要多少人、哪类岗。路由粒度待确认。</span></div>
+        <div class="box core"><b>L2 班次编制</b><span>建议名单。倒班间隔只提示，不拦截。</span></div>
+        <div class="box core"><b>L4 班次级补位</b><span>缺员后给候选人，调度确认，记下补位时长。</span></div>
+        <div class="box dim"><b>L3 车级指派（阶段 4，可选）</b><span>谁卸 / 装哪辆车。复盘通过且到车数据可读才启动。</span></div>
+        <div class="box" style="background:#fff6e5;border-color:#f0d7a2;"><b>调度确认</b><span>可改、可驳回。确认后发布，并告知相关人。</span></div>
+      </div>
+      <div>
+        <div class="col-title">对外结果</div>
+        <div class="out">已发布班表<small>调度在管理台确认</small></div>
+        <div class="out">员工查看本人班次<small>入口复用现有通道优先，待确认</small></div>
+        <div class="out">周报指标<small>发布准时、改动率、补位时长、人数偏差</small></div>
+        <div class="out dim">班表回写考勤<small>写不写、以谁为准，待确认</small></div>
+      </div>
+    </div>
+    <div class="foot"><span>与【转运人员排班维护】分开：现网管考勤与货量规则，这里管预测驱动的编制与发布</span><span>2 / 6</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">时序图 · 上班前</div>
+    <h1>预测生成建议，调度确认后才发布</h1>
+    <svg class="seq" viewBox="0 0 1800 760" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#1f4e79"/></marker>
+        <marker id="ah2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#b86e00"/></marker>
+      </defs>
+      <g font-family="PingFang SC, Microsoft YaHei, sans-serif">
+        <rect x="70" y="24" width="220" height="56" rx="10" fill="#1f4e79"/>
+        <text x="180" y="58" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">货量预测</text>
+        <rect x="520" y="24" width="220" height="56" rx="10" fill="#1e7a46"/>
+        <text x="630" y="58" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">排班引擎</text>
+        <rect x="980" y="24" width="220" height="56" rx="10" fill="#b86e00"/>
+        <text x="1090" y="58" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">调度员</text>
+        <rect x="1440" y="24" width="220" height="56" rx="10" fill="#2e86ab"/>
+        <text x="1550" y="58" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">操作工</text>
+        <line x1="180" y1="90" x2="180" y2="720" stroke="#c5d0dc" stroke-width="2" stroke-dasharray="6 6"/>
+        <line x1="630" y1="90" x2="630" y2="720" stroke="#c5d0dc" stroke-width="2" stroke-dasharray="6 6"/>
+        <line x1="1090" y1="90" x2="1090" y2="720" stroke="#c5d0dc" stroke-width="2" stroke-dasharray="6 6"/>
+        <line x1="1550" y1="90" x2="1550" y2="720" stroke="#c5d0dc" stroke-width="2" stroke-dasharray="6 6"/>
+
+        <line x1="190" y1="150" x2="610" y2="150" stroke="#1f4e79" stroke-width="3" marker-end="url(#ah)"/>
+        <text x="400" y="140" text-anchor="middle" font-size="20" fill="#1c2833">1. 未来若干日：各班要多少人、哪类岗</text>
+
+        <line x1="640" y1="250" x2="1070" y2="250" stroke="#1f4e79" stroke-width="3" marker-end="url(#ah)"/>
+        <text x="855" y="240" text-anchor="middle" font-size="20" fill="#1c2833">2. 建议名单（技能、出勤、用工类型）</text>
+
+        <line x1="640" y1="360" x2="1070" y2="360" stroke="#b86e00" stroke-width="3" marker-end="url(#ah2)"/>
+        <text x="855" y="348" text-anchor="middle" font-size="20" fill="#b86e00">3. 倒班间隔提示（只提示，不拦截）</text>
+
+        <line x1="1080" y1="480" x2="650" y2="480" stroke="#1f4e79" stroke-width="3" marker-end="url(#ah)"/>
+        <text x="865" y="468" text-anchor="middle" font-size="20" fill="#1c2833">4. 调整后确认发布（可驳回并写原因）</text>
+
+        <line x1="640" y1="600" x2="1530" y2="600" stroke="#1f4e79" stroke-width="3" marker-end="url(#ah)"/>
+        <text x="1085" y="588" text-anchor="middle" font-size="20" fill="#1c2833">5. 告知班次。已发布结果不能静默改写</text>
+
+        <text x="1550" y="680" text-anchor="middle" font-size="18" fill="#5d6d7e">操作工查看本人班次</text>
+      </g>
+    </svg>
+    <div class="foot"><span>数据缺失或算不出来时，降级为人工编人数，并标出缺口</span><span>3 / 6</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">时序图 · 班中缺员</div>
+    <h1>请假、旷工后给补位建议，调度点头才算数</h1>
+    <svg class="seq" viewBox="0 0 1800 760" xmlns="http://www.w3.org/2000/svg">
+      <g font-family="PingFang SC, Microsoft YaHei, sans-serif">
+        <rect x="160" y="24" width="280" height="56" rx="10" fill="#1f4e79"/>
+        <text x="300" y="58" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">考勤或现场登记</text>
+        <rect x="760" y="24" width="280" height="56" rx="10" fill="#1e7a46"/>
+        <text x="900" y="58" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">排班引擎</text>
+        <rect x="1360" y="24" width="280" height="56" rx="10" fill="#b86e00"/>
+        <text x="1500" y="58" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">调度员</text>
+        <line x1="300" y1="90" x2="300" y2="700" stroke="#c5d0dc" stroke-width="2" stroke-dasharray="6 6"/>
+        <line x1="900" y1="90" x2="900" y2="700" stroke="#c5d0dc" stroke-width="2" stroke-dasharray="6 6"/>
+        <line x1="1500" y1="90" x2="1500" y2="700" stroke="#c5d0dc" stroke-width="2" stroke-dasharray="6 6"/>
+
+        <line x1="310" y1="180" x2="880" y2="180" stroke="#1f4e79" stroke-width="3" marker-end="url(#ah)"/>
+        <text x="595" y="168" text-anchor="middle" font-size="22">1. 某人缺员（请假 / 旷工 / 人工登记）</text>
+
+        <line x1="910" y1="330" x2="1480" y2="330" stroke="#1f4e79" stroke-width="3" marker-end="url(#ah)"/>
+        <text x="1195" y="316" text-anchor="middle" font-size="22">2. 按技能、工时给出补位候选人</text>
+
+        <line x1="1490" y1="480" x2="920" y2="480" stroke="#1f4e79" stroke-width="3" marker-end="url(#ah)"/>
+        <text x="1205" y="466" text-anchor="middle" font-size="22">3. 调度确认谁来补</text>
+
+        <rect x="620" y="580" width="560" height="80" rx="12" fill="#e8f6ee" stroke="#1e7a46"/>
+        <text x="900" y="628" text-anchor="middle" font-size="22" fill="#1e7a46" font-weight="700">4. 记下补位时长，以及班次人数是否还够</text>
+      </g>
+    </svg>
+    <div class="foot"><span>首期补位停在班次级。补到某一辆车，跟车级指派一起后置</span><span>4 / 6</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">规则示意 · 倒班间隔</div>
+    <h1>该空一天的切换，中间空一个自然日</h1>
+    <p class="sub">现场没有固定的白班 / 夜班叫法，按各分拨的班次时间排。哪些班次对必须空一天，待调研，系统不写死。</p>
+    <div class="days">
+      <div class="day">
+        <span class="tag now">上一班</span>
+        <h3>班次 A</h3>
+        <p>按该分拨班次时间上班。结束后不能立刻接需要间隔的下一班。</p>
+      </div>
+      <div class="chev">→</div>
+      <div class="day rest">
+        <span class="tag wait">必须空出</span>
+        <h3>一个自然日</h3>
+        <p>这一天不再排班。正式工按此提示。外包间隔另定，规则待调研。</p>
+      </div>
+      <div class="chev">→</div>
+      <div class="day">
+        <span class="tag ok">下一班</span>
+        <h3>班次 B</h3>
+        <p>空过一天后再上。若仍连排，系统只提示，调度确认后仍可发布。</p>
+      </div>
+    </div>
+    <div class="row" style="margin-top:28px;">
+      <div class="card" style="flex:1; background:#fdecec; border-color:#f0c2c2;">
+        <b style="font-size:22px; color:#a33b3b;">不要这样排</b>
+        <p style="font-size:20px; margin:8px 0 0;">班次 A 结束当天或紧接着的下一班就上班次 B。</p>
+      </div>
+      <div class="card" style="flex:1; background:#fff6e5; border-color:#f0d7a2;">
+        <b style="font-size:22px; color:#b86e00;">系统怎么处理</b>
+        <p style="font-size:20px; margin:8px 0 0;">只提示，不拦截。调度看过提示后可以确认发布。</p>
+      </div>
+      <div class="card" style="flex:1;">
+        <b style="font-size:22px;">还要问现场</b>
+        <p style="font-size:20px; margin:8px 0 0;">列出试点分拨现有班次起止时间，点名哪些切换必须空一天。</p>
+      </div>
+    </div>
+    <div class="foot"><span>现网「装卸倒班 / 移动倒班」是货量维护分类，不是这条休息规则</span><span>5 / 6</span></div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">路线图 · 约 90 天</div>
+    <h1>每阶段准出后才进下一阶段</h1>
+    <p class="sub">T0 = 对齐启动日。日历与人力待确认。没有试点仓白名单，不进入大规模研发。</p>
+    <div class="gantt">
+      <div class="axis"><span>T0</span><span>2周</span><span>5周</span><span>11周</span><span>14周</span></div>
+      <div class="track">
+        <div class="bar" style="left:0; width:14.2%; background:#1f4e79;">0 对齐试点</div>
+      </div>
+      <div class="track">
+        <div class="bar" style="left:14.2%; width:21.4%; background:#2e86ab;">1 数据对接摸底</div>
+      </div>
+      <div class="track">
+        <div class="bar" style="left:35.6%; width:42.8%; background:#1e7a46;">2 预测 → 编制 → 发布 → 班次补位</div>
+      </div>
+      <div class="track">
+        <div class="bar" style="left:78.4%; width:21.6%; background:#b86e00;">3 试点复盘</div>
+      </div>
+      <div class="track">
+        <div class="bar" style="left:84%; width:16%; background:#eef2f6; color:#5d6d7e; border:2px dashed #8a97a6; font-size:18px;">4 车级·可选</div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="background:#1f4e79"></i>阶段0 试点章程（1–2周）</span>
+      <span><i class="sw" style="background:#2e86ab"></i>阶段1 最小对接（2–3周）</span>
+      <span><i class="sw" style="background:#1e7a46"></i>阶段2 MVP（4–6周）</span>
+      <span><i class="sw" style="background:#b86e00"></i>阶段3 复盘（2–4周）</span>
+      <span><i class="sw" style="background:#8a97a6"></i>阶段4 车级指派，可选</span>
+    </div>
+    <div class="row" style="margin-top:28px;">
+      <div class="card" style="flex:1;"><b>阶段2 准出</b><p style="margin:8px 0 0;font-size:18px;color:#5d6d7e;">连续至少 2 个排班周期走通发布与查班，补位有记录，没有静默改班。</p></div>
+      <div class="card" style="flex:1;"><b>阶段3 结论</b><p style="margin:8px 0 0;font-size:18px;color:#5d6d7e;">先采约 4 周基线再谈提升。决定扩试点、回炉，或不开车级指派。</p></div>
+      <div class="card" style="flex:1;"><b>阶段4 门槛</b><p style="margin:8px 0 0;font-size:18px;color:#5d6d7e;">班次能力可信，到车数据可读，领导同意。否则保持班次产品。</p></div>
+    </div>
+    <div class="foot"><span>试点仓、卸/装/移环节、班表是否回写，见汇报版待拍板表</span><span>6 / 6</span></div>
+  </section>
+
+</div>
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let i = 0;
+  function fit() {
+    const s = slides[i];
+    const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    s.style.transform = 'scale(' + scale + ')';
+  }
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach((el, idx) => el.classList.toggle('active', idx === i));
+    document.getElementById('page').textContent = (i + 1) + ' / ' + slides.length;
+    fit();
+  }
+  document.getElementById('prev').onclick = () => show(i - 1);
+  document.getElementById('next').onclick = () => show(i + 1);
+  window.addEventListener('resize', fit);
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') show(i + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') show(i - 1);
+  });
+  show(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PC 端企业后台 — TVM 通用原型框架</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* 对齐 TVM uat 默认 purple 主题 */
+      --primary: #9174ea;
+      --primary-hover: #7058c4;
+      --header-blue: #9174ea;
+      --sidebar-bg: #011040;
+      --sidebar-hover: #9174ea;
+      --sidebar-active: #8263e0;
+      --sidebar-sub: #0a1850;
+      --sidebar-text: #fff;
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --sidebar-width: 208px;
+      --sidebar-collapsed: 54px;
+      --header-height: 46px;
+      --footer-height: 32px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    /* 整体：左栏全高 + 右侧主区（对齐 TVM uat layout） */
+    .layout {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+      position: relative;
+    }
+
+    /* —— 左侧边栏 —— */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .28s;
+      overflow: hidden;
+      box-shadow: 2px 0 8px 0 rgba(29,35,41,.05);
+      z-index: 1001;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+
+    .sidebar-logo {
+      height: 46px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: default;
+    }
+    .sidebar-logo .brand-full {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .sidebar-logo .brand-mark {
+      height: 18px;
+      padding: 0 8px;
+      border-radius: 3px;
+      background: rgba(255,255,255,.95);
+      color: var(--sidebar-bg);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 18px;
+      letter-spacing: .5px;
+    }
+    .sidebar-logo .brand-title {
+      position: relative;
+      padding-left: 12px;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 46px;
+    }
+    .sidebar-logo .brand-title::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 2px;
+      height: 16px;
+      background: #d8d8d8;
+    }
+    .sidebar-logo .brand-mini {
+      display: none;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,.95);
+      color: var(--sidebar-bg);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 18px;
+      align-items: center;
+      justify-content: center;
+    }
+    .layout.sidebar-collapsed .sidebar-logo .brand-full { display: none; }
+    .layout.sidebar-collapsed .sidebar-logo .brand-mini { display: flex; }
+
+    .sidebar-menu {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 4px 0 12px;
+    }
+    .sidebar-menu::-webkit-scrollbar { width: 6px; }
+    .sidebar-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,.35); border-radius: 3px; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      height: 40px;
+      color: var(--sidebar-text);
+      opacity: .9;
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { background: var(--sidebar-hover); opacity: 1; }
+    .menu-item.active { background: var(--sidebar-active); opacity: 1; }
+    .menu-item .menu-icon {
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+    .menu-item .menu-arrow {
+      margin-left: auto;
+      font-size: 10px;
+      opacity: .8;
+    }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
+    .layout.sidebar-collapsed .menu-item {
+      padding: 0;
+      justify-content: center;
+    }
+    .layout.sidebar-collapsed .menu-item .menu-icon { margin: 0; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item {
+      padding-left: 30px;
+      height: 40px;
+      font-size: 14px;
+    }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    /* —— 右侧主容器 —— */
+    .main-container {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    /* 顶栏：汉堡 + 页签 + 右侧工具（对齐 Navbar） */
+    .navbar {
+      height: var(--header-height);
+      flex-shrink: 0;
+      background: var(--header-blue);
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      z-index: 9;
+    }
+
+    .hamburger {
+      width: 50px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background .3s;
+    }
+    .hamburger:hover { background: rgba(0,0,0,.08); }
+    .hamburger svg {
+      width: 20px;
+      height: 20px;
+      fill: #fff;
+      transition: transform .28s;
+    }
+    .layout.sidebar-collapsed .hamburger svg { transform: rotate(180deg); }
+
+    .page-tabs {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: flex-end;
+      overflow-x: auto;
+      gap: 0;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tabs::-webkit-scrollbar { height: 0; }
+
+    .page-tab {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      height: 38px;
+      margin-top: 8px;
+      margin-left: 3px;
+      color: #fff;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 14px;
+      background: transparent;
+      flex-shrink: 0;
+    }
+    .page-tab .tab-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 10px;
+      height: 28px;
+      border-radius: 7px;
+    }
+    .page-tab:first-child { margin-left: 10px; }
+    .page-tab:hover:not(.active) .tab-label { background: var(--primary-hover); }
+    .page-tab.active {
+      z-index: 1;
+      background: #f3f4f6;
+      color: #333;
+      border-radius: 10px 10px 0 0;
+      padding: 0 5px;
+      font-weight: 500;
+    }
+    .page-tab.active .tab-label {
+      background: #f3f4f6;
+      color: #333;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .75;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .page-tab .tab-close:hover {
+      background: #b4bccc;
+      color: #fff;
+      opacity: 1;
+    }
+    .page-tab.active .tab-close { color: #666; opacity: .7; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 12px 0 8px;
+      color: #fff;
+      flex-shrink: 0;
+      background: var(--header-blue);
+      z-index: 3;
+    }
+    .top-right .icon-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { opacity: .75; }
+    .top-right .icon-btn svg { width: 18px; height: 18px; fill: #fff; }
+    .top-right .icon-btn .badge {
+      position: absolute;
+      top: 4px;
+      right: 2px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+    }
+    .top-right .icon-btn.with-badge { position: relative; }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 4px;
+      padding: 0 4px 0 6px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 40px;
+    }
+    .user-info:hover { opacity: .85; }
+    .avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #fff;
+      color: var(--header-blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 14px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .85; margin-left: 2px; }
+
+    /* 主内容 */
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      padding: 5px 5px 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    /* 页脚 */
+    .app-footer {
+      height: var(--footer-height);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      pointer-events: none;
+      gap: 6px;
+    }
+    .app-footer a { color: var(--text-secondary); text-decoration: none; }
+
+    /* 1. 筛选条件区：名称左+控件右；3 列网格；重置/查询与最后一行底对齐 */
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range {
+      width: 100%;
+    }
+    .filter-control {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,.2); }
+    .filter-control::placeholder { color: #bfbfbf; }
+
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    /* 2. 标签切换区 */
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* 3. 操作按钮区 */
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    /* 4. 数据列表区：占满剩余高度，分页始终在底部 */
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .data-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .data-table th,
+    .data-table td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .data-table th {
+      background: #fafafa;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+    .cell-placeholder { color: var(--text-secondary); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="brand-full">
+        <span class="brand-mark">ZTO</span>
+        <span class="brand-title">TVM</span>
+      </span>
+      <span class="brand-mini">TVM</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">菜单项 1</span></div>
+      <div class="menu-item active">
+        <span class="menu-icon">☰</span><span class="menu-label">菜单项 2</span><span class="menu-arrow">▼</span>
+      </div>
+      <div class="menu-sub">
+        <div class="menu-item">子菜单 1</div>
+        <div class="menu-item">子菜单 2</div>
+        <div class="menu-item">子菜单 3</div>
+      </div>
+      <div class="menu-item"><span class="menu-icon">⚙</span><span class="menu-label">菜单项 3</span><span class="menu-arrow">▶</span></div>
+      <div class="menu-item"><span class="menu-icon">📋</span><span class="menu-label">菜单项 4</span><span class="menu-arrow">▶</span></div>
+    </nav>
+  </aside>
+
+  <div class="main-container">
+    <header class="navbar">
+      <div class="hamburger" id="sidebarToggle" title="折叠/展开">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+          <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7z" />
+        </svg>
+      </div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active" data-tab="page1"><span class="tab-label">标签页 1 <span class="tab-close">×</span></span></div>
+        <div class="page-tab" data-tab="page2"><span class="tab-label">标签页 2 <span class="tab-close">×</span></span></div>
+        <div class="page-tab" data-tab="page3"><span class="tab-label">标签页 3 <span class="tab-close">×</span></span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="搜索">
+          <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        </span>
+        <span class="icon-btn" title="导出任务管理">
+          <svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm7-18l-5 5h3v6h4v-6h3l-5-5z"/></svg>
+        </span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>下拉框</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="输入框" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <div class="date-range">
+                  <input class="filter-control" type="text" placeholder="开始日期" readonly />
+                  <span class="sep">~</span>
+                  <input class="filter-control" type="text" placeholder="结束日期" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>下拉框</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <input class="filter-control" type="text" placeholder="输入框" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">筛选条件</span>
+              <div class="filter-control-wrap">
+                <div class="select-wrap">
+                  <select class="filter-control"><option>下拉框</option></select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn">重置</button>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-ctab="1">标签 1</div>
+          <div class="content-tab" data-ctab="2">标签 2</div>
+          <div class="content-tab" data-ctab="3">标签 3</div>
+        </nav>
+
+        <section class="action-bar">
+          <button class="btn-action primary">操作按钮 1</button>
+          <button class="btn-action">操作按钮 2</button>
+          <button class="btn-action">操作按钮 3</button>
+          <button class="btn-action">操作按钮 4</button>
+        </section>
+
+        <section class="table-area">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" id="checkAll" /></th>
+                  <th>列 1</th><th>列 2</th><th>列 3</th><th>列 4</th><th>列 5</th><th>列 6</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td><td class="cell-placeholder">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 100 条</span>
+            <button class="page-btn disabled">&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">…</button>
+            <button class="page-btn">10</button>
+            <button class="page-btn">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      Copyright © 中通快运 版权所有
+    </footer>
+  </div>
+</div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.page-tab');
+    if (!tab || e.target.classList.contains('tab-close')) return;
+    document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+
+  document.getElementById('checkAll').addEventListener('change', function () {
+    document.querySelectorAll('.row-check').forEach(cb => { cb.checked = this.checked; });
+  });
+</script>
+
+</body>
+</html>

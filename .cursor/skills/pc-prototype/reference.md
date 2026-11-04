@@ -1,30 +1,34 @@
 # PC 端原型 — 布局对照与占位规则
 
-母版文件：`docs/_共用/PC端通用框架.html`  
+母版文件（按项目选用，互不覆盖）：
+
+| 项目 | 母版 |
+|------|------|
+| DLC | `docs/_共用/PC端通用框架.html` |
+| TVM | `docs/_共用/PC端通用框架-TVM.html` |
+
 业务原型：`docs/{项目名}/{中文页面名}.html`（与同项目 PRD 同目录）
 
 **页面即真页面：** 不要在 HTML 里加「原型说明」条、演示备注、临时演示按钮；规则说明放对话或 PRD。
 
 ## 全局结构 DOM 对照
 
-整体为 **纵排**：顶栏一行 + 下方 body 横排（侧栏 + 主内容）。
+整体为 **横排**（DLC / TVM 结构同类）：左侧全高侧栏 + 右侧主容器（顶栏 → 内容 → 页脚）。下表色值以 **DLC** 为例；TVM 见母版 CSS 变量与 [tvm-frontend-source](../tvm-frontend-source/SKILL.md)。
 
 | 区域 | CSS 类 / 元素 | 说明 |
 |------|---------------|------|
-| 整体容器 | `#layout.layout` | flex 纵排，100vh；折叠时加 `.sidebar-collapsed` |
-| 顶栏整行 | `.top-header` | 高 48px；左品牌 + 右蓝底标签栏 |
-| 品牌区 | `.brand-area` | 宽同侧栏；文案「数智分拨 \| DLC」；折叠时显示 `.brand-short` |
-| 蓝色顶栏 | `.top-tabs` | 背景 `#0659d9` |
-| 折叠按钮 | `#sidebarToggle.collapse-btn` | 在蓝顶栏左侧（汉堡） |
-| 首页按钮 | `.home-btn` | 顶栏内 |
-| 页面标签 | `#pageTabs .page-tab` | 激活白底深字；未选中半透明底白字；可多个 |
-| 顶栏右侧 | `.top-right` | 工具图标 + `.user-info`（头像 / sysadmin） |
-| 下方横排 | `.body-row` | flex 横排：侧栏 + 主内容 |
-| 左侧侧边栏 | `#sidebar.sidebar` | 宽 200px，折叠 64px；无独立 Logo 区 |
-| 菜单列表 | `.sidebar-menu` | `.menu-item` + 可选 `.menu-sub` |
-| 右侧容器 | `.main-wrapper` | flex 纵排 |
-| 主内容区 | `.content-area` | padding 16px，背景 `#f0f2f5`；flex 撑满，不整页滚动 |
+| 整体容器 | `#layout.layout` | flex 横排，100vh；折叠时加 `.sidebar-collapsed` |
+| 左侧侧栏 | `#sidebar.sidebar` | 宽 208px，折叠 54px；深色底 `#1c2531`；选中项 `#0658d9` |
+| 侧栏顶区 | `.sidebar-logo` | 文案「数智分拨 \| DLC」（`.brand-full`）；折叠显示 `.brand-mini`「DLC」 |
+| 菜单列表 | `.sidebar-menu` | `.menu-item` + 可选 `.menu-sub`；项高 45px，白字 |
+| 右侧主容器 | `.main-container` | flex 纵排：顶栏 + 内容 + 页脚 |
+| 蓝色顶栏 | `.navbar` | 高 47px；背景 `#0658d9` |
+| 折叠按钮 | `#sidebarToggle.hamburger` | 顶栏最左；SVG 汉堡，折叠时旋转 |
+| 页面标签 | `#pageTabs .page-tab` | 圆角顶页签；激活 `#f3f4f6` 深字；未选中白字 |
+| 顶栏右侧 | `.top-right` | 菜单引导 / 导出任务 / 搜索 / 消息 + `.user-info` |
+| 主内容区 | `.content-area` | 浅灰底 `#f2f3f7`；flex 撑满，不整页滚动 |
 | 内容卡片 | `.content-card` | 白底，撑满可视高度，承载四模块 |
+| 页脚 | `.app-footer` | 高 32px；中通快运版权文案（与现网 footer 一致） |
 
 ## 主内容四模块 DOM 对照
 
@@ -38,11 +42,11 @@
 | 1e 按钮 | `.filter-actions` | `.btn` 重置 + `.btn-primary` 查询 |
 | 2 标签切换 | `#contentTabs.content-tabs` | `.content-tab`，一项 `.active` |
 | 3 操作按钮 | `.action-bar` | `.btn-action` / `.btn-action.primary` |
-| 4 数据列表 | `.table-area` | flex 占满剩余高度；内含 `.table-scroll` + `.pagination` |
-| 4a 表体滚动 | `.table-scroll` | 包住 `.data-table`；行多时在此滚动 |
-| 4b 数据表格 | `.data-table` | thead + tbody；`th`/`td` 默认 `text-align: center` |
+| 4 数据列表 | `.table-area` | flex 占满剩余高度；子元素顺序固定：`.table-scroll`（可有业务汇总条等）→ **`.pagination`（直接子元素）** |
+| 4a 表体滚动 | `.table-scroll` | **只**包住 `.data-table`（可多个表切换）；行多/列多时在此滚动；**禁止**把 `.pagination` 放进来 |
+| 4b 数据表格 | `.data-table` | thead + tbody；`th`/`td` 默认 `text-align: center`；**`th` 必须 `white-space: nowrap`（表头字段名不换行）**；列多时用 `.table-scroll` 横向滚动，表格可用 `width: max-content; min-width: 100%` |
 | 4c 复选框列 | `.col-checkbox` | 表头 `#checkAll` + 行 `.row-check` |
-| 4d 分页 | `.pagination` | **贴内容卡片底部**（`margin-top: auto` / 列表区 flex）；总数 + 页码 + 跳转 |
+| 4d 分页 | `.pagination` | **贴内容卡片/列表区底部右下角**：`margin-top: auto` + `justify-content: flex-end`；是 `.table-area` 直接子元素；总数 + 页码 + 跳转 |
 
 ## 筛选区多行扩展示例
 
