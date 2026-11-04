@@ -51,6 +51,7 @@
     .filter-item .filter-control-wrap { flex: 1; min-width: 0; }
     .filter-item .filter-control-wrap > .filter-control,
     .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .ms-select,
     .filter-item .filter-control-wrap > .date-range,
     .filter-item .filter-control-wrap > .month-range { width: 100%; }
     .filter-control { width: 100%; height: 32px; border: 1px solid var(--border); border-radius: 4px; padding: 0 11px; font-size: 14px; color: var(--text); background: #fff; outline: none; }
@@ -197,6 +198,71 @@
     .ms-opt.disabled { opacity: .45; cursor: not-allowed; }
     .ms-tag { display: inline-block; background: #f0f2f5; margin: 1px 3px; padding: 0 6px; border-radius: 2px; font-size: 12px; }
     .ms-tag .x { cursor: pointer; color: #999; }
+    /* 查询区多选下拉：收起为单行，展开为勾选面板 */
+    .ms-select { position: relative; width: 100%; z-index: 1; }
+    .ms-select.open { z-index: 40; }
+    .ms-select-trigger {
+      position: relative;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 28px 0 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #fff;
+      cursor: pointer;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .ms-select-trigger::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .ms-select-trigger .ms-placeholder { color: #bfbfbf; font-size: 14px; white-space: nowrap; }
+    .ms-select-trigger .ms-tag {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      margin: 0;
+      padding: 0 6px;
+      background: #f5f5f5;
+      border: 1px solid #e8e8e8;
+      border-radius: 2px;
+      font-size: 12px;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .ms-select-panel {
+      display: none;
+      position: fixed;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+      z-index: 3000;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .ms-select.open .ms-select-panel { display: block; }
+    .ms-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .ms-option:hover { background: #f5f5f5; }
+    .ms-option[hidden] { display: none !important; }
+    .ms-option input { accent-color: var(--primary); }
     .section-card { border: 1px solid var(--border); border-radius: 4px; padding: 12px; margin-bottom: 12px; }
     .support-price-panel { margin-top: 8px; }
     .support-price-panel.is-disabled { opacity: .55; pointer-events: none; }
@@ -282,9 +348,55 @@
                     </div>
                   </div>
                 </div>
-                <div class="filter-item"><span class="filter-label">操作环节</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control" id="filterLinkSelect" multiple size="4" title="多选"><option value="">请选择</option><option>网点卸车</option><option>干线卸车</option><option>网点装车</option><option>干线装车</option><option class="open-only">网点移动</option><option class="open-only">干线移动</option></select></div></div></div>
-                <div class="filter-item"><span class="filter-label">适用岗位</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control" multiple size="4" title="多选"><option value="">请选择</option><option>装卸工</option><option>装卸组长</option><option>电叉司机</option><option>分拨外包工</option></select></div></div></div>
-                <div class="filter-item"><span class="filter-label">状态</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control" multiple size="4" title="多选"><option selected>使用中</option><option selected>试用中</option><option>待发起</option><option>复核中</option><option>复核不通过</option><option>审核中</option><option>审核不通过</option><option>待生效</option><option>已失效</option></select></div></div></div>
+                <div class="filter-item">
+                  <span class="filter-label">操作环节</span>
+                  <div class="filter-control-wrap">
+                    <div class="ms-select" id="filterLinkSelect" data-placeholder="请选择" title="多选">
+                      <div class="ms-select-trigger"><span class="ms-placeholder">请选择</span></div>
+                      <div class="ms-select-panel">
+                        <label class="ms-option"><input type="checkbox" value="网点卸车" />网点卸车</label>
+                        <label class="ms-option"><input type="checkbox" value="干线卸车" />干线卸车</label>
+                        <label class="ms-option"><input type="checkbox" value="网点装车" />网点装车</label>
+                        <label class="ms-option"><input type="checkbox" value="干线装车" />干线装车</label>
+                        <label class="ms-option open-only"><input type="checkbox" value="网点移动" />网点移动</label>
+                        <label class="ms-option open-only"><input type="checkbox" value="干线移动" />干线移动</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">适用岗位</span>
+                  <div class="filter-control-wrap">
+                    <div class="ms-select" data-placeholder="请选择" title="多选">
+                      <div class="ms-select-trigger"><span class="ms-placeholder">请选择</span></div>
+                      <div class="ms-select-panel">
+                        <label class="ms-option"><input type="checkbox" value="装卸工" />装卸工</label>
+                        <label class="ms-option"><input type="checkbox" value="装卸组长" />装卸组长</label>
+                        <label class="ms-option"><input type="checkbox" value="电叉司机" />电叉司机</label>
+                        <label class="ms-option"><input type="checkbox" value="分拨外包工" />分拨外包工</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="filter-item">
+                  <span class="filter-label">状态</span>
+                  <div class="filter-control-wrap">
+                    <div class="ms-select" data-placeholder="请选择" title="多选">
+                      <div class="ms-select-trigger"><span class="ms-placeholder">请选择</span></div>
+                      <div class="ms-select-panel">
+                        <label class="ms-option"><input type="checkbox" value="使用中" checked />使用中</label>
+                        <label class="ms-option"><input type="checkbox" value="试用中" checked />试用中</label>
+                        <label class="ms-option"><input type="checkbox" value="待发起" />待发起</label>
+                        <label class="ms-option"><input type="checkbox" value="复核中" />复核中</label>
+                        <label class="ms-option"><input type="checkbox" value="复核不通过" />复核不通过</label>
+                        <label class="ms-option"><input type="checkbox" value="审核中" />审核中</label>
+                        <label class="ms-option"><input type="checkbox" value="审核不通过" />审核不通过</label>
+                        <label class="ms-option"><input type="checkbox" value="待生效" />待生效</label>
+                        <label class="ms-option"><input type="checkbox" value="已失效" />已失效</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div class="filter-item"><span class="filter-label">方案编号</span><div class="filter-control-wrap"><input class="filter-control" type="text" placeholder="请输入，多个逗号分隔" /></div></div>
                 <div class="filter-item"><span class="filter-label">方案类型</span><div class="filter-control-wrap"><div class="select-wrap"><select class="filter-control"><option selected>全部</option><option>总部</option><option>临时</option><option>长期</option></select></div></div></div>
               </div>
@@ -626,11 +738,91 @@
   function syncFilterLinkOptions() {
     const sel = document.getElementById('filterLinkSelect');
     if (!sel) return;
-    Array.from(sel.options).forEach((opt) => {
-      if (opt.classList.contains('open-only')) opt.hidden = currentBigMode === 'op';
+    sel.querySelectorAll('.ms-option.open-only').forEach((opt) => {
+      const hide = currentBigMode === 'op';
+      opt.hidden = hide;
+      if (hide) {
+        const box = opt.querySelector('input[type="checkbox"]');
+        if (box && box.checked) {
+          box.checked = false;
+        }
+      }
     });
-    if (currentBigMode === 'op' && MOVE_LINKS.includes(sel.value)) sel.value = '';
+    if (typeof renderFilterMsTrigger === 'function') renderFilterMsTrigger(sel);
   }
+
+  function renderFilterMsTrigger(root) {
+    const trigger = root.querySelector('.ms-select-trigger');
+    if (!trigger) return;
+    const placeholder = root.getAttribute('data-placeholder') || '请选择';
+    const selected = [].map.call(
+      root.querySelectorAll('.ms-option:not([hidden]) input[type="checkbox"]:checked'),
+      function (cb) { return cb.value; }
+    );
+    if (!selected.length) {
+      trigger.innerHTML = '<span class="ms-placeholder">' + placeholder + '</span>';
+    } else {
+      trigger.innerHTML = selected.map(function (v) {
+        return '<span class="ms-tag">' + v + '</span>';
+      }).join('');
+    }
+  }
+
+  function placeFilterMsPanel(root) {
+    const trigger = root.querySelector('.ms-select-trigger');
+    const panel = root.querySelector('.ms-select-panel');
+    if (!trigger || !panel) return;
+    const rect = trigger.getBoundingClientRect();
+    const width = Math.max(rect.width, 180);
+    let top = rect.bottom + 4;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    panel.style.width = width + 'px';
+    panel.style.left = Math.min(rect.left, window.innerWidth - width - 8) + 'px';
+    if (spaceBelow < 120 && rect.top > spaceBelow) {
+      panel.style.maxHeight = Math.min(200, rect.top - 8) + 'px';
+      top = rect.top - 4 - Math.min(200, rect.top - 8);
+    } else {
+      panel.style.maxHeight = Math.min(200, Math.max(120, spaceBelow - 8)) + 'px';
+    }
+    panel.style.top = Math.max(8, top) + 'px';
+  }
+
+  document.querySelectorAll('#filterBig .ms-select').forEach(function (root) {
+    const trigger = root.querySelector('.ms-select-trigger');
+    const panel = root.querySelector('.ms-select-panel');
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const willOpen = !root.classList.contains('open');
+      document.querySelectorAll('#filterBig .ms-select.open').forEach(function (other) {
+        if (other !== root) other.classList.remove('open');
+      });
+      if (willOpen) {
+        root.classList.add('open');
+        placeFilterMsPanel(root);
+      } else {
+        root.classList.remove('open');
+      }
+    });
+    root.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        renderFilterMsTrigger(root);
+        if (root.classList.contains('open')) placeFilterMsPanel(root);
+      });
+      cb.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
+    if (panel) {
+      panel.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+      panel.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+    root.addEventListener('click', function (e) { e.stopPropagation(); });
+    renderFilterMsTrigger(root);
+  });
+  document.addEventListener('click', function () {
+    document.querySelectorAll('#filterBig .ms-select.open').forEach(function (el) { el.classList.remove('open'); });
+  });
+  window.addEventListener('resize', function () {
+    document.querySelectorAll('#filterBig .ms-select.open').forEach(placeFilterMsPanel);
+  });
 
   function newOpBlock() {
     return { id: ++seq, links: [], pricing: '统一计价', mode: '整体', schemeType: '按吨计算', unitPrice: '', trayPrice: '', tiers: [{ end: '', prices: {} }, { end: '∞', prices: {} }] };
