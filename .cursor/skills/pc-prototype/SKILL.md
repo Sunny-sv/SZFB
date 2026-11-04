@@ -217,20 +217,21 @@ description: >-
 
 ## 上传仓库（强制约定）
 
-**以后原型默认上传 GitHub，用 GitHub Pages 做在线预览；不再默认推公司 GitLab。**
+**以后原型默认上传 Gitee，用 Gitee Pages 做在线预览；与 GitHub 无关；不再默认推公司 GitLab。**
 
 | 项 | 说明 |
 |---|---|
-| 仓库 | `Sunny-sv/SZFB`（本工作区 `origin`，一般推 `main`） |
+| 仓库 | `hu_mian_fei/szfb`（本工作区 `origin`，SSH：`git@gitee.com:hu_mian_fei/szfb.git`，一般推 `main`） |
 | 预览索引 | 根目录 `index.html`（同步见 [pc-prototype-index](../pc-prototype-index/SKILL.md)） |
+| 在线预览 | `https://hu_mian_fei.gitee.io/szfb/`（Gitee Pages） |
 | 上传内容 | 本次改动的 `docs/**/*.html` 原型，以及需要时更新的 `index.html` |
-| 触发时机 | 用户说「上传原型 / 推到 GitHub / 同步预览」时执行；画完原型**不要**擅自 push，须用户点名 |
+| 触发时机 | 用户说「上传原型 / 推到 Gitee / 同步预览」时执行；画完原型**不要**擅自 push，须用户点名 |
 
 **操作步骤（用户点名上传时）：**
 
 1. 确认 `index.html` 已包含新原型链接（按 pc-prototype-index）
 2. 在本工作区 `git add` 相关 HTML + `index.html` → `commit` → `push origin main`
-3. 回传仓库与 Pages 预览地址（若已开 Pages）
+3. 回传仓库与 Pages 预览地址（若已开 Pages）；若页面未更新，提醒到 Gitee「服务 → Gitee Pages」点「更新」
 
 公司 GitLab `transfer-product-work-space` **不再默认使用**；仅当用户明确说推 GitLab 时再操作。
 

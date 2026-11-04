@@ -1,7 +1,7 @@
 ---
 name: pc-prototype-index
 description: >-
-  新增、重命名或移动 PC 端原型 HTML 文件后，检查并同步根目录 index.html 的 GitHub Pages
+  新增、重命名或移动 PC 端原型 HTML 文件后，检查并同步根目录 index.html 的 Gitee Pages
   预览索引，按项目分组补齐缺失的链接条目。用户说「更新预览索引」「同步索引」「检查 Pages
   链接」「原型放进去了但预览打不开」，或用 pc-prototype 画完新原型收尾时使用。
 ---
@@ -10,7 +10,7 @@ description: >-
 
 ## 背景
 
-GitHub Pages 预览入口是仓库根目录的 `index.html`，按项目分组列出 `docs/{项目名}/*.html` 的链接。这一步是手动维护的，容易在「新增原型」提交里漏掉，或者要滞后一次单独提交才补。原型默认发布到 GitHub（见 [pc-prototype](../pc-prototype/SKILL.md)「上传仓库」）。
+Gitee Pages 预览入口是仓库根目录的 `index.html`，按项目分组列出 `docs/{项目名}/*.html` 的链接。这一步是手动维护的，容易在「新增原型」提交里漏掉，或者要滞后一次单独提交才补。原型默认发布到 Gitee（见 [pc-prototype](../pc-prototype/SKILL.md)「上传仓库」）。
 
 ## 何时使用
 
@@ -28,7 +28,7 @@ GitHub Pages 预览入口是仓库根目录的 `index.html`，按项目分组列
    - 没有对应分组：在最后一个分组之后、`<p class="note">` 之前新增一个 `<div class="group">`
 3. **生成显示名**：默认用文件名去掉 `.html` 后缀作为链接文字；文件名里用短横线表达「主标题-子说明」的（如 `外包公司维护2.0-优化.html`），可参照现有条目风格转成「主标题（子说明）」（如「外包公司维护 2.0（优化）」）。拿不准就保留原文件名，问用户要不要改。
 4. **保持格式一致**：不改动 `<style>`、不调整已有分组的顺序，新条目的缩进、引号风格跟同分组里的其它 `<li>` 保持一致。
-5. **提示后续**：改完提醒用户——如果仓库之前已经开过 Pages，通常几分钟内自动生效；如果链接始终打不开，检查 Settings → Pages 配置（Source = Deploy from branch，Branch = main / root）。用户点名「上传原型」时按 [pc-prototype](../pc-prototype/SKILL.md) 推到 GitHub。
+5. **提示后续**：改完提醒用户——如果仓库之前已经开过 Gitee Pages，推送后到「服务 → Gitee Pages」点一次「更新」；如果链接始终打不开，检查部署分支是否为 `main`、目录是否为 `/`（根目录），且仓库为公开。用户点名「上传原型」时按 [pc-prototype](../pc-prototype/SKILL.md) 推到 Gitee。
 
 ## 不做的事
 
