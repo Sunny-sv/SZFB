@@ -2,7 +2,7 @@
 
 转运可视化平台等 B 端需求的 **PRD + HTML 线框原型**，按项目放在同一目录，便于评审与对齐。
 
-远程仓库：https://gitee.com/hu_mian_fei/szfb
+远程仓库：https://github.com/Sunny-sv/SZFB
 
 ---
 
@@ -32,16 +32,16 @@ docs/
 
 ---
 
-## 在线预览（Gitee Pages）
+## 在线预览（GitHub Pages）
 
-入口：https://hu_mian_fei.gitee.io/szfb/
+入口：https://sunny-sv.github.io/SZFB/
 
 仓库根目录的 `index.html` 列出全部原型；也可直接打开例如：
 
-https://hu_mian_fei.gitee.io/szfb/docs/合托/合托达成率-电商拆分.html
+https://sunny-sv.github.io/SZFB/docs/合托/合托达成率-电商拆分.html
 
 > 仓库网页里点开 `.html` **不能**交互预览，必须走上面的 Pages 链接。  
-> 若打不开：仓库 → **服务** → **Gitee Pages** → 部署分支选 `main`、目录选 `/`（根目录）→ 启动 / 更新；公开仓库才可免费预览。每次有新提交后，若页面未变，到 Pages 页再点一次「更新」。
+> 若打不开：Settings → Pages → Source = Deploy from branch，Branch = `main` / `/ (root)`，等 1～3 分钟。
 
 ## 本地查看
 
