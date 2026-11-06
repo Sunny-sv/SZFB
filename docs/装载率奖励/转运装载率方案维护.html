@@ -1,0 +1,2531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>转运装载率方案维护</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0658d9;
+      --sidebar-bg: #1c2531;
+      --sidebar-hover: #171e28;
+      --sidebar-active: #0658d9;
+      --sidebar-sub: #1c2531;
+      --sidebar-text: #fff;
+      --bg: #f2f3f7;
+      --card: #fff;
+      --border: #e8e8e8;
+      --border-light: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --focus-ring: rgba(24,144,255,.2);
+      --tag-bg: #f5f5f5;
+      --tag-border: #f0f0f0;
+      --dropdown-shadow: 0 3px 6px -4px rgba(0,0,0,.12), 0 6px 16px 0 rgba(0,0,0,.08), 0 9px 28px 8px rgba(0,0,0,.05);
+      --sidebar-width: 208px;
+      --sidebar-collapsed: 54px;
+      --header-height: 47px;
+      --footer-height: 32px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    /* 整体：左栏全高 + 右侧主区（对齐 DLC uat layout） */
+    .layout {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+      position: relative;
+    }
+
+    /* —— 左侧边栏 —— */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .28s;
+      overflow: hidden;
+      box-shadow: 2px 0 8px 0 rgba(29,35,41,.05);
+      z-index: 1001;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+
+    .sidebar-logo {
+      height: 50px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: default;
+    }
+    .sidebar-logo .brand-full {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 50px;
+      white-space: nowrap;
+      letter-spacing: .5px;
+    }
+    .sidebar-logo .brand-full .brand-sep {
+      position: relative;
+      padding-left: 10px;
+      margin-left: 5px;
+    }
+    .sidebar-logo .brand-full .brand-sep::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 18px;
+      background: #fff;
+      border-radius: 1px;
+    }
+    .sidebar-logo .brand-mini {
+      display: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.95);
+      color: var(--header-blue);
+      font-size: 12px;
+      font-weight: 700;
+      align-items: center;
+      justify-content: center;
+    }
+    .layout.sidebar-collapsed .sidebar-logo .brand-full { display: none; }
+    .layout.sidebar-collapsed .sidebar-logo .brand-mini { display: flex; }
+
+    .sidebar-menu {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 4px 0 12px;
+    }
+    .sidebar-menu::-webkit-scrollbar { width: 6px; }
+    .sidebar-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,.35); border-radius: 3px; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      height: 45px;
+      color: var(--sidebar-text);
+      opacity: .9;
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { background: var(--sidebar-hover); opacity: 1; }
+    .menu-item.active { background: var(--sidebar-active); opacity: 1; }
+    .menu-item .menu-icon {
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+    .menu-item .menu-arrow {
+      margin-left: auto;
+      font-size: 10px;
+      opacity: .8;
+    }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
+    .layout.sidebar-collapsed .menu-item {
+      padding: 0;
+      justify-content: center;
+    }
+    .layout.sidebar-collapsed .menu-item .menu-icon { margin: 0; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item {
+      padding-left: 30px;
+      height: 45px;
+      font-size: 14px;
+    }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    /* —— 右侧主容器 —— */
+    .main-container {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    /* 顶栏：汉堡 + 页签 + 右侧工具（对齐 Navbar） */
+    .navbar {
+      height: var(--header-height);
+      flex-shrink: 0;
+      background: var(--header-blue);
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      z-index: 9;
+    }
+
+    .hamburger {
+      width: 50px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background .3s;
+    }
+    .hamburger:hover { background: rgba(0,0,0,.08); }
+    .hamburger svg {
+      width: 20px;
+      height: 20px;
+      fill: #fff;
+      transition: transform .28s;
+    }
+    .layout.sidebar-collapsed .hamburger svg { transform: rotate(180deg); }
+
+    .page-tabs {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: flex-end;
+      overflow-x: auto;
+      gap: 0;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tabs::-webkit-scrollbar { height: 0; }
+
+    .page-tab {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 38px;
+      padding: 0 12px;
+      margin-top: 9px;
+      margin-left: 4px;
+      border-radius: 10px 10px 0 0;
+      color: #fff;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 14px;
+      background: transparent;
+      flex-shrink: 0;
+    }
+    .page-tab:first-child { margin-left: 10px; }
+    .page-tab:hover:not(.active) { background: #0037a0; }
+    .page-tab.active {
+      z-index: 1;
+      background: #f3f4f6;
+      color: #333;
+      font-weight: 500;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .75;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .page-tab .tab-close:hover {
+      background: #b4bccc;
+      color: #fff;
+      opacity: 1;
+    }
+    .page-tab.active .tab-close { color: #666; opacity: .7; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 12px 0 8px;
+      color: #fff;
+      flex-shrink: 0;
+      background: var(--header-blue);
+      z-index: 3;
+    }
+    .top-right .icon-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { opacity: .75; }
+    .top-right .icon-btn svg { width: 18px; height: 18px; fill: #fff; }
+    .top-right .icon-btn .badge {
+      position: absolute;
+      top: 4px;
+      right: 2px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+    }
+    .top-right .icon-btn.with-badge { position: relative; }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 4px;
+      padding: 0 4px 0 6px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 40px;
+    }
+    .user-info:hover { opacity: .85; }
+    .avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #fff;
+      color: var(--header-blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 14px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .85; margin-left: 2px; }
+
+    /* 主内容 */
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      padding: 5px 5px 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    /* 页脚 */
+    .app-footer {
+      height: var(--footer-height);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      pointer-events: none;
+      gap: 6px;
+    }
+    .app-footer a { color: var(--text-secondary); text-decoration: none; }
+
+    /* 1. 筛选条件区：名称左+控件右；3 列网格；重置/查询与最后一行底对齐 */
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range,
+    .filter-item .filter-control-wrap > .proto-select,
+    .filter-item .filter-control-wrap > .proto-range,
+    .filter-item .filter-control-wrap > .proto-input,
+    .filter-item .filter-control-wrap > .proto-num-range,
+    .filter-item .filter-control-wrap > .proto-auth,
+    .filter-item .filter-control-wrap > .proto-field-switch {
+      width: 100%;
+    }
+    .filter-control, .proto-input {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus, .proto-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--focus-ring);
+    }
+    .filter-control::placeholder, .proto-input::placeholder { color: #bfbfbf; }
+    .proto-input:hover, .filter-control:hover { border-color: var(--primary-hover); }
+
+    /* 原型组件库控件（标准形态见 docs/_共用/PC端原型组件库.html） */
+    .proto-select {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-height: 32px;
+      width: 100%;
+      padding: 0 24px 0 11px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .proto-select:hover { border-color: var(--primary-hover); }
+
+    .proto-select.is-open,
+    .proto-select:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--focus-ring);
+    }
+    .proto-select.is-open .arrow {
+      border-top: 0;
+      border-bottom: 5px solid var(--text-secondary);
+    }
+    .proto-select .clear-x {
+      position: absolute;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(0,0,0,.25);
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+      display: none;
+      z-index: 2;
+    }
+    .proto-select.has-value:hover .clear-x { display: block; }
+    .proto-tag .tag-close { cursor: pointer; }
+    .proto-tag .tag-close:hover { background: rgba(0,0,0,.06); color: var(--text); border-radius: 50%; }
+    .proto-dropdown {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      z-index: 40;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: var(--dropdown-shadow);
+      padding: 4px 0;
+      max-height: 256px;
+      overflow-y: auto;
+      display: none;
+    }
+    .proto-select.is-open .proto-dropdown { display: block; }
+    .proto-select .proto-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      cursor: pointer;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .proto-select .proto-option:hover { background: #f5f5f5; }
+    .proto-select .proto-option.is-selected { background: #e6f7ff; color: var(--primary); font-weight: 500; }
+    .proto-select .proto-option .check {
+      width: 14px;
+      height: 14px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      flex-shrink: 0;
+      position: relative;
+      background: #fff;
+    }
+    .proto-select .proto-option.is-selected .check {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .proto-select .proto-option.is-selected .check::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 4px;
+      height: 8px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    .proto-auth-type.is-open .proto-auth-type-menu { display: block; }
+    .proto-auth-type-menu {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: calc(100% + 6px);
+      z-index: 40;
+      min-width: 168px;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: var(--dropdown-shadow);
+      padding: 4px 0;
+    }
+    .proto-auth-type-menu .proto-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .proto-auth-type-menu .proto-option:hover { background: #f5f5f5; }
+    .proto-auth-type-menu .proto-option.is-selected { color: var(--primary); background: #e6f7ff; }
+    .proto-auth-type-menu .proto-option .check {
+      width: 14px; height: 14px; border: 1px solid var(--border); border-radius: 2px;
+      flex-shrink: 0; position: relative; background: #fff;
+    }
+    .proto-auth-type-menu .proto-option.is-selected .check {
+      background: var(--primary); border-color: var(--primary);
+    }
+    .proto-auth-type-menu .proto-option.is-selected .check::after {
+      content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+      border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+    }
+    .proto-num-range {
+      display: flex; align-items: center; gap: 6px; width: 100%; height: 32px;
+    }
+    .proto-num-range .proto-input { flex: 1; min-width: 0; }
+    .proto-num-range .num-sep { color: var(--text-secondary); flex-shrink: 0; }
+
+    .proto-select .placeholder {
+      color: #bfbfbf;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .proto-select .single-value {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+    .proto-select .arrow {
+      position: absolute;
+      right: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--text-secondary);
+      pointer-events: none;
+    }
+    .proto-select.is-multiple {
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 3px 24px 3px 4px;
+      height: auto;
+    }
+    .proto-tag {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      height: 24px;
+      padding: 0 4px 0 8px;
+      background: var(--tag-bg);
+      border: 1px solid var(--tag-border);
+      border-radius: 2px;
+      font-size: 12px;
+      line-height: 22px;
+      color: var(--text);
+    }
+    .proto-tag .tag-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .proto-tag .tag-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      margin-left: 2px;
+      color: var(--text-secondary);
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+    .proto-select .search-mirror {
+      flex: 1;
+      min-width: 40px;
+      border: 0;
+      outline: 0;
+      height: 24px;
+      font-size: 14px;
+      background: transparent;
+    }
+    .proto-range {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      padding: 0 8px 0 11px;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .proto-range:hover { border-color: var(--primary-hover); }
+    .proto-range .range-part {
+      flex: 1 1 0;
+      width: 0;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      height: 30px;
+      font-size: 14px;
+      background: transparent;
+      color: var(--text);
+      text-align: center;
+    }
+    .proto-range .range-part::placeholder { color: #bfbfbf; text-align: center; }
+    .proto-range .range-sep {
+      color: var(--text-secondary);
+      flex: 0 0 auto;
+      font-size: 13px;
+      padding: 0 4px;
+      line-height: 32px;
+    }
+    .proto-num-range {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .proto-num-range .proto-input { flex: 1; min-width: 0; }
+    .proto-num-range .num-sep { color: var(--text-secondary); flex-shrink: 0; }
+    .proto-check-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      align-items: center;
+      min-height: 32px;
+    }
+    .proto-auth {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      position: relative;
+    }
+    .proto-auth:hover { border-color: var(--primary-hover); }
+    .proto-auth-type {
+      position: relative;
+      flex: 0 0 108px;
+      display: flex;
+      align-items: center;
+      padding: 0 22px 0 11px;
+      border-right: 1px solid var(--border);
+      cursor: pointer;
+      min-width: 0;
+    }
+    .proto-auth-type .type-text {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .proto-auth-type .arrow,
+    .proto-auth-site .arrow {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--text-secondary);
+      pointer-events: none;
+    }
+    .proto-auth-site {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 24px 0 11px;
+      cursor: pointer;
+    }
+    .proto-auth-site input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      height: 30px;
+      font-size: 14px;
+      background: transparent;
+      color: var(--text);
+    }
+    .proto-auth-site input::placeholder { color: #bfbfbf; }
+    .proto-field-switch {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      width: 100%;
+      height: 32px;
+    }
+    .proto-field-switch-name {
+      position: relative;
+      flex: 0 0 110px;
+      display: flex;
+      align-items: center;
+      height: 32px;
+      padding: 0 24px 0 11px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .proto-field-switch-name:hover { border-color: var(--primary-hover); }
+    .proto-field-switch-name.is-open {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--focus-ring);
+    }
+    .proto-field-switch-name .name-text {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .proto-field-switch-name .arrow {
+      position: absolute;
+      right: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--text-secondary);
+      pointer-events: none;
+    }
+    .proto-field-switch-name.is-open .arrow {
+      border-top: 0;
+      border-bottom: 5px solid var(--text-secondary);
+    }
+    .proto-field-switch-menu {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: calc(100% + 6px);
+      z-index: 30;
+      min-width: 140px;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: var(--dropdown-shadow);
+      padding: 4px 0;
+    }
+    .proto-field-switch-name.is-open .proto-field-switch-menu { display: block; }
+    .proto-option {
+      padding: 5px 12px;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .proto-option:hover { background: #f5f5f5; }
+    .proto-option.is-selected { color: var(--primary); background: #e6f7ff; }
+    .proto-field-switch-ctrl { flex: 1; min-width: 0; height: 32px; }
+    .proto-field-switch-ctrl > .proto-range,
+    .proto-field-switch-ctrl > .proto-input,
+    .proto-field-switch-ctrl > .proto-select {
+      width: 100%;
+      height: 32px;
+    }
+
+    .btn-action:disabled,
+    .btn-action.disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+    .btn-action:disabled:hover,
+    .btn-action.disabled:hover { opacity: .45; }
+    .toast {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-12px);
+      background: rgba(0,0,0,.75);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 13px;
+      z-index: 3000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+      max-width: 720px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .type-text.is-placeholder { color: #bfbfbf; }
+
+    /* 字段名下拉组合：单列，与其它查询条件同宽；无左侧 filter-label（组件自带字段名） */
+    .filter-item-field-switch {
+      grid-column: span 1;
+    }
+    .filter-item-field-switch > .filter-control-wrap {
+      flex: 1;
+      width: 100%;
+      min-width: 0;
+    }
+
+    /* 兼容旧母版写法（新原型请用 proto-*，见组件库） */
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    /* 2. 标签切换区 */
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* 3. 操作按钮区 */
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    /* 4. 数据列表区：占满剩余高度，分页始终在底部 */
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .data-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .data-table th,
+    .data-table td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .data-table th {
+      background: #fafafa;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+    .cell-placeholder { color: var(--text-secondary); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+
+    /* 本页增量：多 Tab 面板 / 弹框 / 宽表 */
+    .panel-filter, .panel-actions, .panel-table { display: none; }
+    .panel-filter.active, .panel-actions.active, .panel-table.active { display: flex; }
+    .panel-filter.active { align-items: flex-end; gap: 16px; }
+    .panel-actions.active { display: flex; gap: 8px; flex-wrap: wrap; }
+    .panel-table.active {
+      flex: 1; min-height: 0; display: flex; flex-direction: column;
+    }
+    .data-table-wide { min-width: 2800px; }
+    .data-table-wide th, .data-table-wide td {
+      white-space: nowrap; max-width: 240px; overflow: hidden; text-overflow: ellipsis;
+    }
+    .link-btn {
+      color: var(--primary); cursor: pointer; background: none; border: 0;
+      font-size: 14px; padding: 0;
+    }
+    .link-btn:hover { text-decoration: underline; }
+    .tag { display: inline-block; padding: 0 8px; border-radius: 2px; font-size: 12px; line-height: 20px; }
+    .tag-green { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+    .tag-orange { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+    .tag-gray { background: #f5f5f5; color: rgba(0,0,0,.45); border: 1px solid #d9d9d9; }
+    .filter-item .filter-label { flex: 0 0 110px; }
+    .modal-mask {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      z-index: 2000; align-items: center; justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      background: #fff; border-radius: 4px; width: 960px; max-width: 94vw;
+      max-height: 86vh; display: flex; flex-direction: column;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    }
+    .modal.modal-xl { width: 1200px; }
+    .modal.modal-sm { width: 640px; }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1px solid var(--border); font-size: 16px; font-weight: 500;
+    }
+    .modal-close { cursor: pointer; font-size: 20px; color: var(--text-secondary); line-height: 1; }
+    .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      padding: 12px 20px; border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .form-section-title {
+      font-size: 14px; font-weight: 600; color: var(--text);
+      margin: 8px 0 12px; padding-left: 8px; border-left: 3px solid var(--primary);
+    }
+    .form-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 16px; margin-bottom: 8px;
+    }
+    .form-item {
+      display: flex; align-items: center; gap: 8px; min-width: 0;
+    }
+    .form-item .form-label {
+      flex: 0 0 110px; text-align: right; font-size: 14px; color: var(--text); white-space: nowrap;
+    }
+    .form-item .form-label .req { color: #ff4d4f; margin-right: 2px; }
+    .form-item .form-ctrl { flex: 1; min-width: 0; }
+    .form-item.span2 { grid-column: span 2; }
+    .form-item.span3 { grid-column: span 3; }
+
+    /* 取消超载考核配置弹框：控件尺寸对齐组件库 demo（高 32px、宽约 260px） */
+    #modal-cancel-add .modal.modal-sm { width: 480px; }
+    #modal-cancel-add .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-bottom: 0;
+    }
+    #modal-cancel-add .form-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    #modal-cancel-add .form-item .form-label {
+      flex: 0 0 110px;
+      text-align: right;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    #modal-cancel-add .form-item .form-ctrl {
+      flex: 0 0 260px;
+      width: 260px;
+      max-width: 260px;
+      min-width: 0;
+    }
+    #modal-cancel-add .form-ctrl > .proto-select,
+    #modal-cancel-add .form-ctrl > .proto-auth,
+    #modal-cancel-add .form-ctrl > .proto-input,
+    #modal-cancel-add .form-ctrl > .proto-range {
+      width: 100%;
+      max-width: 100%;
+      height: 32px;
+      min-height: 32px;
+      box-sizing: border-box;
+    }
+    #modal-cancel-add .form-ctrl > .proto-select.is-multiple {
+      height: auto;
+      min-height: 32px;
+    }
+    /* 批量导入弹框（组件库：模板下载 + 虚线上传区 + 取消/确定） */
+    .proto-btn {
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .proto-btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .proto-modal {
+      width: 520px;
+      max-width: 100%;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: var(--dropdown-shadow);
+      overflow: hidden;
+    }
+    .proto-modal-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .proto-modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .proto-modal-close {
+      width: 22px;
+      height: 22px;
+      line-height: 22px;
+      text-align: center;
+      font-size: 16px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    .proto-modal-close:hover { color: var(--text); background: rgba(0,0,0,.04); }
+    .proto-modal-bd { padding: 24px; }
+    .proto-modal-ft {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 10px 16px;
+      border-top: 1px solid var(--border-light);
+    }
+    .proto-import-tpl {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: var(--primary);
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .proto-import-tpl:hover { color: var(--primary-hover); }
+    .proto-import-drop {
+      border: 1px dashed #d9d9d9;
+      border-radius: 4px;
+      background: #fafafa;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px 16px;
+      cursor: pointer;
+    }
+    .proto-import-drop:hover { border-color: var(--primary); }
+    .proto-import-cloud {
+      width: 48px;
+      height: 48px;
+      color: #d9d9d9;
+    }
+    .proto-import-tip {
+      font-size: 14px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .proto-import-tip .link { color: var(--primary); }
+    .proto-import-tip .muted { color: var(--text-secondary); }
+    #modal-cancel-import .modal {
+      width: auto;
+      background: transparent;
+      box-shadow: none;
+      max-height: none;
+    }
+    .mileage-block {
+      border: 1px solid var(--border); border-radius: 4px; padding: 12px; margin-bottom: 12px; background: #fafafa;
+    }
+    .mileage-block-hd {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 500;
+    }
+    .history-meta { margin-bottom: 10px; color: var(--text-secondary); font-size: 13px; }
+    .history-label { margin: 10px 0 6px; font-size: 13px; }
+    .history-label .dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: #ff4d4f; margin-right: 6px;
+    }
+    .history-label .dot.blue { background: var(--primary); }
+
+    .page-jump input {
+      width: 48px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="brand-full">数智分拨 <span class="brand-sep">DLC</span></span>
+      <span class="brand-mini">DLC</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+      <div class="menu-item active">
+        <span class="menu-icon">☰</span><span class="menu-label">装载管理</span><span class="menu-arrow">▼</span>
+      </div>
+      <div class="menu-sub">
+        <div class="menu-item active">转运装载率方案维护</div>
+        <div class="menu-item">转运装载率奖励报表</div>
+      </div>
+    </nav>
+  </aside>
+
+  <div class="main-container">
+    <header class="navbar">
+      <div class="hamburger" id="sidebarToggle" title="折叠/展开">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+          <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7z" />
+        </svg>
+      </div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active" data-tab="current">转运装载率方案维护 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="菜单引导页">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/></svg>
+        </span>
+        <span class="icon-btn" title="导出任务管理">
+          <svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm7-18l-5 5h3v6h4v-6h3l-5-5z"/></svg>
+        </span>
+        <span class="icon-btn" title="搜索">
+          <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        </span>
+        <span class="icon-btn with-badge" title="消息">
+          <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          <span class="badge">3</span>
+        </span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+
+        <section class="filter-area panel-filter active" data-panel="plan">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="proto-auth">
+                  <div class="proto-auth-type">
+                    <span class="type-text">直营分...</span>
+                    <span class="arrow"></span>
+                    <div class="proto-auth-type-menu"><div class="proto-option is-selected"><span class="check"></span>直营分拨</div><div class="proto-option"><span class="check"></span>非直营分拨</div><div class="proto-option"><span class="check"></span>服务站</div><div class="proto-option"><span class="check"></span>直营集配站</div><div class="proto-option"><span class="check"></span>非直营集配站</div><div class="proto-option"><span class="check"></span>智运中心</div><div class="proto-option"><span class="check"></span>航空转运枢纽</div></div>
+                  </div>
+                  <div class="proto-auth-site">
+                    <input type="text" value="西安分拨" />
+                    <span class="arrow"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">适用任务</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select is-multiple has-value">
+                  <span class="proto-tag"><span class="tag-text">自有任务</span><span class="tag-close">×</span></span><input class="search-mirror" readonly />
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option"><span class="check"></span>全部</div><div class="proto-option is-selected"><span class="check"></span>自有任务</div><div class="proto-option"><span class="check"></span>外请任务</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">方案类型</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select has-value">
+                  <span class="single-value">全部</span><span class="clear-x">×</span>
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option is-selected">全部</div><div class="proto-option">操作结算重量</div><div class="proto-option">体积</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">有效状态</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select is-multiple has-value">
+                  <span class="proto-tag"><span class="tag-text">生效中</span><span class="tag-close">×</span></span><input class="search-mirror" readonly />
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option is-selected"><span class="check"></span>生效中</div><div class="proto-option"><span class="check"></span>待生效</div><div class="proto-option"><span class="check"></span>已失效</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">额定体积</span>
+              <div class="filter-control-wrap">
+                <div class="proto-num-range">
+                  <input class="proto-input" type="text" placeholder="" />
+                  <span class="num-sep">~</span>
+                  <input class="proto-input" type="text" placeholder="" />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">额定重量</span>
+              <div class="filter-control-wrap">
+                <div class="proto-num-range">
+                  <input class="proto-input" type="text" placeholder="" />
+                  <span class="num-sep">~</span>
+                  <input class="proto-input" type="text" placeholder="" />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item filter-item-field-switch">
+              <div class="filter-control-wrap">
+                <div class="proto-field-switch">
+                  <div class="proto-field-switch-name">
+                    <span class="name-text">实际有效时间</span>
+                    <span class="arrow"></span>
+                    <div class="proto-field-switch-menu">
+                      <div class="proto-option is-selected">实际有效时间</div>
+                      <div class="proto-option">有效时间</div>
+                    </div>
+                  </div>
+                  <div class="proto-field-switch-ctrl">
+                    <div class="proto-range">
+                      <input class="range-part" value="2026-10-01 15:00:00" readonly />
+                      <span class="range-sep">至</span>
+                      <input class="range-part" value="2026-11-05 14:59:59" readonly />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn">重置</button>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </section>
+
+        <section class="filter-area panel-filter" data-panel="line">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="proto-auth">
+                  <div class="proto-auth-type">
+                    <span class="type-text">直营分...</span>
+                    <span class="arrow"></span>
+                    <div class="proto-auth-type-menu"><div class="proto-option is-selected"><span class="check"></span>直营分拨</div><div class="proto-option"><span class="check"></span>非直营分拨</div><div class="proto-option"><span class="check"></span>服务站</div><div class="proto-option"><span class="check"></span>直营集配站</div><div class="proto-option"><span class="check"></span>非直营集配站</div><div class="proto-option"><span class="check"></span>智运中心</div><div class="proto-option"><span class="check"></span>航空转运枢纽</div></div>
+                  </div>
+                  <div class="proto-auth-site">
+                    <input type="text" placeholder="请输入分拨中心" />
+                    <span class="arrow"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">适用任务</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select is-multiple">
+                  <input class="search-mirror" placeholder="请选择适用任务" readonly />
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option"><span class="check"></span>全部</div><div class="proto-option"><span class="check"></span>自有任务</div><div class="proto-option"><span class="check"></span>外请任务</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">方案类型</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select has-value">
+                  <span class="single-value">全部</span><span class="clear-x">×</span>
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option is-selected">全部</div><div class="proto-option">操作结算重量</div><div class="proto-option">体积</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">车线类型</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select is-multiple has-value">
+                  <span class="proto-tag"><span class="tag-text">特殊奖励</span><span class="tag-close">×</span></span><input class="search-mirror" readonly />
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option is-selected"><span class="check"></span>特殊奖励</div><div class="proto-option"><span class="check"></span>不奖不罚</div><div class="proto-option"><span class="check"></span>不对流满仓长线</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">车线</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select">
+                  <span class="placeholder">请输入</span>
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option">西安-郑州</div><div class="proto-option">成都-重庆</div><div class="proto-option">武汉-长沙</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">目的分拨</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select is-multiple">
+                  <input class="search-mirror" placeholder="请输入目的分拨" readonly />
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option"><span class="check"></span>西安分拨</div><div class="proto-option"><span class="check"></span>郑州分拨</div><div class="proto-option"><span class="check"></span>成都分拨</div><div class="proto-option"><span class="check"></span>重庆分拨</div><div class="proto-option"><span class="check"></span>武汉分拨</div><div class="proto-option"><span class="check"></span>长沙分拨</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">有效状态</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select is-multiple has-value">
+                  <span class="proto-tag"><span class="tag-text">生效中</span><span class="tag-close">×</span></span><input class="search-mirror" readonly />
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option is-selected"><span class="check"></span>生效中</div><div class="proto-option"><span class="check"></span>待生效</div><div class="proto-option"><span class="check"></span>已失效</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">额定体积</span>
+              <div class="filter-control-wrap">
+                <div class="proto-num-range">
+                  <input class="proto-input" type="text" placeholder="" />
+                  <span class="num-sep">~</span>
+                  <input class="proto-input" type="text" placeholder="" />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">额定重量</span>
+              <div class="filter-control-wrap">
+                <div class="proto-num-range">
+                  <input class="proto-input" type="text" placeholder="" />
+                  <span class="num-sep">~</span>
+                  <input class="proto-input" type="text" placeholder="" />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item filter-item-field-switch">
+              <div class="filter-control-wrap">
+                <div class="proto-field-switch">
+                  <div class="proto-field-switch-name">
+                    <span class="name-text">实际有效时间</span>
+                    <span class="arrow"></span>
+                    <div class="proto-field-switch-menu">
+                      <div class="proto-option is-selected">实际有效时间</div>
+                      <div class="proto-option">有效时间</div>
+                    </div>
+                  </div>
+                  <div class="proto-field-switch-ctrl">
+                    <div class="proto-range">
+                      <input class="range-part" value="2026-10-01 15:00:00" readonly />
+                      <span class="range-sep">至</span>
+                      <input class="range-part" value="2026-11-05 14:59:59" readonly />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn">重置</button>
+            <button class="btn btn-primary">查询</button>
+          </div>
+        </section>
+
+        <section class="filter-area panel-filter" data-panel="cancel" id="cancelFilter">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="proto-auth">
+                  <div class="proto-auth-type">
+                    <span class="type-text">直营分...</span>
+                    <span class="arrow"></span>
+                    <div class="proto-auth-type-menu"><div class="proto-option is-selected"><span class="check"></span>直营分拨</div><div class="proto-option"><span class="check"></span>非直营分拨</div><div class="proto-option"><span class="check"></span>服务站</div><div class="proto-option"><span class="check"></span>直营集配站</div><div class="proto-option"><span class="check"></span>非直营集配站</div><div class="proto-option"><span class="check"></span>智运中心</div><div class="proto-option"><span class="check"></span>航空转运枢纽</div></div>
+                  </div>
+                  <div class="proto-auth-site">
+                    <input type="text" placeholder="请输入分拨中心" />
+                    <span class="arrow"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">适用任务</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select is-multiple">
+                  <input class="search-mirror" placeholder="请选择适用任务" readonly />
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option"><span class="check"></span>全部</div><div class="proto-option"><span class="check"></span>自有任务</div><div class="proto-option"><span class="check"></span>外请任务</div><div class="proto-option"><span class="check"></span>无汽运任务</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">车线下一站</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select">
+                  <span class="placeholder">请选择车线下一站</span>
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option">西安分拨</div><div class="proto-option">郑州分拨</div><div class="proto-option">成都分拨</div><div class="proto-option">重庆分拨</div><div class="proto-option">武汉分拨</div><div class="proto-option">长沙分拨</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">有效状态</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select is-multiple has-value">
+                  <span class="proto-tag"><span class="tag-text">生效中</span><span class="tag-close">×</span></span><input class="search-mirror" readonly />
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option is-selected"><span class="check"></span>生效中</div><div class="proto-option"><span class="check"></span>待生效</div><div class="proto-option"><span class="check"></span>已失效</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item filter-item-field-switch">
+              <div class="filter-control-wrap">
+                <div class="proto-field-switch">
+                  <div class="proto-field-switch-name">
+                    <span class="name-text">实际有效时间</span>
+                    <span class="arrow"></span>
+                    <div class="proto-field-switch-menu">
+                      <div class="proto-option is-selected">实际有效时间</div>
+                      <div class="proto-option">有效时间</div>
+                    </div>
+                  </div>
+                  <div class="proto-field-switch-ctrl">
+                    <div class="proto-range">
+                      <input class="range-part" value="2026-10-01 15:00:00" readonly />
+                      <span class="range-sep">至</span>
+                      <input class="range-part" value="2026-11-05 14:59:59" readonly />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn" type="button" id="btnCancelReset">重置</button>
+            <button class="btn btn-primary" type="button" id="btnCancelQuery">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-panel="plan">方案维护</div>
+          <div class="content-tab" data-panel="line">车线维护</div>
+          <div class="content-tab" data-panel="cancel">取消超载考核配置</div>
+        </nav>
+
+        <section class="action-bar panel-actions active" data-panel="plan">
+          <button class="btn-action primary" data-open="modal-plan-add">新增</button>
+          <button class="btn-action primary">编辑</button>
+          <button class="btn-action primary">复制</button>
+          <button class="btn-action primary">终止</button>
+          <button class="btn-action primary">导出</button>
+          <button class="btn-action primary">导入</button>
+        </section>
+
+        <section class="action-bar panel-actions" data-panel="line">
+          <button class="btn-action primary" data-open="modal-line-add">新增</button>
+          <button class="btn-action primary">编辑</button>
+          <button class="btn-action primary">复制</button>
+          <button class="btn-action primary">终止</button>
+          <button class="btn-action primary">导出</button>
+          <button class="btn-action primary">导入</button>
+        </section>
+
+        <section class="action-bar panel-actions" data-panel="cancel" id="cancelActions">
+          <button class="btn-action primary" type="button" id="btnCancelAdd">新增</button>
+          <button class="btn-action primary" type="button" id="btnCancelEdit" disabled>编辑</button>
+          <button class="btn-action primary" type="button" id="btnCancelCopy" disabled>复制</button>
+          <button class="btn-action primary" type="button" id="btnCancelStop">终止</button>
+          <button class="btn-action primary" type="button" id="btnCancelExport">导出</button>
+          <button class="btn-action primary" type="button" id="btnCancelImport">导入</button>
+        </section>
+
+        <section class="table-area panel-table active" data-panel="plan">
+          <div class="table-scroll">
+            <table class="data-table data-table-wide">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" class="check-all" /></th>
+                  <th>分拨中心</th><th>适用任务</th><th>方案名称</th><th>额定重量</th><th>额定体积</th><th>最低里程(km)</th><th>最高里程(km)</th><th>方案类型</th><th>装载率范围</th><th>奖励单价</th><th>奖励封顶金额</th><th>体积装载率限制</th><th>重量装载率限制</th><th>外包奖励率值</th><th>实际有效时间</th><th>有效时间</th><th>有效状态</th><th>创建人</th><th>创建时间</th><th>修改人</th><th>修改时间</th><th>变更记录</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td>西安分拨</td><td>自有任务</td><td>西安重量方案</td><td>20~32</td><td>100~150</td><td>0</td><td>300</td><td>操作结算重量</td><td>80%~90%</td><td>0.5</td><td>500</td><td>70</td><td>85</td><td>100</td><td>2026-10-01 15:00:00 ~ 2099-12-31 14:59:59</td><td>2026-10-01 15:00:00 ~ 2099-12-31 14:59:59</td><td><span class="tag tag-green">生效中</span></td><td>张三</td><td>2026-09-28 16:20:11</td><td>李四</td><td>2026-10-02 09:11:02</td><td><button type="button" class="link-btn" data-open="modal-history">变更记录</button></td></tr><tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td>西安分拨</td><td>自有任务</td><td>西安重量方案</td><td>20~32</td><td>100~150</td><td>300</td><td>800</td><td>操作结算重量</td><td>90%~100%</td><td>0.8</td><td>800</td><td>70</td><td>85</td><td>100</td><td>2026-10-01 15:00:00 ~ 2099-12-31 14:59:59</td><td>2026-10-01 15:00:00 ~ 2099-12-31 14:59:59</td><td><span class="tag tag-green">生效中</span></td><td>张三</td><td>2026-09-28 16:20:11</td><td>李四</td><td>2026-10-02 09:11:02</td><td><button type="button" class="link-btn" data-open="modal-history">变更记录</button></td></tr><tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td>成都分拨</td><td>外请任务</td><td>成都体积方案</td><td></td><td>80~120</td><td>0</td><td>500</td><td>体积</td><td>75%~85%</td><td>1.2</td><td>600</td><td>65</td><td>80</td><td>90</td><td>2026-11-01 15:00:00 ~ 2099-12-31 14:59:59</td><td>2026-11-01 15:00:00 ~ 2099-12-31 14:59:59</td><td><span class="tag tag-orange">待生效</span></td><td>王五</td><td>2026-10-30 10:00:00</td><td>王五</td><td>2026-10-30 10:00:00</td><td><button type="button" class="link-btn" data-open="modal-history">变更记录</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 3 条</span>
+            <button class="page-btn disabled">&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn disabled">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+        <section class="table-area panel-table" data-panel="line">
+          <div class="table-scroll">
+            <table class="data-table data-table-wide">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" class="check-all" /></th>
+                  <th>车线类型</th><th>车线</th><th>方案分拨</th><th>目的分拨</th><th>适用任务</th><th>额定重量</th><th>额定体积</th><th>方案类型</th><th>装车类型</th><th>装载率范围</th><th>奖励单价</th><th>奖励封顶金额</th><th>体积装载率限制</th><th>重量装载率限制</th><th>外包奖励率值</th><th>实际有效时间</th><th>有效时间</th><th>有效状态</th><th>创建人</th><th>创建时间</th><th>修改人</th><th>修改时间</th><th>变更记录</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td>特殊奖励</td><td>西安-郑州</td><td>西安分拨</td><td></td><td>全部</td><td>20~32</td><td>100~150</td><td>操作结算重量</td><td>传统装车</td><td>80%~95%</td><td>0.6</td><td>500</td><td>70</td><td>85</td><td>100</td><td>2026-10-01 15:00:00 ~ 2099-12-31 14:59:59</td><td>2026-10-01 15:00:00 ~ 2099-12-31 14:59:59</td><td><span class="tag tag-green">生效中</span></td><td>张三</td><td>2026-09-20 11:00:00</td><td>张三</td><td>2026-09-20 11:00:00</td><td><button type="button" class="link-btn" data-open="modal-history">变更记录</button></td></tr><tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td>特殊奖励</td><td>西安-郑州</td><td>西安分拨</td><td></td><td>全部</td><td>20~32</td><td>100~150</td><td>操作结算重量</td><td>流水线直装</td><td>80%~95%</td><td>0.6</td><td>500</td><td>70</td><td>85</td><td>100</td><td>2026-10-01 15:00:00 ~ 2099-12-31 14:59:59</td><td>2026-10-01 15:00:00 ~ 2099-12-31 14:59:59</td><td><span class="tag tag-green">生效中</span></td><td>张三</td><td>2026-09-20 11:00:00</td><td>张三</td><td>2026-09-20 11:00:00</td><td><button type="button" class="link-btn" data-open="modal-history">变更记录</button></td></tr><tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td>不对流满仓长线</td><td></td><td>西安分拨</td><td>郑州分拨</td><td>自有任务</td><td></td><td></td><td>体积</td><td>传统装车</td><td>70%~80%</td><td>1.0</td><td>400</td><td>60</td><td>75</td><td>80</td><td>2026-08-01 15:00:00 ~ 2026-09-30 14:59:59</td><td>2026-08-01 15:00:00 ~ 2026-09-30 14:59:59</td><td><span class="tag tag-gray">已失效</span></td><td>李四</td><td>2026-07-15 09:00:00</td><td>李四</td><td>2026-09-30 16:00:00</td><td><button type="button" class="link-btn" data-open="modal-history">变更记录</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 3 条</span>
+            <button class="page-btn disabled">&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn disabled">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+
+        <section class="table-area panel-table" data-panel="cancel" id="cancelTable">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" class="check-all" /></th>
+                  <th>分拨中心</th><th>适用任务</th><th>车线下一站</th><th>实际有效时间</th><th>有效时间</th><th>有效状态</th><th>创建人</th><th>创建时间</th><th>修改人</th><th>修改时间</th><th>变更记录</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td>西安分拨</td><td>全部</td><td></td><td>2026-11-01 15:00:00 ~ 2099-12-31 14:59:59</td><td>2026-11-01 15:00:00 ~ 2099-12-31 14:59:59</td><td><span class="tag tag-green">生效中</span></td><td>总部管理员</td><td>2026-11-01 16:00:00</td><td>总部管理员</td><td>2026-11-01 16:00:00</td><td><button type="button" class="link-btn" data-open="modal-cancel-history">变更记录</button></td></tr><tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td>西安分拨</td><td>自有任务、无汽运任务</td><td>某某网点</td><td>2026-11-01 15:00:00 ~ 2099-12-31 14:59:59</td><td>2026-11-01 15:00:00 ~ 2099-12-31 14:59:59</td><td><span class="tag tag-green">生效中</span></td><td>总部管理员</td><td>2026-11-02 09:00:00</td><td>总部管理员</td><td>2026-11-02 09:00:00</td><td><button type="button" class="link-btn" data-open="modal-cancel-history">变更记录</button></td></tr><tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td>成都分拨</td><td>自有任务</td><td>重庆分拨</td><td>2026-11-05 15:00:00 ~ 2099-12-31 14:59:59</td><td>2026-11-05 15:00:00 ~ 2099-12-31 14:59:59</td><td><span class="tag tag-orange">待生效</span></td><td>总部管理员</td><td>2026-11-04 10:20:00</td><td>总部管理员</td><td>2026-11-04 10:20:00</td><td><button type="button" class="link-btn" data-open="modal-cancel-history">变更记录</button></td></tr><tr><td class="col-checkbox"><input type="checkbox" class="row-check" /></td><td>武汉分拨</td><td>外请任务</td><td>长沙分拨</td><td>2026-09-01 15:00:00 ~ 2026-10-31 14:59:59</td><td>2026-09-01 15:00:00 ~ 2026-10-31 14:59:59</td><td><span class="tag tag-gray">已失效</span></td><td>总部管理员</td><td>2026-08-28 14:00:00</td><td>总部管理员</td><td>2026-10-31 15:10:00</td><td><button type="button" class="link-btn" data-open="modal-cancel-history">变更记录</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="total">共 3 条</span>
+            <button class="page-btn disabled">&lt;</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn disabled">&gt;</button>
+            <div class="page-jump">跳至 <input type="text" value="1" /> 页</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      中通快运 © 版权所有
+      <a href="https://beian.miit.gov.cn/" target="_blank">浙ICP备2020042419号</a>
+      中通版权所有 企业邮箱：ztky@zto56.com
+    </footer>
+  </div>
+</div>
+
+
+<!-- 方案维护-新增 -->
+<div class="modal-mask" id="modal-plan-add">
+  <div class="modal modal-xl">
+    <div class="modal-header"><span>新增</span><span class="modal-close" data-close>×</span></div>
+    <div class="modal-body">
+      <div class="form-section-title">基础设定</div>
+      <div class="form-grid">
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>分拨中心</span>
+            <div class="form-ctrl"><div class="proto-select has-value">
+                  <span class="single-value">西安分拨</span>
+                  <span class="arrow"></span>
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>适用任务</span>
+            <div class="form-ctrl"><div class="proto-select has-value">
+                  <span class="single-value">自有任务</span>
+                  <span class="arrow"></span>
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>方案名称</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="西安重量方案" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">额定重量</span>
+            <div class="form-ctrl"><div class="proto-num-range" style="display:flex;align-items:center;gap:6px;width:100%">
+                  <input class="proto-input" type="text" value="20" placeholder="" />
+                  <span style="color:var(--text-secondary)">~</span>
+                  <input class="proto-input" type="text" value="32" placeholder="" />
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">额定体积</span>
+            <div class="form-ctrl"><div class="proto-num-range" style="display:flex;align-items:center;gap:6px;width:100%">
+                  <input class="proto-input" type="text" value="100" placeholder="" />
+                  <span style="color:var(--text-secondary)">~</span>
+                  <input class="proto-input" type="text" value="150" placeholder="" />
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">方案类型</span>
+            <div class="form-ctrl"><div class="proto-select has-value">
+                  <span class="single-value">操作结算重量</span>
+                  <span class="arrow"></span>
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>有效开始日期</span>
+            <div class="form-ctrl"><div class="proto-range"><input class="range-part" value="2026-11-06" readonly /><span class="range-sep"></span><input class="range-part" value="15:00:00" readonly /></div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>有效结束日期</span>
+            <div class="form-ctrl"><div class="proto-range"><input class="range-part" value="2099-12-31" readonly /><span class="range-sep"></span><input class="range-part" value="14:59:59" readonly /></div></div>
+          </div>
+      </div>
+      <div class="form-section-title">里程设定</div>
+      <div class="mileage-block">
+        <div class="mileage-block-hd"><span>里程段 1</span><span><button class="btn">删除</button></span></div>
+        <div class="form-grid">
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>最低里程</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="0" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>最高里程</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="300" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>方案类型</span>
+            <div class="form-ctrl"><div class="proto-select has-value">
+                  <span class="single-value">操作结算重量</span>
+                  <span class="arrow"></span>
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>装载率范围</span>
+            <div class="form-ctrl"><div class="proto-num-range" style="display:flex;align-items:center;gap:6px;width:100%">
+                  <input class="proto-input" type="text" value="80" placeholder="" />
+                  <span style="color:var(--text-secondary)">~</span>
+                  <input class="proto-input" type="text" value="90" placeholder="" />
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>奖励单价</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="0.5" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>奖励封顶金额</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="500" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>体积装载率限制</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="70" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>重量装载率限制</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="85" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>外包奖励率值</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="100" /></div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" type="button">添加里程段</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close>取消</button>
+      <button class="btn btn-primary" data-close>确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 车线维护-新增 -->
+<div class="modal-mask" id="modal-line-add">
+  <div class="modal modal-xl">
+    <div class="modal-header"><span>新增</span><span class="modal-close" data-close>×</span></div>
+    <div class="modal-body">
+      <div class="form-section-title">基础设定</div>
+      <div class="form-grid">
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>车线类型</span>
+            <div class="form-ctrl"><div class="proto-select has-value">
+                  <span class="single-value">特殊奖励</span>
+                  <span class="arrow"></span>
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>车线</span>
+            <div class="form-ctrl"><div class="proto-select has-value">
+                  <span class="single-value">西安-郑州</span>
+                  <span class="arrow"></span>
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">分拨中心</span>
+            <div class="form-ctrl"><div class="proto-select">
+                  <span class="placeholder">请选择</span>
+                  <span class="arrow"></span>
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">目的分拨</span>
+            <div class="form-ctrl"><div class="proto-select">
+                  <span class="placeholder">请选择</span>
+                  <span class="arrow"></span>
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>适用任务</span>
+            <div class="form-ctrl"><div class="proto-select has-value">
+                  <span class="single-value">全部</span>
+                  <span class="arrow"></span>
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>额定体积</span>
+            <div class="form-ctrl"><div class="proto-num-range" style="display:flex;align-items:center;gap:6px;width:100%">
+                  <input class="proto-input" type="text" value="100" placeholder="" />
+                  <span style="color:var(--text-secondary)">~</span>
+                  <input class="proto-input" type="text" value="150" placeholder="" />
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>额定重量</span>
+            <div class="form-ctrl"><div class="proto-num-range" style="display:flex;align-items:center;gap:6px;width:100%">
+                  <input class="proto-input" type="text" value="20" placeholder="" />
+                  <span style="color:var(--text-secondary)">~</span>
+                  <input class="proto-input" type="text" value="32" placeholder="" />
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>方案类型</span>
+            <div class="form-ctrl"><div class="proto-select has-value">
+                  <span class="single-value">操作结算重量</span>
+                  <span class="arrow"></span>
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>有效开始日期</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="2026-11-06" readonly /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>有效结束日期</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="2099-12-31" readonly /></div>
+          </div>
+      </div>
+      <div class="form-section-title">传统装车方案</div>
+      <div class="form-grid">
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>装载率范围</span>
+            <div class="form-ctrl"><div class="proto-num-range" style="display:flex;align-items:center;gap:6px;width:100%">
+                  <input class="proto-input" type="text" value="80" placeholder="" />
+                  <span style="color:var(--text-secondary)">~</span>
+                  <input class="proto-input" type="text" value="95" placeholder="" />
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>奖励单价</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="0.6" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>奖励封顶金额</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="500" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>体积装载率限制</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="70" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>重量装载率限制</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="85" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>外包奖励率值</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="100" /></div>
+          </div>
+      </div>
+      <div class="form-section-title">流水线直装方案 <button type="button" class="link-btn" style="margin-left:8px;font-weight:400">同步传统装车</button></div>
+      <div class="form-grid">
+          <div class="form-item">
+            <span class="form-label">装载率范围</span>
+            <div class="form-ctrl"><div class="proto-num-range" style="display:flex;align-items:center;gap:6px;width:100%">
+                  <input class="proto-input" type="text" value="80" placeholder="" />
+                  <span style="color:var(--text-secondary)">~</span>
+                  <input class="proto-input" type="text" value="95" placeholder="" />
+                </div></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">奖励单价</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="0.6" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">奖励封顶金额</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="500" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">体积装载率限制</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="70" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">重量装载率限制</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="85" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">外包奖励率值</span>
+            <div class="form-ctrl"><input class="proto-input" type="text" value="100" /></div>
+          </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close>取消</button>
+      <button class="btn btn-primary" data-close>确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 取消超载考核配置-新增/编辑/复制 -->
+<div class="modal-mask" id="modal-cancel-add">
+  <div class="modal modal-sm">
+    <div class="modal-header"><span id="cancelModalTitle">新增</span><span class="modal-close" data-close>×</span></div>
+    <div class="modal-body">
+      <div class="form-grid">
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>分拨中心</span>
+            <div class="form-ctrl">
+              <div class="proto-auth" id="cancelFormAuth">
+                  <div class="proto-auth-type">
+                    <span class="type-text">直营分...</span>
+                    <span class="arrow"></span>
+                    <div class="proto-auth-type-menu"><div class="proto-option is-selected"><span class="check"></span>直营分拨</div><div class="proto-option"><span class="check"></span>非直营分拨</div><div class="proto-option is-selected"><span class="check"></span>服务站</div><div class="proto-option"><span class="check"></span>直营集配站</div><div class="proto-option"><span class="check"></span>非直营集配站</div><div class="proto-option"><span class="check"></span>智运中心</div><div class="proto-option"><span class="check"></span>航空转运枢纽</div></div>
+                  </div>
+                  <div class="proto-auth-site">
+                    <input type="text" id="cancelFormSite" placeholder="请输入分拨中心" value="" />
+                    <span class="arrow"></span>
+                  </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>适用任务</span>
+            <div class="form-ctrl">
+              <div class="proto-select is-multiple" id="cancelFormTask">
+                  <input class="search-mirror" placeholder="请选择适用任务" readonly />
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option"><span class="check"></span>全部</div><div class="proto-option"><span class="check"></span>自有任务</div><div class="proto-option"><span class="check"></span>外请任务</div><div class="proto-option"><span class="check"></span>无汽运任务</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label">车线下一站</span>
+            <div class="form-ctrl">
+              <div class="proto-select" id="cancelFormNext">
+                  <span class="placeholder">请选择车线下一站</span>
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown"><div class="proto-option">西安分拨</div><div class="proto-option">郑州分拨</div><div class="proto-option">成都分拨</div><div class="proto-option">重庆分拨</div><div class="proto-option">武汉分拨</div><div class="proto-option">长沙分拨</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>有效开始日期</span>
+            <div class="form-ctrl"><input class="proto-input" id="cancelFormStart" type="text" value="" placeholder="请选择日期" /></div>
+          </div>
+          <div class="form-item">
+            <span class="form-label"><span class="req">*</span>有效结束日期</span>
+            <div class="form-ctrl"><input class="proto-input" id="cancelFormEnd" type="text" value="" placeholder="请选择日期" /></div>
+          </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn-primary" type="button" id="btnCancelSave">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 取消超载考核配置-变更对比 -->
+<div class="modal-mask" id="modal-cancel-history">
+  <div class="modal modal-xl">
+    <div class="modal-header"><span>变更对比</span><span class="modal-close" data-close>×</span></div>
+    <div class="modal-body">
+      <div class="history-meta">变更时间：2026-11-04 10:20:00　　变更人：总部管理员</div>
+      <div class="history-label"><span class="dot"></span>变更前</div>
+      <div class="table-scroll" style="max-height:180px;border:1px solid var(--border)">
+        <table class="data-table">
+          <thead><tr><th>分拨中心</th><th>适用任务</th><th>车线下一站</th><th>实际有效时间</th><th>有效时间</th><th>有效状态</th></tr></thead>
+          <tbody><tr><td>成都分拨</td><td>全部</td><td>重庆分拨</td><td>2026-11-05 15:00:00 ~ 2099-12-31 14:59:59</td><td>2026-11-05 15:00:00 ~ 2099-12-31 14:59:59</td><td>待生效</td></tr></tbody>
+        </table>
+      </div>
+      <div class="history-label"><span class="dot blue"></span>变更后</div>
+      <div class="table-scroll" style="max-height:180px;border:1px solid var(--border)">
+        <table class="data-table">
+          <thead><tr><th>分拨中心</th><th>适用任务</th><th>车线下一站</th><th>实际有效时间</th><th>有效时间</th><th>有效状态</th></tr></thead>
+          <tbody><tr><td>成都分拨</td><td>自有任务</td><td>重庆分拨</td><td>2026-11-05 15:00:00 ~ 2099-12-31 14:59:59</td><td>2026-11-05 15:00:00 ~ 2099-12-31 14:59:59</td><td>待生效</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close>取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 取消超载考核配置-导入（批量导入弹框） -->
+<div class="modal-mask" id="modal-cancel-import">
+  <div class="modal">
+    <div class="proto-modal">
+      <div class="proto-modal-hd">
+        <span class="proto-modal-title">批量导入</span>
+        <span class="proto-modal-close" data-close aria-label="关闭">×</span>
+      </div>
+      <div class="proto-modal-bd">
+        <a class="proto-import-tpl" href="javascript:void(0)" id="btnCancelDownloadTpl">模板下载</a>
+        <div class="proto-import-drop" id="btnCancelImportDrop">
+          <svg class="proto-import-cloud" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <path d="M38.7 20.1A12 12 0 0 0 16.2 14 9 9 0 0 0 8 30.9h2.1A10.9 10.9 0 0 0 12 31h24a8 8 0 0 0 2.7-10.9z" stroke="currentColor" stroke-width="2" fill="currentColor" opacity=".25"/>
+            <path d="M24 34V18M24 18l-6 6M24 18l6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="proto-import-tip">
+            <span class="link">点击上传</span><span class="muted">, 只能上传excel文件</span>
+          </div>
+        </div>
+      </div>
+      <div class="proto-modal-ft">
+        <button type="button" class="proto-btn" data-close>取消</button>
+        <button type="button" class="proto-btn proto-btn-primary" id="btnCancelImportOk">确定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 取消超载考核配置-终止确认 -->
+<div class="modal-mask" id="modal-cancel-stop">
+  <div class="modal modal-sm">
+    <div class="modal-header"><span>提示</span><span class="modal-close" data-close>×</span></div>
+    <div class="modal-body">
+      <p style="font-size:14px;line-height:1.7" id="cancelStopTip">终止后不可撤销，请确认是否终止？（共 1 条）</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn-primary" type="button" id="btnCancelStopOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 变更对比 -->
+<div class="modal-mask" id="modal-history">
+  <div class="modal modal-xl">
+    <div class="modal-header"><span>变更对比</span><span class="modal-close" data-close>×</span></div>
+    <div class="modal-body">
+      <div class="history-meta">变更时间：2026-10-02 09:11:02　　变更人：李四</div>
+      <div class="history-label"><span class="dot"></span>变更前</div>
+      <div class="table-scroll" style="max-height:180px;border:1px solid var(--border)">
+        <table class="data-table data-table-wide">
+          <thead><tr><th>分拨中心</th><th>适用任务</th><th>方案名称</th><th>额定重量</th><th>额定体积</th><th>有效状态</th></tr></thead>
+          <tbody><tr><td>西安分拨</td><td>自有任务</td><td>西安重量方案</td><td>20~30</td><td>100~150</td><td>生效中</td></tr></tbody>
+        </table>
+      </div>
+      <div class="history-label"><span class="dot blue"></span>变更后</div>
+      <div class="table-scroll" style="max-height:180px;border:1px solid var(--border)">
+        <table class="data-table data-table-wide">
+          <thead><tr><th>分拨中心</th><th>适用任务</th><th>方案名称</th><th>额定重量</th><th>额定体积</th><th>有效状态</th></tr></thead>
+          <tbody><tr><td>西安分拨</td><td>自有任务</td><td>西安重量方案</td><td>20~32</td><td>100~150</td><td>生效中</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close>取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.page-tab');
+    if (!tab || e.target.classList.contains('tab-close')) return;
+    document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+
+  function switchPanel(panel) {
+    document.querySelectorAll('.content-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.panel === panel);
+    });
+    document.querySelectorAll('.panel-filter, .panel-actions, .panel-table').forEach(el => {
+      el.classList.toggle('active', el.dataset.panel === panel);
+    });
+  }
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    switchPanel(tab.dataset.panel);
+  });
+
+  document.querySelectorAll('.check-all').forEach(all => {
+    all.addEventListener('change', function () {
+      const table = this.closest('table');
+      table.querySelectorAll('.row-check').forEach(cb => { cb.checked = this.checked; });
+    });
+  });
+
+  document.body.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-open]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-open');
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.add('show');
+  });
+
+  document.querySelectorAll('.modal-mask').forEach(mask => {
+    mask.addEventListener('click', (e) => {
+      if (e.target === mask || e.target.hasAttribute('data-close') || e.target.classList.contains('modal-close')) {
+        mask.classList.remove('show');
+      }
+    });
+  });
+
+  function closeAllPickers(except) {
+    document.querySelectorAll('.proto-select.is-open, .proto-field-switch-name.is-open, .proto-auth-type.is-open').forEach(el => {
+      if (el !== except) el.classList.remove('is-open');
+    });
+  }
+
+  function syncMultiTags(sel) {
+    const selected = [...sel.querySelectorAll('.proto-dropdown .proto-option.is-selected')].map(o => o.textContent.trim());
+    sel.querySelectorAll('.proto-tag').forEach(t => t.remove());
+    const mirror = sel.querySelector('.search-mirror');
+    selected.forEach(text => {
+      const tag = document.createElement('span');
+      tag.className = 'proto-tag';
+      tag.innerHTML = '<span class="tag-text"></span><span class="tag-close">×</span>';
+      tag.querySelector('.tag-text').textContent = text;
+      sel.insertBefore(tag, mirror);
+    });
+    sel.classList.toggle('has-value', selected.length > 0);
+    if (mirror) mirror.placeholder = selected.length ? '' : (mirror.getAttribute('data-ph') || '请选择');
+  }
+
+  document.querySelectorAll('.proto-select.is-multiple .search-mirror').forEach(m => {
+    if (!m.getAttribute('data-ph')) m.setAttribute('data-ph', m.placeholder || '请选择');
+  });
+
+  document.querySelectorAll('.proto-select').forEach(sel => {
+    if (!sel.querySelector('.proto-dropdown')) return;
+    sel.addEventListener('click', (e) => {
+      if (e.target.closest('.tag-close') || e.target.closest('.clear-x') || e.target.closest('.proto-option')) return;
+      e.stopPropagation();
+      const opening = !sel.classList.contains('is-open');
+      closeAllPickers(sel);
+      if (opening) sel.classList.add('is-open');
+    });
+
+    sel.querySelectorAll('.proto-dropdown .proto-option').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sel.classList.contains('is-multiple')) {
+          opt.classList.toggle('is-selected');
+          if (sel.id === 'cancelFormTask') {
+            const label = opt.textContent.trim();
+            if (label === '全部' && opt.classList.contains('is-selected')) {
+              sel.querySelectorAll('.proto-option').forEach(o => {
+                if (o !== opt) o.classList.remove('is-selected');
+              });
+            } else if (label !== '全部' && opt.classList.contains('is-selected')) {
+              sel.querySelectorAll('.proto-option').forEach(o => {
+                if (o.textContent.trim() === '全部') o.classList.remove('is-selected');
+              });
+            }
+          }
+          syncMultiTags(sel);
+        } else {
+          sel.querySelectorAll('.proto-dropdown .proto-option').forEach(o => o.classList.remove('is-selected'));
+          opt.classList.add('is-selected');
+          let sv = sel.querySelector('.single-value');
+          let ph = sel.querySelector('.placeholder');
+          if (!sv) {
+            if (ph) ph.remove();
+            sv = document.createElement('span');
+            sv.className = 'single-value';
+            sel.insertBefore(sv, sel.querySelector('.arrow'));
+            if (!sel.querySelector('.clear-x')) {
+              const cx = document.createElement('span');
+              cx.className = 'clear-x';
+              cx.textContent = '×';
+              sel.insertBefore(cx, sel.querySelector('.arrow'));
+            }
+          }
+          sv.textContent = opt.textContent.trim();
+          sel.classList.add('has-value');
+          sel.classList.remove('is-open');
+        }
+      });
+    });
+
+    sel.addEventListener('click', (e) => {
+      const closeTag = e.target.closest('.tag-close');
+      if (closeTag) {
+        e.stopPropagation();
+        const text = closeTag.parentElement.querySelector('.tag-text').textContent.trim();
+        sel.querySelectorAll('.proto-dropdown .proto-option').forEach(o => {
+          if (o.textContent.trim() === text) o.classList.remove('is-selected');
+        });
+        syncMultiTags(sel);
+        return;
+      }
+      const clear = e.target.closest('.clear-x');
+      if (clear) {
+        e.stopPropagation();
+        sel.querySelectorAll('.proto-dropdown .proto-option').forEach(o => o.classList.remove('is-selected'));
+        const sv = sel.querySelector('.single-value');
+        if (sv) {
+          const ph = document.createElement('span');
+          ph.className = 'placeholder';
+          ph.textContent = '请选择';
+          sv.replaceWith(ph);
+        }
+        clear.remove();
+        sel.classList.remove('has-value', 'is-open');
+      }
+    });
+  });
+
+  document.querySelectorAll('.proto-field-switch-name').forEach(nameEl => {
+    nameEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opening = !nameEl.classList.contains('is-open');
+      closeAllPickers(nameEl);
+      if (opening) nameEl.classList.add('is-open');
+    });
+    nameEl.querySelectorAll('.proto-option').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        nameEl.querySelectorAll('.proto-option').forEach(o => o.classList.remove('is-selected'));
+        opt.classList.add('is-selected');
+        const text = nameEl.querySelector('.name-text');
+        if (text) text.textContent = opt.textContent.trim();
+        nameEl.classList.remove('is-open');
+      });
+    });
+  });
+
+  document.querySelectorAll('.proto-auth-type').forEach(typeEl => {
+    typeEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opening = !typeEl.classList.contains('is-open');
+      closeAllPickers(typeEl);
+      if (opening) typeEl.classList.add('is-open');
+    });
+    typeEl.querySelectorAll('.proto-option').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        opt.classList.toggle('is-selected');
+        const selected = [...typeEl.querySelectorAll('.proto-option.is-selected')].map(o => o.textContent.trim());
+        const label = typeEl.querySelector('.type-text');
+        if (label) {
+          if (!selected.length) {
+            label.textContent = '网点类型';
+            label.classList.add('is-placeholder');
+          } else {
+            const t = selected[0];
+            label.textContent = t.length > 4 ? t.slice(0, 4) + '...' : t;
+            label.classList.remove('is-placeholder');
+          }
+        }
+      });
+    });
+  });
+
+
+  /* —— 取消超载考核配置 Tab 交互 —— */
+  const toastEl = document.getElementById('toast');
+  function showToast(msg) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+  }
+  function openModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.classList.add('show');
+  }
+  function closeModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.classList.remove('show');
+  }
+
+  function getCancelSelectedRows() {
+    const table = document.querySelector('#cancelTable table');
+    if (!table) return [];
+    return [...table.querySelectorAll('tbody tr')].filter(tr => tr.querySelector('.row-check')?.checked);
+  }
+
+  function syncCancelActionState() {
+    const n = getCancelSelectedRows().length;
+    const edit = document.getElementById('btnCancelEdit');
+    const copy = document.getElementById('btnCancelCopy');
+    if (edit) edit.disabled = n !== 1;
+    if (copy) copy.disabled = n !== 1;
+  }
+
+  function setSingleSelectValue(sel, value, placeholder) {
+    if (!sel) return;
+    sel.querySelectorAll('.proto-option').forEach(o => {
+      o.classList.toggle('is-selected', !!value && o.textContent.trim() === value);
+    });
+    const sv = sel.querySelector('.single-value');
+    const ph = sel.querySelector('.placeholder');
+    const clearX = sel.querySelector('.clear-x');
+    if (value) {
+      if (ph) ph.remove();
+      let node = sel.querySelector('.single-value');
+      if (!node) {
+        node = document.createElement('span');
+        node.className = 'single-value';
+        sel.insertBefore(node, sel.querySelector('.arrow'));
+      }
+      node.textContent = value;
+      if (!sel.querySelector('.clear-x')) {
+        const cx = document.createElement('span');
+        cx.className = 'clear-x';
+        cx.textContent = '×';
+        sel.insertBefore(cx, sel.querySelector('.arrow'));
+      }
+      sel.classList.add('has-value');
+    } else {
+      if (sv) {
+        const p = document.createElement('span');
+        p.className = 'placeholder';
+        p.textContent = placeholder;
+        sv.replaceWith(p);
+      } else if (!ph) {
+        const p = document.createElement('span');
+        p.className = 'placeholder';
+        p.textContent = placeholder;
+        sel.insertBefore(p, sel.querySelector('.arrow'));
+      } else {
+        ph.textContent = placeholder;
+      }
+      clearX?.remove();
+      sel.classList.remove('has-value', 'is-open');
+    }
+  }
+
+  function resetCancelAuthTypeDefault() {
+    const authType = document.querySelector('#cancelFormAuth .proto-auth-type');
+    if (!authType) return;
+    const defaults = ['直营分拨', '服务站'];
+    authType.querySelectorAll('.proto-option').forEach(o => {
+      o.classList.toggle('is-selected', defaults.includes(o.textContent.trim()));
+    });
+    const label = authType.querySelector('.type-text');
+    if (label) {
+      label.textContent = '直营分...';
+      label.classList.remove('is-placeholder');
+    }
+    authType.classList.remove('is-open');
+  }
+
+  function clearCancelForm() {
+    const siteInput = document.getElementById('cancelFormSite');
+    if (siteInput) siteInput.value = '';
+    // 网点类型不清空：默认直营分拨、服务站
+    resetCancelAuthTypeDefault();
+    clearMultiSelect(document.getElementById('cancelFormTask'), '请选择适用任务');
+    setSingleSelectValue(document.getElementById('cancelFormNext'), '', '请选择车线下一站');
+    const start = document.getElementById('cancelFormStart');
+    const end = document.getElementById('cancelFormEnd');
+    if (start) start.value = '';
+    if (end) end.value = '';
+  }
+
+  function fillCancelForm(row) {
+    const cells = [...row.querySelectorAll('td')].map(td => td.textContent.trim());
+    // cols: checkbox, 分拨中心, 适用任务, 车线下一站, ...
+    const siteInput = document.getElementById('cancelFormSite');
+    if (siteInput) siteInput.value = cells[1] || '';
+    setMultiSelectValues(document.getElementById('cancelFormTask'), cells[2] || '', '请选择适用任务');
+    setSingleSelectValue(document.getElementById('cancelFormNext'), cells[3] || '', '请选择车线下一站');
+    const start = document.getElementById('cancelFormStart');
+    const end = document.getElementById('cancelFormEnd');
+    // 列表有效时间为「开始 ~ 结束」展示，编辑带入起止日示意
+    const timeStr = cells[5] || cells[4] || '';
+    const parts = timeStr.split('~').map(s => s.trim());
+    if (start) start.value = (parts[0] || '').slice(0, 10);
+    if (end) end.value = (parts[1] || '').slice(0, 10);
+  }
+
+  function openCancelForm(mode) {
+    const title = document.getElementById('cancelModalTitle');
+    const rows = getCancelSelectedRows();
+    if (mode === 'add') {
+      if (title) title.textContent = '新增';
+      clearCancelForm();
+    } else if (mode === 'edit') {
+      if (rows.length !== 1) { showToast('请勾选一条数据后再编辑'); return; }
+      if (title) title.textContent = '编辑';
+      clearCancelForm();
+      fillCancelForm(rows[0]);
+    } else if (mode === 'copy') {
+      if (rows.length !== 1) { showToast('请勾选一条数据后再复制'); return; }
+      if (title) title.textContent = '新增';
+      clearCancelForm();
+      fillCancelForm(rows[0]);
+      document.getElementById('cancelFormStart').value = '';
+      document.getElementById('cancelFormEnd').value = '';
+    }
+    openModal('modal-cancel-add');
+  }
+
+  document.getElementById('btnCancelAdd')?.addEventListener('click', () => openCancelForm('add'));
+  document.getElementById('btnCancelEdit')?.addEventListener('click', () => openCancelForm('edit'));
+  document.getElementById('btnCancelCopy')?.addEventListener('click', () => openCancelForm('copy'));
+  document.getElementById('btnCancelStop')?.addEventListener('click', () => {
+    const n = getCancelSelectedRows().length;
+    if (!n) { showToast('请先勾选需要终止的数据'); return; }
+    const tip = document.getElementById('cancelStopTip');
+    if (tip) tip.textContent = `终止后不可撤销，请确认是否终止？（共 ${n} 条）`;
+    openModal('modal-cancel-stop');
+  });
+  document.getElementById('btnCancelStopOk')?.addEventListener('click', () => {
+    const n = getCancelSelectedRows().length;
+    closeModal('modal-cancel-stop');
+    showToast(n > 1 ? `已终止 ${n} 条` : '终止成功');
+    getCancelSelectedRows().forEach(tr => {
+      const statusTd = tr.querySelectorAll('td')[6];
+      if (statusTd) statusTd.innerHTML = '<span class="tag tag-gray">已失效</span>';
+      const cb = tr.querySelector('.row-check');
+      if (cb) cb.checked = false;
+    });
+    const all = document.querySelector('#cancelTable .check-all');
+    if (all) all.checked = false;
+    syncCancelActionState();
+  });
+  document.getElementById('btnCancelExport')?.addEventListener('click', () => {
+    showToast('已提交导出任务：转运装载率方案维护-取消超载考核配置');
+  });
+  document.getElementById('btnCancelImport')?.addEventListener('click', () => openModal('modal-cancel-import'));
+  document.getElementById('btnCancelDownloadTpl')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showToast('已下载：取消超载考核配置导入模板.xlsx');
+  });
+  document.getElementById('btnCancelImportDrop')?.addEventListener('click', () => {
+    showToast('请选择 excel 文件');
+  });
+  document.getElementById('btnCancelImportOk')?.addEventListener('click', () => {
+    closeModal('modal-cancel-import');
+    showToast('导入成功');
+  });
+  function clearMultiSelect(el, placeholder) {
+    if (!el) return;
+    el.querySelectorAll('.proto-tag').forEach(t => t.remove());
+    el.querySelectorAll('.proto-option.is-selected').forEach(o => o.classList.remove('is-selected'));
+    const mirror = el.querySelector('.search-mirror');
+    if (mirror) mirror.placeholder = placeholder || '请选择';
+  }
+
+  function setMultiSelectValues(el, text, placeholder) {
+    if (!el) return;
+    clearMultiSelect(el, placeholder);
+    const parts = String(text || '').split(/[、,，]/).map(s => s.trim()).filter(Boolean);
+    const mirror = el.querySelector('.search-mirror');
+    parts.forEach(p => {
+      const opt = [...el.querySelectorAll('.proto-option')].find(o => o.textContent.trim() === p);
+      if (opt) opt.classList.add('is-selected');
+      const tag = document.createElement('span');
+      tag.className = 'proto-tag';
+      tag.innerHTML = `<span class="tag-text">${p}</span><span class="tag-close">×</span>`;
+      if (mirror) el.insertBefore(tag, mirror);
+    });
+  }
+
+  function getMultiSelectValues(el) {
+    if (!el) return [];
+    return [...el.querySelectorAll('.proto-tag .tag-text')].map(t => t.textContent.trim()).filter(Boolean);
+  }
+
+  document.getElementById('btnCancelSave')?.addEventListener('click', () => {
+    const site = document.getElementById('cancelFormSite')?.value?.trim();
+    const tasks = getMultiSelectValues(document.getElementById('cancelFormTask'));
+    const next = document.getElementById('cancelFormNext')?.querySelector('.single-value')?.textContent?.trim();
+    const start = document.getElementById('cancelFormStart')?.value?.trim();
+    const end = document.getElementById('cancelFormEnd')?.value?.trim();
+    if (!site) { showToast('请填写分拨中心'); return; }
+    if (!tasks.length) { showToast('请选择适用任务'); return; }
+    // 车线下一站非必填：可只按「分拨+适用任务」，或按「分拨+适用任务+车线下一站」
+    if (!start) { showToast('请填写有效开始日期'); return; }
+    if (!end) { showToast('请填写有效结束日期'); return; }
+    closeModal('modal-cancel-add');
+    showToast('保存成功');
+  });
+  document.getElementById('btnCancelReset')?.addEventListener('click', () => {
+    showToast('已重置查询条件');
+  });
+  document.getElementById('btnCancelQuery')?.addEventListener('click', () => {
+    showToast('查询完成');
+  });
+
+  document.querySelector('#cancelTable')?.addEventListener('change', (e) => {
+    if (e.target.classList.contains('row-check') || e.target.classList.contains('check-all')) {
+      syncCancelActionState();
+    }
+  });
+  syncCancelActionState();
+
+  document.addEventListener('click', () => closeAllPickers(null));
+</script>
+
+</body>
+</html>

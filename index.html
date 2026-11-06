@@ -6,169 +6,707 @@
   <title>SZFB 原型预览索引</title>
   <style>
     :root {
-      --bg: #f0f2f5;
-      --card: #fff;
-      --text: #262626;
-      --muted: #8c8c8c;
-      --link: #1677ff;
-      --border: #f0f0f0;
+      --bg: #f5f7fb;
+      --bg-accent: #eef2ff;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --link: #1d4ed8;
+      --link-hover: #1e40af;
+      --border: #e5e7eb;
+      --border-soft: #f3f4f6;
+      --primary: #2563eb;
+      --primary-soft: #eff6ff;
+      --tag-maintain: #ecfdf5;
+      --tag-maintain-text: #047857;
+      --tag-report: #eff6ff;
+      --tag-report-text: #1d4ed8;
+      --tag-master: #f5f3ff;
+      --tag-master-text: #6d28d9;
+      --tag-other: #f9fafb;
+      --tag-other-text: #4b5563;
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      background: var(--bg);
+      background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, #dbeafe 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 0%, #e0e7ff 0%, transparent 50%),
+        var(--bg);
       color: var(--text);
       line-height: 1.6;
-      padding: 32px 20px 48px;
+      min-height: 100vh;
     }
-    .wrap { max-width: 720px; margin: 0 auto; }
-    h1 { font-size: 22px; margin: 0 0 8px; font-weight: 600; }
-    .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
-    .group {
-      background: var(--card);
-      border-radius: 8px;
-      padding: 16px 20px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 40px 20px 56px;
     }
-    .group h2 {
-      font-size: 14px;
-      color: var(--muted);
-      margin: 0 0 10px;
+    .hero {
+      margin-bottom: 28px;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-size: 12px;
       font-weight: 500;
+      margin-bottom: 12px;
     }
-    ul { list-style: none; margin: 0; padding: 0; }
-    li { border-top: 1px solid var(--border); }
-    li:first-child { border-top: none; }
-    a {
-      display: block;
-      padding: 10px 0;
-      color: var(--link);
-      text-decoration: none;
-      font-size: 15px;
+    h1 {
+      font-size: 28px;
+      margin: 0 0 8px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
     }
-    a:hover { text-decoration: underline; }
-    .note {
-      margin-top: 20px;
+    .sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 0 0 20px;
+      max-width: 560px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .search {
+      flex: 1 1 280px;
+      position: relative;
+    }
+    .search input {
+      width: 100%;
+      height: 40px;
+      padding: 0 14px 0 38px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--card);
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .search input:focus {
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .search input::placeholder { color: #9ca3af; }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: #9ca3af;
+      pointer-events: none;
+    }
+    .stats {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,.8);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       font-size: 13px;
       color: var(--muted);
+      backdrop-filter: blur(6px);
+    }
+    .stat strong {
+      color: var(--text);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .groups {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .group {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid var(--border-soft);
+      background: linear-gradient(180deg, #fafbff 0%, #fff 100%);
+    }
+    .group-head h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      color: var(--text);
+      margin: 0;
+      font-weight: 600;
+    }
+    .group-head h2::before {
+      content: "";
+      width: 4px;
+      height: 14px;
+      border-radius: 2px;
+      background: var(--primary);
+      flex-shrink: 0;
+    }
+    .count {
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--bg);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 6px 8px 8px;
+    }
+    li {
+      border-radius: 10px;
+    }
+    li + li { margin-top: 2px; }
+    a.proto {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 12px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 14px;
+      border-radius: 10px;
+      transition: background .12s, color .12s;
+    }
+    a.proto:hover {
+      background: var(--primary-soft);
+      color: var(--link-hover);
+    }
+    a.proto:hover .arrow { opacity: 1; transform: translateX(0); }
+    .proto-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .proto-title {
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    .tags {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .tag {
+      font-size: 11px;
+      line-height: 1;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .tag-maintain { background: var(--tag-maintain); color: var(--tag-maintain-text); }
+    .tag-report { background: var(--tag-report); color: var(--tag-report-text); }
+    .tag-master { background: var(--tag-master); color: var(--tag-master-text); }
+    .tag-other { background: var(--tag-other); color: var(--tag-other-text); }
+    .arrow {
+      width: 16px;
+      height: 16px;
+      color: var(--primary);
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: opacity .15s, transform .15s;
+      flex-shrink: 0;
+    }
+    .empty {
+      display: none;
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+      background: var(--card);
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      font-size: 14px;
+    }
+    .empty.show { display: block; }
+    .group.hidden { display: none; }
+    .note {
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--muted);
+      padding: 14px 16px;
+      background: rgba(255,255,255,.65);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .note code {
+      font-size: 12px;
+      background: #f3f4f6;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    @media (max-width: 640px) {
+      .wrap { padding: 28px 16px 40px; }
+      h1 { font-size: 24px; }
+      a.proto { align-items: flex-start; }
+      .arrow { display: none; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>SZFB 原型预览索引</h1>
-    <p class="sub">点击下方链接在线打开 HTML 线框（GitHub Pages）。PRD 与源文件在仓库 <code>docs/</code> 目录。</p>
+    <header class="hero">
+      <div class="hero-badge">GitHub Pages · HTML 线框</div>
+      <h1>SZFB 原型预览索引</h1>
+      <p class="sub">按项目分组打开 PC 端线框原型。PRD 与源文件在仓库 <code>docs/</code> 目录。</p>
+      <div class="toolbar">
+        <div class="search">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5" stroke-linecap="round"></path>
+          </svg>
+          <input id="q" type="search" placeholder="搜索原型名称或项目…" autocomplete="off" />
+        </div>
+        <div class="stats">
+          <div class="stat">项目 <strong id="stat-groups">0</strong></div>
+          <div class="stat">原型 <strong id="stat-protos">0</strong></div>
+        </div>
+      </div>
+    </header>
 
-    <div class="group">
-      <h2>共用</h2>
-      <ul>
-        <li><a href="docs/_共用/PC端通用框架.html">PC 端通用框架（母版）</a></li>
-      </ul>
+    <div class="groups" id="groups">
+      <div class="group" data-name="共用">
+        <div class="group-head">
+          <h2>共用</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/_共用/PC端通用框架.html" data-label="PC 端通用框架（母版）">
+              <span class="proto-main"><span class="proto-title">PC 端通用框架（母版）</span></span>
+              <span class="tags"><span class="tag tag-master">母版</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/_共用/PC端通用框架-TVM.html" data-label="PC 端通用框架（TVM 母版）">
+              <span class="proto-main"><span class="proto-title">PC 端通用框架（TVM 母版）</span></span>
+              <span class="tags"><span class="tag tag-master">母版</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/_共用/PC端原型组件库.html" data-label="PC 端原型组件库">
+              <span class="proto-main"><span class="proto-title">PC 端原型组件库</span></span>
+              <span class="tags"><span class="tag tag-master">组件库</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="合托">
+        <div class="group-head">
+          <h2>合托</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/合托/合托达成率-电商拆分.html" data-label="合托达成率（电商拆分）">
+              <span class="proto-main"><span class="proto-title">合托达成率（电商拆分）</span></span>
+              <span class="tags"><span class="tag tag-report">报表</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="外包工相关">
+        <div class="group-head">
+          <h2>外包工相关</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/外包工相关/外包公司维护2.0.html" data-label="外包公司维护 2.0">
+              <span class="proto-main"><span class="proto-title">外包公司维护 2.0</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="百分比重量">
+        <div class="group-head">
+          <h2>百分比重量</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/百分比重量/百分比货量及特殊单价配置.html" data-label="百分比货量及特殊单价配置">
+              <span class="proto-main"><span class="proto-title">百分比货量及特殊单价配置</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/百分比重量/货量重量配置.html" data-label="货量重量配置">
+              <span class="proto-main"><span class="proto-title">货量重量配置</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/百分比重量/特殊类单价维护.html" data-label="特殊类单价维护">
+              <span class="proto-main"><span class="proto-title">特殊类单价维护</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/百分比重量/货量重量配置-组合区间.html" data-label="货量重量配置（组合区间）">
+              <span class="proto-main"><span class="proto-title">货量重量配置（组合区间）</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/百分比重量/区间维度配置.html" data-label="区间维度配置">
+              <span class="proto-main"><span class="proto-title">区间维度配置</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="装载率奖励">
+        <div class="group-head">
+          <h2>装载率奖励</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/装载率奖励/转运装载率方案维护.html" data-label="转运装载率方案维护">
+              <span class="proto-main"><span class="proto-title">转运装载率方案维护</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/装载率奖励/转运装载率奖励报表.html" data-label="转运装载率奖励报表">
+              <span class="proto-main"><span class="proto-title">转运装载率奖励报表</span></span>
+              <span class="tags"><span class="tag tag-report">报表</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="薪资线上化">
+        <div class="group-head">
+          <h2>薪资线上化</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/薪资线上化/基础提成方案维护.html" data-label="基础提成方案维护">
+              <span class="proto-main"><span class="proto-title">基础提成方案维护</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/薪资线上化/交接单人员提成.html" data-label="交接单人员提成">
+              <span class="proto-main"><span class="proto-title">交接单人员提成</span></span>
+              <span class="tags"><span class="tag tag-report">报表</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/薪资线上化/转运人员薪资.html" data-label="转运人员薪资">
+              <span class="proto-main"><span class="proto-title">转运人员薪资</span></span>
+              <span class="tags"><span class="tag tag-report">报表</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/薪资线上化/机叉叉车组长绩效标准报表.html" data-label="机叉叉车组长绩效标准报表">
+              <span class="proto-main"><span class="proto-title">机叉叉车组长绩效标准报表</span></span>
+              <span class="tags"><span class="tag tag-report">报表</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/薪资线上化/移动自动合托提成方案维护.html" data-label="移动自动合托提成方案维护">
+              <span class="proto-main"><span class="proto-title">移动自动合托提成方案维护</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/薪资线上化/移动自动合托特殊提成报表.html" data-label="移动自动合托特殊提成报表">
+              <span class="proto-main"><span class="proto-title">移动自动合托特殊提成报表</span></span>
+              <span class="tags"><span class="tag tag-report">报表</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/薪资线上化/小时段货量提成报表.html" data-label="小时段货量提成报表">
+              <span class="proto-main"><span class="proto-title">小时段货量提成报表</span></span>
+              <span class="tags"><span class="tag tag-report">报表</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/薪资线上化/小时段货量提成报表.html#maintain" data-label="小时段加减单价维护">
+              <span class="proto-main"><span class="proto-title">小时段加减单价维护</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="分批配载">
+        <div class="group-head">
+          <h2>分批配载</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/分批配载/分批配载审核处理.html" data-label="分批配载审核处理">
+              <span class="proto-main"><span class="proto-title">分批配载审核处理</span></span>
+              <span class="tags"><span class="tag tag-other">处理</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/分批配载/分拨分批负激励查询.html" data-label="分拨分批负激励查询">
+              <span class="proto-main"><span class="proto-title">分拨分批负激励查询</span></span>
+              <span class="tags"><span class="tag tag-report">报表</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="奖罚">
+        <div class="group-head">
+          <h2>奖罚</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/奖罚/个人奖罚总额限额维护.html" data-label="个人奖罚总额限额维护">
+              <span class="proto-main"><span class="proto-title">个人奖罚总额限额维护</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/奖罚/奖罚处理.html" data-label="奖罚处理">
+              <span class="proto-main"><span class="proto-title">奖罚处理</span></span>
+              <span class="tags"><span class="tag tag-other">处理</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/奖罚/奖罚信息查询-微信公众号.html" data-label="奖罚信息查询（微信公众号）">
+              <span class="proto-main"><span class="proto-title">奖罚信息查询（微信公众号）</span></span>
+              <span class="tags"><span class="tag tag-other">查询</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="货:库区相关需求">
+        <div class="group-head">
+          <h2>货:库区相关需求</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/货:库区相关需求/分拨库区维护.html" data-label="分拨库区维护">
+              <span class="proto-main"><span class="proto-title">分拨库区维护</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="移动错分归位">
+        <div class="group-head">
+          <h2>移动错分归位</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/移动错分归位/移动错分货物查询.html" data-label="移动错分货物查询">
+              <span class="proto-main"><span class="proto-title">移动错分货物查询</span></span>
+              <span class="tags"><span class="tag tag-other">查询</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/移动错分归位/移动错分归位奖罚报表.html" data-label="移动错分归位奖罚报表">
+              <span class="proto-main"><span class="proto-title">移动错分归位奖罚报表</span></span>
+              <span class="tags"><span class="tag tag-report">报表</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="PDA装车进度及超载提示">
+        <div class="group-head">
+          <h2>PDA装车进度及超载提示</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/PDA装车进度及超载提示/实时装车-装车进度原型.html" data-label="实时装车（装车进度）">
+              <span class="proto-main"><span class="proto-title">实时装车（装车进度）</span></span>
+              <span class="tags"><span class="tag tag-other">作业</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/PDA装车进度及超载提示/装车预警配置维护.html" data-label="装车预警配置维护">
+              <span class="proto-main"><span class="proto-title">装车预警配置维护</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="皮带机">
+        <div class="group-head">
+          <h2>皮带机</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/皮带机/皮带机操作货量.html" data-label="皮带机操作货量">
+              <span class="proto-main"><span class="proto-title">皮带机操作货量</span></span>
+              <span class="tags"><span class="tag tag-report">报表</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="大票货操作（8吨以上）">
+        <div class="group-head">
+          <h2>大票货操作（8吨以上）</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/大票货操作（8吨以上）/操作大票运单管理.html" data-label="操作大票运单管理">
+              <span class="proto-main"><span class="proto-title">操作大票运单管理</span></span>
+              <span class="tags"><span class="tag tag-other">管理</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="group" data-name="跟班装车">
+        <div class="group-head">
+          <h2>跟班装车</h2>
+          <span class="count"></span>
+        </div>
+        <ul>
+          <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/跟班装车/跟班装车维护.html" data-label="跟班装车维护">
+              <span class="proto-main"><span class="proto-title">跟班装车维护</span></span>
+              <span class="tags"><span class="tag tag-maintain">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+        </ul>
+      </div>
     </div>
 
-    <div class="group">
-      <h2>合托</h2>
-      <ul>
-        <li><a href="docs/合托/合托达成率-电商拆分.html">合托达成率（电商拆分）</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>外包工相关</h2>
-      <ul>
-        <li><a href="docs/外包工相关/外包公司维护2.0.html">外包公司维护 2.0</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>百分比重量</h2>
-      <ul>
-        <li><a href="docs/百分比重量/百分比货量及特殊单价配置.html">百分比货量及特殊单价配置</a></li>
-        <li><a href="docs/百分比重量/货量重量配置.html">货量重量配置</a></li>
-        <li><a href="docs/百分比重量/特殊类单价维护.html">特殊类单价维护</a></li>
-        <li><a href="docs/百分比重量/货量重量配置-组合区间.html">货量重量配置（组合区间）</a></li>
-        <li><a href="docs/百分比重量/区间维度配置.html">区间维度配置</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>薪资线上化</h2>
-      <ul>
-        <li><a href="docs/薪资线上化/基础提成方案维护.html">基础提成方案维护</a></li>
-        <li><a href="docs/薪资线上化/交接单人员提成.html">交接单人员提成</a></li>
-        <li><a href="docs/薪资线上化/转运人员薪资.html">转运人员薪资</a></li>
-        <li><a href="docs/薪资线上化/机叉叉车组长绩效标准报表.html">机叉叉车组长绩效标准报表</a></li>
-        <li><a href="docs/薪资线上化/移动自动合托提成方案维护.html">移动自动合托提成方案维护</a></li>
-        <li><a href="docs/薪资线上化/移动自动合托特殊提成报表.html">移动自动合托特殊提成报表</a></li>
-        <li><a href="docs/薪资线上化/小时段货量提成报表.html">小时段货量提成报表</a></li>
-        <li><a href="docs/薪资线上化/小时段货量提成报表.html#maintain">小时段加减单价维护</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>分批配载</h2>
-      <ul>
-        <li><a href="docs/分批配载/分批配载审核处理.html">分批配载审核处理</a></li>
-        <li><a href="docs/分批配载/分拨分批负激励查询.html">分拨分批负激励查询</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>奖罚</h2>
-      <ul>
-        <li><a href="docs/奖罚/个人奖罚总额限额维护.html">个人奖罚总额限额维护</a></li>
-        <li><a href="docs/奖罚/奖罚处理.html">奖罚处理</a></li>
-        <li><a href="docs/奖罚/奖罚信息查询-微信公众号.html">奖罚信息查询（微信公众号）</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>货:库区相关需求</h2>
-      <ul>
-        <li><a href="docs/货:库区相关需求/分拨库区维护.html">分拨库区维护</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>移动错分归位</h2>
-      <ul>
-        <li><a href="docs/移动错分归位/移动错分货物查询.html">移动错分货物查询</a></li>
-        <li><a href="docs/移动错分归位/移动错分归位奖罚报表.html">移动错分归位奖罚报表</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>PDA装车进度及超载提示</h2>
-      <ul>
-        <li><a href="docs/PDA装车进度及超载提示/实时装车-装车进度原型.html">实时装车（装车进度）</a></li>
-        <li><a href="docs/PDA装车进度及超载提示/装车预警配置维护.html">装车预警配置维护</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>皮带机</h2>
-      <ul>
-        <li><a href="docs/皮带机/皮带机操作货量.html">皮带机操作货量</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>大票货操作（8吨以上）</h2>
-      <ul>
-        <li><a href="docs/大票货操作（8吨以上）/操作大票运单管理.html">操作大票运单管理</a></li>
-      </ul>
-    </div>
-
-    <div class="group">
-      <h2>跟班装车</h2>
-      <ul>
-        <li><a href="docs/跟班装车/跟班装车维护.html">跟班装车维护</a></li>
-      </ul>
-    </div>
+    <div class="empty" id="empty">没有匹配的原型，换个关键词试试。</div>
 
     <p class="note">若链接打不开：到仓库 Settings → Pages，确认 Source 为 Deploy from branch，Branch = <strong>main</strong> / <strong>/ (root)</strong>，等待 1～3 分钟后再试。</p>
   </div>
+
+  <script>
+    (function () {
+      var groups = Array.prototype.slice.call(document.querySelectorAll(".group"));
+      var empty = document.getElementById("empty");
+      var q = document.getElementById("q");
+      var statGroups = document.getElementById("stat-groups");
+      var statProtos = document.getElementById("stat-protos");
+
+      function refreshCounts() {
+        var visibleGroups = 0;
+        var visibleProtos = 0;
+        groups.forEach(function (group) {
+          var items = Array.prototype.slice.call(group.querySelectorAll("li"));
+          var visibleItems = items.filter(function (li) { return li.style.display !== "none"; });
+          var countEl = group.querySelector(".count");
+          if (countEl) countEl.textContent = visibleItems.length + " 个";
+          var hide = visibleItems.length === 0;
+          group.classList.toggle("hidden", hide);
+          if (!hide) {
+            visibleGroups += 1;
+            visibleProtos += visibleItems.length;
+          }
+        });
+        statGroups.textContent = String(visibleGroups);
+        statProtos.textContent = String(visibleProtos);
+        empty.classList.toggle("show", visibleProtos === 0);
+      }
+
+      function filter() {
+        var keyword = (q.value || "").trim().toLowerCase();
+        groups.forEach(function (group) {
+          var groupName = (group.getAttribute("data-name") || "").toLowerCase();
+          var items = Array.prototype.slice.call(group.querySelectorAll("li"));
+          items.forEach(function (li) {
+            var link = li.querySelector("a.proto");
+            var label = ((link && link.getAttribute("data-label")) || "").toLowerCase();
+            var hit = !keyword || label.indexOf(keyword) !== -1 || groupName.indexOf(keyword) !== -1;
+            li.style.display = hit ? "" : "none";
+          });
+        });
+        refreshCounts();
+      }
+
+      q.addEventListener("input", filter);
+      refreshCounts();
+    })();
+  </script>
 </body>
 </html>

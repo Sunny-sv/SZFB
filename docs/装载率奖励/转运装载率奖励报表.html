@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>转运装载率奖励报表</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1890ff;
+      --primary-hover: #40a9ff;
+      --header-blue: #0658d9;
+      --sidebar-bg: #1c2531;
+      --sidebar-hover: #171e28;
+      --sidebar-active: #0658d9;
+      --sidebar-sub: #1c2531;
+      --sidebar-text: #fff;
+      --bg: #f2f3f7;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: rgba(0,0,0,.85);
+      --text-secondary: rgba(0,0,0,.45);
+      --focus-ring: rgba(24,144,255,.2);
+      --tag-bg: #f5f5f5;
+      --tag-border: #f0f0f0;
+      --dropdown-shadow: 0 3px 6px -4px rgba(0,0,0,.12), 0 6px 16px 0 rgba(0,0,0,.08), 0 9px 28px 8px rgba(0,0,0,.05);
+      --sidebar-width: 208px;
+      --sidebar-collapsed: 54px;
+      --header-height: 47px;
+      --footer-height: 32px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    /* 整体：左栏全高 + 右侧主区（对齐 DLC uat layout） */
+    .layout {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+      position: relative;
+    }
+
+    /* —— 左侧边栏 —— */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width .28s;
+      overflow: hidden;
+      box-shadow: 2px 0 8px 0 rgba(29,35,41,.05);
+      z-index: 1001;
+    }
+    .layout.sidebar-collapsed .sidebar { width: var(--sidebar-collapsed); }
+
+    .sidebar-logo {
+      height: 50px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: default;
+    }
+    .sidebar-logo .brand-full {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 50px;
+      white-space: nowrap;
+      letter-spacing: .5px;
+    }
+    .sidebar-logo .brand-full .brand-sep {
+      position: relative;
+      padding-left: 10px;
+      margin-left: 5px;
+    }
+    .sidebar-logo .brand-full .brand-sep::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 18px;
+      background: #fff;
+      border-radius: 1px;
+    }
+    .sidebar-logo .brand-mini {
+      display: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.95);
+      color: var(--header-blue);
+      font-size: 12px;
+      font-weight: 700;
+      align-items: center;
+      justify-content: center;
+    }
+    .layout.sidebar-collapsed .sidebar-logo .brand-full { display: none; }
+    .layout.sidebar-collapsed .sidebar-logo .brand-mini { display: flex; }
+
+    .sidebar-menu {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 4px 0 12px;
+    }
+    .sidebar-menu::-webkit-scrollbar { width: 6px; }
+    .sidebar-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,.35); border-radius: 3px; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      height: 45px;
+      color: var(--sidebar-text);
+      opacity: .9;
+      cursor: pointer;
+      white-space: nowrap;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .menu-item:hover { background: var(--sidebar-hover); opacity: 1; }
+    .menu-item.active { background: var(--sidebar-active); opacity: 1; }
+    .menu-item .menu-icon {
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+    .menu-item .menu-arrow {
+      margin-left: auto;
+      font-size: 10px;
+      opacity: .8;
+    }
+    .layout.sidebar-collapsed .menu-label,
+    .layout.sidebar-collapsed .menu-arrow { display: none; }
+    .layout.sidebar-collapsed .menu-item {
+      padding: 0;
+      justify-content: center;
+    }
+    .layout.sidebar-collapsed .menu-item .menu-icon { margin: 0; }
+
+    .menu-sub { background: var(--sidebar-sub); }
+    .menu-sub .menu-item {
+      padding-left: 30px;
+      height: 45px;
+      font-size: 14px;
+    }
+    .layout.sidebar-collapsed .menu-sub { display: none; }
+
+    /* —— 右侧主容器 —— */
+    .main-container {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    /* 顶栏：汉堡 + 页签 + 右侧工具（对齐 Navbar） */
+    .navbar {
+      height: var(--header-height);
+      flex-shrink: 0;
+      background: var(--header-blue);
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      z-index: 9;
+    }
+
+    .hamburger {
+      width: 50px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background .3s;
+    }
+    .hamburger:hover { background: rgba(0,0,0,.08); }
+    .hamburger svg {
+      width: 20px;
+      height: 20px;
+      fill: #fff;
+      transition: transform .28s;
+    }
+    .layout.sidebar-collapsed .hamburger svg { transform: rotate(180deg); }
+
+    .page-tabs {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: flex-end;
+      overflow-x: auto;
+      gap: 0;
+      padding: 0 4px;
+      height: 100%;
+    }
+    .page-tabs::-webkit-scrollbar { height: 0; }
+
+    .page-tab {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 38px;
+      padding: 0 12px;
+      margin-top: 9px;
+      margin-left: 4px;
+      border-radius: 10px 10px 0 0;
+      color: #fff;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 14px;
+      background: transparent;
+      flex-shrink: 0;
+    }
+    .page-tab:first-child { margin-left: 10px; }
+    .page-tab:hover:not(.active) { background: #0037a0; }
+    .page-tab.active {
+      z-index: 1;
+      background: #f3f4f6;
+      color: #333;
+      font-weight: 500;
+    }
+    .page-tab .tab-close {
+      font-size: 14px;
+      line-height: 1;
+      opacity: .75;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .page-tab .tab-close:hover {
+      background: #b4bccc;
+      color: #fff;
+      opacity: 1;
+    }
+    .page-tab.active .tab-close { color: #666; opacity: .7; }
+
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 12px 0 8px;
+      color: #fff;
+      flex-shrink: 0;
+      background: var(--header-blue);
+      z-index: 3;
+    }
+    .top-right .icon-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      opacity: .95;
+    }
+    .top-right .icon-btn:hover { opacity: .75; }
+    .top-right .icon-btn svg { width: 18px; height: 18px; fill: #fff; }
+    .top-right .icon-btn .badge {
+      position: absolute;
+      top: 4px;
+      right: 2px;
+      min-width: 14px;
+      height: 14px;
+      padding: 0 3px;
+      border-radius: 7px;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 10px;
+      line-height: 14px;
+      text-align: center;
+    }
+    .top-right .icon-btn.with-badge { position: relative; }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 4px;
+      padding: 0 4px 0 6px;
+      cursor: pointer;
+      border-radius: 4px;
+      height: 40px;
+    }
+    .user-info:hover { opacity: .85; }
+    .avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #fff;
+      color: var(--header-blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 14px; color: #fff; white-space: nowrap; }
+    .user-arrow { font-size: 10px; opacity: .85; margin-left: 2px; }
+
+    /* 主内容 */
+    .content-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      padding: 5px 5px 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-card {
+      background: var(--card);
+      border-radius: 4px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    /* 页脚 */
+    .app-footer {
+      height: var(--footer-height);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      pointer-events: none;
+      gap: 6px;
+    }
+    .app-footer a { color: var(--text-secondary); text-decoration: none; }
+
+    /* 1. 筛选条件区：名称左+控件右；3 列网格；重置/查询与最后一行底对齐 */
+    .filter-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+    }
+    .filter-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px 24px;
+      align-items: center;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .filter-item .filter-label {
+      flex: 0 0 96px;
+      text-align: right;
+      font-size: 14px;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .filter-item .filter-control-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .filter-item .filter-control-wrap > .filter-control,
+    .filter-item .filter-control-wrap > .select-wrap,
+    .filter-item .filter-control-wrap > .date-range,
+    .filter-item .filter-control-wrap > .proto-select,
+    .filter-item .filter-control-wrap > .proto-range,
+    .filter-item .filter-control-wrap > .proto-input,
+    .filter-item .filter-control-wrap > .proto-num-range,
+    .filter-item .filter-control-wrap > .proto-auth,
+    .filter-item .filter-control-wrap > .proto-field-switch {
+      width: 100%;
+    }
+    .filter-control, .proto-input {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 11px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+    .filter-control:focus, .proto-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--focus-ring);
+    }
+    .filter-control::placeholder, .proto-input::placeholder { color: #bfbfbf; }
+    .proto-input:hover, .filter-control:hover { border-color: var(--primary-hover); }
+
+    /* 原型组件库控件（标准形态见 docs/_共用/PC端原型组件库.html） */
+    .proto-select {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-height: 32px;
+      width: 100%;
+      padding: 0 24px 0 11px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .proto-select:hover { border-color: var(--primary-hover); }
+    .proto-select .placeholder {
+      color: #bfbfbf;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .proto-select .single-value {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+    .proto-select .arrow {
+      position: absolute;
+      right: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--text-secondary);
+      pointer-events: none;
+    }
+    .proto-select.is-multiple {
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 3px 24px 3px 4px;
+      height: auto;
+    }
+    .proto-tag {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      height: 24px;
+      padding: 0 4px 0 8px;
+      background: var(--tag-bg);
+      border: 1px solid var(--tag-border);
+      border-radius: 2px;
+      font-size: 12px;
+      line-height: 22px;
+      color: var(--text);
+    }
+    .proto-tag .tag-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .proto-tag .tag-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      margin-left: 2px;
+      color: var(--text-secondary);
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+    .proto-select .search-mirror {
+      flex: 1;
+      min-width: 40px;
+      border: 0;
+      outline: 0;
+      height: 24px;
+      font-size: 14px;
+      background: transparent;
+    }
+    .proto-range {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      padding: 0 8px 0 11px;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .proto-range:hover { border-color: var(--primary-hover); }
+    .proto-range .range-part {
+      flex: 1 1 0;
+      width: 0;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      height: 30px;
+      font-size: 14px;
+      background: transparent;
+      color: var(--text);
+      text-align: center;
+    }
+    .proto-range .range-part::placeholder { color: #bfbfbf; text-align: center; }
+    .proto-range .range-sep {
+      color: var(--text-secondary);
+      flex: 0 0 auto;
+      font-size: 13px;
+      padding: 0 4px;
+      line-height: 32px;
+    }
+    .proto-num-range {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .proto-num-range .proto-input { flex: 1; min-width: 0; }
+    .proto-num-range .num-sep { color: var(--text-secondary); flex-shrink: 0; }
+    .proto-check-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      align-items: center;
+      min-height: 32px;
+    }
+    .proto-auth {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      position: relative;
+    }
+    .proto-auth:hover { border-color: var(--primary-hover); }
+    .proto-auth-type {
+      position: relative;
+      flex: 0 0 108px;
+      display: flex;
+      align-items: center;
+      padding: 0 22px 0 11px;
+      border-right: 1px solid var(--border);
+      cursor: pointer;
+      min-width: 0;
+    }
+    .proto-auth-type .type-text {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .proto-auth-type .arrow,
+    .proto-auth-site .arrow {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--text-secondary);
+      pointer-events: none;
+    }
+    .proto-auth-site {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 24px 0 11px;
+      cursor: pointer;
+    }
+    .proto-auth-site input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      height: 30px;
+      font-size: 14px;
+      background: transparent;
+      color: var(--text);
+    }
+    .proto-auth-site input::placeholder { color: #bfbfbf; }
+    .proto-field-switch {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      width: 100%;
+      height: 32px;
+    }
+    .proto-field-switch-name {
+      position: relative;
+      flex: 0 0 110px;
+      display: flex;
+      align-items: center;
+      height: 32px;
+      padding: 0 24px 0 11px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .proto-field-switch-name .name-text {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 14px;
+    }
+    .proto-field-switch-name .arrow {
+      position: absolute;
+      right: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--text-secondary);
+      pointer-events: none;
+    }
+    .proto-field-switch-ctrl { flex: 1; min-width: 0; height: 32px; }
+    .proto-field-switch-ctrl > .proto-range { width: 100%; height: 32px; }
+
+    /* 兼容旧母版写法（新原型请用 proto-*，见组件库） */
+    .select-wrap { position: relative; }
+    .select-wrap .filter-control {
+      appearance: none;
+      padding-right: 28px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .select-wrap::after {
+      content: "▼";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .date-range { display: flex; align-items: center; gap: 8px; }
+    .date-range .filter-control { flex: 1; min-width: 0; }
+    .date-range .sep { color: var(--text-secondary); font-size: 13px; flex-shrink: 0; }
+
+    .filter-actions { display: flex; gap: 8px; flex-shrink: 0; padding-bottom: 1px; }
+    .btn {
+      height: 32px;
+      padding: 0 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .btn:hover { color: var(--primary); border-color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+    /* 2. 标签切换区 */
+    .content-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .content-tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .content-tab:hover { color: var(--primary); }
+    .content-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    /* 3. 操作按钮区 */
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-action {
+      height: 32px;
+      padding: 0 15px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+    .btn-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-action:hover { opacity: .85; }
+
+    /* 4. 数据列表区：占满剩余高度，分页始终在底部 */
+    .table-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .data-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .data-table th,
+    .data-table td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .data-table th {
+      background: #fafafa;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .data-table tbody tr:hover { background: #fafafa; }
+    .col-checkbox { width: 48px; text-align: center !important; }
+    .col-checkbox input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+    .cell-placeholder { color: var(--text-secondary); }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .pagination .total { margin-right: 8px; }
+    .page-btn {
+      min-width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+    }
+    .page-btn:hover { color: var(--primary); border-color: var(--primary); }
+    .page-btn.active { color: var(--primary); border-color: var(--primary); }
+    .page-btn.disabled { opacity: .4; cursor: not-allowed; }
+    .page-jump { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+    .page-jump input {
+      width: 48px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .panel-hidden { display: none !important; }
+    .modal-mask {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      width: 480px; background: #fff; border-radius: 4px;
+      box-shadow: var(--dropdown-shadow); overflow: hidden;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      height: 56px; padding: 0 24px; border-bottom: 1px solid var(--border);
+      font-weight: 600; font-size: 16px;
+    }
+    .modal-close { cursor: pointer; color: var(--text-secondary); }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+      display: flex; justify-content: flex-end; gap: 8px;
+      padding: 10px 16px; border-top: 1px solid var(--border);
+    }
+    .form-item { display: flex; align-items: center; margin-bottom: 16px; gap: 8px; }
+    .form-label { width: 100px; text-align: right; flex-shrink: 0; }
+    .form-ctrl { flex: 1; }
+    .radio-row { display: flex; gap: 20px; align-items: center; }
+
+    .toast {
+      position: fixed; left: 50%; top: 24px; transform: translateX(-50%);
+      background: rgba(0,0,0,.75); color: #fff; padding: 8px 16px;
+      border-radius: 4px; font-size: 13px; z-index: 2000; opacity: 0;
+      pointer-events: none; transition: opacity .2s;
+    }
+    .toast.show { opacity: 1; }
+    .expand-btn { cursor: pointer; user-select: none; color: var(--primary); }
+    .expand-row { display: none; }
+    .expand-row.show { display: table-row; }
+    .expand-row td { background: #eef1f6; padding: 8px 12px; text-align: left; }
+    .sub-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #eef1f6; }
+    .sub-table th, .sub-table td { border: 1px solid var(--border); padding: 6px 8px; text-align: center; white-space: nowrap; }
+    .sub-table th { background: #e8ecf2; }
+    .proto-input:disabled, .proto-input.is-disabled {
+      background: #f5f5f5; color: var(--text-secondary); cursor: not-allowed;
+    }
+    .query-type-switch { cursor: pointer; color: var(--text); }
+    .query-type-switch .arrow-mini { font-size: 10px; color: var(--text-secondary); }
+    .filter-item.is-hidden { display: none !important; }
+    .filter-label { position: relative; }
+    .proto-select { position: relative; }
+    .proto-select.is-open,
+    .proto-select:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--focus-ring);
+    }
+    .proto-select.is-open .arrow {
+      border-top: 0;
+      border-bottom: 5px solid var(--text-secondary);
+    }
+    .proto-select .placeholder {
+      color: #bfbfbf; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    }
+    .proto-select .single-value {
+      flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    }
+    .proto-dropdown {
+      display: none;
+      position: absolute;
+      left: 0; right: 0; top: calc(100% + 4px);
+      z-index: 50;
+      max-height: 256px;
+      overflow-y: auto;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: var(--dropdown-shadow);
+      padding: 4px 0;
+    }
+    .proto-select.is-open .proto-dropdown { display: block; }
+    .proto-select .proto-option {
+      padding: 5px 12px; cursor: pointer; white-space: nowrap; color: var(--text);
+    }
+    .proto-select .proto-option:hover { background: #f5f5f5; }
+    .proto-select .proto-option.is-selected { background: #e6f7ff; color: var(--primary); font-weight: 500; }
+    .proto-auth-type { position: relative; }
+    .proto-auth-type.is-open .proto-auth-type-menu { display: block; }
+    .proto-auth-type-menu {
+      display: none;
+      position: absolute;
+      left: 0; top: calc(100% + 6px);
+      z-index: 40;
+      min-width: 168px;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: var(--dropdown-shadow);
+      padding: 4px 0;
+    }
+    .proto-auth-type-menu .proto-option {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 12px; cursor: pointer; white-space: nowrap;
+    }
+    .proto-auth-type-menu .proto-option:hover { background: #f5f5f5; }
+    .proto-auth-type-menu .proto-option.is-selected { color: var(--primary); background: #e6f7ff; }
+    .proto-auth-type-menu .proto-option .check {
+      width: 14px; height: 14px; border: 1px solid var(--border); border-radius: 2px;
+      flex-shrink: 0; position: relative; background: #fff;
+    }
+    .proto-auth-type-menu .proto-option.is-selected .check {
+      background: var(--primary); border-color: var(--primary);
+    }
+    .proto-auth-type-menu .proto-option.is-selected .check::after {
+      content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+      border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout" id="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="brand-full">数智分拨 <span class="brand-sep">DLC</span></span>
+      <span class="brand-mini">DLC</span>
+    </div>
+    <nav class="sidebar-menu">
+      <div class="menu-item"><span class="menu-icon">⌂</span><span class="menu-label">首页</span></div>
+      <div class="menu-item active">
+        <span class="menu-icon">☰</span><span class="menu-label">预测管理</span><span class="menu-arrow">▼</span>
+      </div>
+      <div class="menu-sub">
+        <div class="menu-item">转运装载率方案维护</div>
+        <div class="menu-item active">转运装载率奖励报表</div>
+      </div>
+    </nav>
+  </aside>
+
+  <div class="main-container">
+    <header class="navbar">
+      <div class="hamburger" id="sidebarToggle" title="折叠/展开">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+          <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7z" />
+        </svg>
+      </div>
+      <div class="page-tabs" id="pageTabs">
+        <div class="page-tab active" data-tab="page1">转运装载率奖励报表 <span class="tab-close">×</span></div>
+      </div>
+      <div class="top-right">
+        <span class="icon-btn" title="菜单引导页">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/></svg>
+        </span>
+        <span class="icon-btn" title="导出任务管理">
+          <svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zm7-18l-5 5h3v6h4v-6h3l-5-5z"/></svg>
+        </span>
+        <span class="icon-btn" title="搜索">
+          <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        </span>
+        <span class="icon-btn with-badge" title="消息">
+          <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          <span class="badge">3</span>
+        </span>
+        <div class="user-info" title="用户">
+          <div class="avatar">U</div>
+          <span class="user-name">sysadmin</span>
+          <span class="user-arrow">▼</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="content-card">
+
+
+
+        <section class="filter-area">
+          <div class="filter-grid">
+            <div class="filter-item">
+              <span class="filter-label">分拨中心</span>
+              <div class="filter-control-wrap">
+                <div class="proto-auth" id="filterAuth">
+                  <div class="proto-auth-type">
+                    <span class="type-text">直营分...</span>
+                    <span class="arrow"></span>
+                    <div class="proto-auth-type-menu">
+                      <div class="proto-option is-selected"><span class="check"></span>直营分拨</div>
+                      <div class="proto-option"><span class="check"></span>非直营分拨</div>
+                      <div class="proto-option"><span class="check"></span>服务站</div>
+                      <div class="proto-option"><span class="check"></span>直营集配站</div>
+                      <div class="proto-option"><span class="check"></span>非直营集配站</div>
+                      <div class="proto-option"><span class="check"></span>智运中心</div>
+                      <div class="proto-option"><span class="check"></span>航空转运枢纽</div>
+                    </div>
+                  </div>
+                  <div class="proto-auth-site">
+                    <input type="text" id="filterSite" placeholder="请输入分拨中心" value="西安分拨" />
+                    <span class="arrow"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">车线</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select" id="filterLine">
+                  <span class="placeholder">请输入</span>
+                  <span class="clear-x" style="display:none">×</span>
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown">
+                    <div class="proto-option">西安-郑州</div>
+                    <div class="proto-option">成都-重庆</div>
+                    <div class="proto-option">西安-武汉</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">
+                <span class="query-type-switch" id="queryTypeSwitch">任务号 <span class="arrow-mini">▼</span></span>
+                <div class="proto-dropdown" id="queryTypeMenu" style="display:none;position:absolute;z-index:20;min-width:100px;background:#fff;border:1px solid var(--border);border-radius:4px;box-shadow:var(--dropdown-shadow)">
+                  <div class="proto-option is-selected" data-type="任务号">任务号</div>
+                  <div class="proto-option" data-type="交接单">交接单</div>
+                </div>
+              </span>
+              <div class="filter-control-wrap">
+                <input class="proto-input" id="filterQueryStr" type="text" placeholder="多条查询请用,隔开" />
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">发车确认时间</span>
+              <div class="filter-control-wrap">
+                <div class="proto-range">
+                  <input class="range-part" id="filterStart" value="2026-11-01 00:00:00" readonly />
+                  <span class="range-sep">至</span>
+                  <input class="range-part" id="filterEnd" value="2026-11-05 23:59:59" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item" id="filterCompare">
+              <span class="filter-label">对比日期</span>
+              <div class="filter-control-wrap" style="display:flex;gap:8px">
+                <div class="proto-select has-value" id="filterCompareType" style="width:28%;flex-shrink:0">
+                  <span class="single-value">环比</span>
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown">
+                    <div class="proto-option is-selected">环比</div>
+                    <div class="proto-option">月环比</div>
+                    <div class="proto-option">同比</div>
+                    <div class="proto-option">自定义</div>
+                  </div>
+                </div>
+                <div class="proto-range" id="filterCompareRange" style="flex:1;opacity:.55;pointer-events:none">
+                  <input class="range-part" value="2026-10-28 00:00:00" readonly />
+                  <span class="range-sep">至</span>
+                  <input class="range-part" value="2026-11-01 23:59:59" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">车线类型</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select" id="filterLineType">
+                  <span class="placeholder">请选择</span>
+                  <span class="clear-x" style="display:none">×</span>
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown">
+                    <div class="proto-option">单独奖励线路</div>
+                    <div class="proto-option">合发奖励线路</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">任务类型</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select has-value" id="filterTaskType">
+                  <span class="single-value">全部</span>
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown">
+                    <div class="proto-option is-selected">全部</div>
+                    <div class="proto-option">自有任务</div>
+                    <div class="proto-option">外请任务</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">是否取消超载考核</span>
+              <div class="filter-control-wrap">
+                <div class="proto-select has-value" id="filterCancelOverload">
+                  <span class="single-value">全部</span>
+                  <span class="arrow"></span>
+                  <div class="proto-dropdown">
+                    <div class="proto-option is-selected">全部</div>
+                    <div class="proto-option">是</div>
+                    <div class="proto-option">否</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn" type="button" id="btnReset">重置</button>
+            <button class="btn btn-primary" type="button" id="btnQuery">查询</button>
+          </div>
+        </section>
+
+        <nav class="content-tabs" id="contentTabs">
+          <div class="content-tab active" data-panel="count">汇总信息</div>
+          <div class="content-tab" data-panel="line">车线装载率情况</div>
+          <div class="content-tab" data-panel="detail">明细信息</div>
+        </nav>
+
+        <section class="action-bar panel-actions" data-panel="count">
+          <button class="btn-action primary" type="button" data-export="count">导出</button>
+        </section>
+        <section class="action-bar panel-actions panel-hidden" data-panel="line">
+          <button class="btn-action primary" type="button" data-export="line">导出</button>
+        </section>
+        <section class="action-bar panel-actions panel-hidden" data-panel="detail">
+          <button class="btn-action primary" type="button" data-export="detail">导出</button>
+          <button class="btn-action primary" type="button" id="btnExportDetail">导出明细</button>
+          <button class="btn-action primary" type="button" id="btnAudit" disabled>总部核准</button>
+        </section>
+
+        <section class="table-area panel-table" data-panel="count">
+          <div class="table-scroll">
+            <table class="data-table" id="countTable">
+              <thead>
+                <tr>
+                  <th>展开</th>
+                  <th>
+                    <div class="proto-select has-value" id="summaryLevel" style="min-width:90px;margin:0 auto">
+                      <span class="single-value">分拨</span>
+                      <span class="arrow"></span>
+                      <div class="proto-dropdown">
+                        <div class="proto-option">省区</div>
+                        <div class="proto-option is-selected">分拨</div>
+                      </div>
+                    </div>
+                  </th>
+                  <th>已发干线数量</th><th>外请已发干线数量</th><th>累计奖励金额</th>
+                  <th>单独奖励金额</th><th>合发线路分摊金额</th>
+                  <th>总装载操作结算重量</th><th>总装载实际重量</th><th>总额定重量</th>
+                  <th>操作结算重量装载率</th><th>对比差异</th>
+                  <th>实际重量装载率</th><th>对比差异</th>
+                  <th>总装载体积</th><th>总额定体积</th><th>体积装载率</th><th>对比差异</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-expand="c1">
+                  <td><span class="expand-btn" data-target="c1">▶</span></td>
+                  <td class="summary-name">西安分拨</td><td>12</td><td>3</td><td>8600</td><td>5200</td><td>3400</td>
+                  <td>286.5</td><td>302.1</td><td>320</td><td>89.53%</td><td>↑ 2.1%</td>
+                  <td>94.41%</td><td>↑ 1.4%</td><td>410</td><td>450</td><td>91.11%</td><td>↓ 0.6%</td>
+                </tr>
+                <tr class="expand-row" id="exp-c1"><td colspan="18">
+                  <table class="sub-table"><thead><tr>
+                    <th>任务类型</th><th>已发干线数量</th><th>累计奖励金额</th><th>单独奖励金额</th><th>合发线路分摊金额</th>
+                    <th>总装载操作结算重量</th><th>总装载实际重量</th><th>总额定重量</th>
+                    <th>操作结算重量装载率</th><th>对比差异</th><th>实际重量装载率</th><th>对比差异</th>
+                    <th>总装载体积</th><th>总额定体积</th><th>体积装载率</th><th>对比差异</th>
+                  </tr></thead><tbody>
+                    <tr><td>自有任务</td><td>9</td><td>6400</td><td>4000</td><td>2400</td><td>210</td><td>220</td><td>240</td><td>87.50%</td><td>↑ 1.0%</td><td>91.67%</td><td>↑ 0.8%</td><td>300</td><td>330</td><td>90.91%</td><td>↓ 0.2%</td></tr>
+                    <tr><td>外请任务</td><td>3</td><td>2200</td><td>1200</td><td>1000</td><td>76.5</td><td>82.1</td><td>80</td><td>95.63%</td><td>↑ 0.5%</td><td>102.63%</td><td>↑ 1.2%</td><td>110</td><td>120</td><td>91.67%</td><td>↑ 0.3%</td></tr>
+                  </tbody></table>
+                </td></tr>
+                <tr data-expand="c2">
+                  <td><span class="expand-btn" data-target="c2">▶</span></td>
+                  <td class="summary-name">成都分拨</td><td>8</td><td>2</td><td>4100</td><td>4100</td><td>0</td>
+                  <td>190.2</td><td>205.0</td><td>220</td><td>86.45%</td><td>↓ 1.2%</td>
+                  <td>93.18%</td><td>↑ 0.3%</td><td>280</td><td>300</td><td>93.33%</td><td>↑ 0.8%</td>
+                </tr>
+                <tr class="expand-row" id="exp-c2"><td colspan="18">
+                  <table class="sub-table"><thead><tr>
+                    <th>任务类型</th><th>已发干线数量</th><th>累计奖励金额</th><th>单独奖励金额</th><th>合发线路分摊金额</th>
+                    <th>总装载操作结算重量</th><th>总装载实际重量</th><th>总额定重量</th>
+                    <th>操作结算重量装载率</th><th>对比差异</th><th>实际重量装载率</th><th>对比差异</th>
+                    <th>总装载体积</th><th>总额定体积</th><th>体积装载率</th><th>对比差异</th>
+                  </tr></thead><tbody>
+                    <tr><td>自有任务</td><td>6</td><td>3100</td><td>3100</td><td>0</td><td>140</td><td>150</td><td>160</td><td>87.50%</td><td>↓ 0.8%</td><td>93.75%</td><td>↑ 0.2%</td><td>200</td><td>220</td><td>90.91%</td><td>↑ 0.5%</td></tr>
+                    <tr><td>外请任务</td><td>2</td><td>1000</td><td>1000</td><td>0</td><td>50.2</td><td>55</td><td>60</td><td>83.67%</td><td>↓ 1.5%</td><td>91.67%</td><td>↑ 0.4%</td><td>80</td><td>80</td><td>100%</td><td>↑ 1.0%</td></tr>
+                  </tbody></table>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination"><span class="total">共 2 条</span><button class="page-btn disabled">&lt;</button><button class="page-btn active">1</button><button class="page-btn disabled">&gt;</button></div>
+        </section>
+
+        <section class="table-area panel-table panel-hidden" data-panel="line">
+          <div class="table-scroll">
+            <table class="data-table" id="lineTable">
+              <thead>
+                <tr>
+                  <th>展开</th><th>车线</th><th>已发车次</th><th>外请已发车次</th><th>最终奖励金额</th><th>奖励分拨</th>
+                  <th>总装载操作结算重量</th><th>总装载实际重量</th><th>总额定重量</th>
+                  <th>操作结算重量装载率</th><th>对比差异</th><th>实际重量装载率</th><th>对比差异</th>
+                  <th>总装载体积</th><th>总额定体积</th><th>体积装载率</th><th>对比差异</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-expand="l1">
+                  <td><span class="expand-btn" data-target="l1">▶</span></td>
+                  <td>西安-郑州</td><td>5</td><td>1</td><td>3200</td><td>西安分拨</td>
+                  <td>120.5</td><td>128.0</td><td>130</td><td>92.69%</td><td>↑ 1.1%</td>
+                  <td>98.46%</td><td>↑ 0.5%</td><td>168</td><td>180</td><td>93.33%</td><td>↑ 0.2%</td>
+                </tr>
+                <tr class="expand-row" id="exp-l1"><td colspan="17">
+                  <table class="sub-table"><thead><tr>
+                    <th>任务类型</th><th>车线</th><th>已发车次</th><th>最终奖励金额</th><th>奖励分拨</th>
+                    <th>总装载操作结算重量</th><th>总装载实际重量</th><th>总额定重量</th>
+                    <th>操作结算重量装载率</th><th>对比差异</th><th>实际重量装载率</th><th>对比差异</th>
+                    <th>总装载体积</th><th>总额定体积</th><th>体积装载率</th><th>对比差异</th>
+                  </tr></thead><tbody>
+                    <tr><td>自有任务</td><td>西安-郑州</td><td>4</td><td>2600</td><td>西安分拨</td><td>96</td><td>100</td><td>104</td><td>92.31%</td><td>↑ 0.8%</td><td>96.15%</td><td>↑ 0.3%</td><td>130</td><td>144</td><td>90.28%</td><td>↑ 0.1%</td></tr>
+                    <tr><td>外请任务</td><td>西安-郑州</td><td>1</td><td>600</td><td>西安分拨</td><td>24.5</td><td>28</td><td>26</td><td>94.23%</td><td>↑ 1.5%</td><td>107.69%</td><td>↑ 1.0%</td><td>38</td><td>36</td><td>105.56%</td><td>↑ 0.6%</td></tr>
+                  </tbody></table>
+                </td></tr>
+                <tr data-expand="l2">
+                  <td><span class="expand-btn" data-target="l2">▶</span></td>
+                  <td>成都-重庆</td><td>3</td><td>0</td><td>1500</td><td>成都分拨</td>
+                  <td>78.0</td><td>85.2</td><td>80</td><td>97.50%</td><td>↓ 0.4%</td>
+                  <td>106.50%</td><td>↑ 2.0%</td><td>110</td><td>120</td><td>91.67%</td><td>↓ 1.0%</td>
+                </tr>
+                <tr class="expand-row" id="exp-l2"><td colspan="17">
+                  <table class="sub-table"><thead><tr>
+                    <th>任务类型</th><th>车线</th><th>已发车次</th><th>最终奖励金额</th><th>奖励分拨</th>
+                    <th>总装载操作结算重量</th><th>总装载实际重量</th><th>总额定重量</th>
+                    <th>操作结算重量装载率</th><th>对比差异</th><th>实际重量装载率</th><th>对比差异</th>
+                    <th>总装载体积</th><th>总额定体积</th><th>体积装载率</th><th>对比差异</th>
+                  </tr></thead><tbody>
+                    <tr><td>自有任务</td><td>成都-重庆</td><td>3</td><td>1500</td><td>成都分拨</td><td>78</td><td>85.2</td><td>80</td><td>97.50%</td><td>↓ 0.4%</td><td>106.50%</td><td>↑ 2.0%</td><td>110</td><td>120</td><td>91.67%</td><td>↓ 1.0%</td></tr>
+                  </tbody></table>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination"><span class="total">共 2 条</span><button class="page-btn disabled">&lt;</button><button class="page-btn active">1</button><button class="page-btn disabled">&gt;</button></div>
+        </section>
+
+        <section class="table-area panel-table panel-hidden" data-panel="detail">
+          <div class="table-scroll">
+            <table class="data-table data-table-wide" id="detailTable">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" id="checkAllDetail" /></th>
+                  <th>展开</th>
+                  <th>任务号</th><th>任务类型</th><th>奖励分拨</th><th>车线</th><th>是否串线</th><th>整体线路</th>
+                  <th>车次</th><th>总奖励分拨</th><th>车型</th><th>是否外包操作</th><th>车牌号</th><th>挂车车牌号</th>
+                  <th>奖励发车确认时间</th><th>规定发车时间</th><th>方案类型</th>
+                  <th>操作结算重量装载率</th><th>实际重量装载率</th><th>体积装载率</th>
+                  <th>额定重量</th><th>出站交接操作结算重量</th><th>出站交接实际重量</th><th>额定体积</th><th>交接体积</th>
+                  <th>奖励里程段</th><th>里程</th><th>奖励范围及单价</th><th>奖励体积/重量</th>
+                  <th>奖励金额</th><th>车线总奖励金额</th><th>体积装载率限制</th><th>重量装载率限制</th>
+                  <th>是否达到装载率限制</th><th>是否晚点</th><th>是否超载</th>
+                  <th>是否取消超载考核</th>
+                  <th>是否不奖不罚</th><th>最终奖励金额</th>
+                  <th>核准人</th><th>核准时间</th><th>奖励系数</th><th>备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-expand="d1" data-reward="800">
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td><span class="expand-btn" data-target="d1">▶</span></td>
+                  <td>RW20261105001</td><td>自有任务</td><td>西安分拨</td><td>西安-郑州</td><td>否</td><td>-</td>
+                  <td>西安郑州正班</td><td>西安分拨</td><td>9.6米</td><td>否</td>
+                  <td>陕A12345</td><td>陕A67890</td>
+                  <td>2026-11-05 16:20:00</td><td>2026-11-05 15:30:00</td>
+                  <td>操作结算重量</td><td>92.00%</td><td>105.00%</td><td>88.00%</td>
+                  <td>20</td><td>18.4</td><td>21.0</td><td>100</td><td>88</td>
+                  <td>西安-郑州</td><td>512</td><td>80%~90% / 0.5</td><td>1.6</td><td>800</td><td>800</td>
+                  <td>70</td><td>85</td><td>是</td><td>否</td>
+                  <td>是</td><td>是</td><td>否</td><td class="final-amt">800</td>
+                  <td>-</td><td>-</td><td>100%</td><td>-</td>
+                </tr>
+                <tr class="expand-row" id="exp-d1"><td colspan="43">
+                  <table class="sub-table"><thead><tr>
+                    <th>交接单</th><th>任务号</th><th>任务类型</th><th>封签发车时间</th><th>奖励发车时间</th><th>车线</th><th>车次</th>
+                    <th>是否外包操作</th><th>出发分拨</th><th>下一站</th><th>车牌号</th><th>挂车车牌号</th><th>车型</th>
+                    <th>出站操作结算重量</th><th>出站实际重量</th><th>出站交接体积</th><th>是否给奖励</th><th>奖励金额</th>
+                  </tr></thead><tbody>
+                    <tr><td>JD20261105001</td><td>RW20261105001</td><td>自有任务</td><td>2026-11-05 16:20:00</td><td>2026-11-05 16:20:00</td><td>西安-郑州</td><td>西安郑州正班</td><td>否</td><td>西安分拨</td><td>郑州分拨</td><td>陕A12345</td><td>陕A67890</td><td>9.6米</td><td>18.4</td><td>21.0</td><td>88</td><td>是</td><td>800</td></tr>
+                  </tbody></table>
+                </td></tr>
+                <tr data-expand="d2" data-reward="500">
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td><span class="expand-btn" data-target="d2">▶</span></td>
+                  <td>RW20261105002</td><td>外请任务</td><td>成都分拨</td><td>成都-重庆</td><td>否</td><td>-</td>
+                  <td>成都重庆加班</td><td>成都分拨</td><td>13.5米</td><td>是</td>
+                  <td>川A88888</td><td>-</td>
+                  <td>2026-11-05 18:10:00</td><td>2026-11-05 17:00:00</td>
+                  <td>操作结算重量</td><td>90.00%</td><td>98.00%</td><td>86.00%</td>
+                  <td>25</td><td>22.5</td><td>24.5</td><td>120</td><td>103</td>
+                  <td>成都-重庆</td><td>308</td><td>80%~90% / 0.6</td><td>2.0</td><td>500</td><td>500</td>
+                  <td>70</td><td>85</td><td>是</td><td>否</td>
+                  <td>是</td><td>否</td><td>否</td><td class="final-amt">0</td>
+                  <td>-</td><td>-</td><td>100%</td><td>-</td>
+                </tr>
+                <tr class="expand-row" id="exp-d2"><td colspan="43">
+                  <table class="sub-table"><thead><tr>
+                    <th>交接单</th><th>任务号</th><th>任务类型</th><th>封签发车时间</th><th>奖励发车时间</th><th>车线</th><th>车次</th>
+                    <th>是否外包操作</th><th>出发分拨</th><th>下一站</th><th>车牌号</th><th>挂车车牌号</th><th>车型</th>
+                    <th>出站操作结算重量</th><th>出站实际重量</th><th>出站交接体积</th><th>是否给奖励</th><th>奖励金额</th>
+                  </tr></thead><tbody>
+                    <tr><td>JD20261105002</td><td>RW20261105002</td><td>外请任务</td><td>2026-11-05 18:10:00</td><td>2026-11-05 18:10:00</td><td>成都-重庆</td><td>成都重庆加班</td><td>是</td><td>成都分拨</td><td>重庆分拨</td><td>川A88888</td><td>-</td><td>13.5米</td><td>22.5</td><td>24.5</td><td>103</td><td>否</td><td>0</td></tr>
+                  </tbody></table>
+                </td></tr>
+                <tr data-expand="d3" data-reward="600">
+                  <td class="col-checkbox"><input type="checkbox" class="row-check" /></td>
+                  <td><span class="expand-btn" data-target="d3">▶</span></td>
+                  <td>RW20261105003</td><td>自有任务</td><td>西安分拨</td><td>西安-郑州</td><td>否</td><td>-</td>
+                  <td>西安郑州正班</td><td>西安分拨</td><td>9.6米</td><td>否</td>
+                  <td>陕B22334</td><td>陕B55667</td>
+                  <td>2026-11-04 16:00:00</td><td>2026-11-04 15:30:00</td>
+                  <td>操作结算重量</td><td>88.00%</td><td>92.00%</td><td>85.00%</td>
+                  <td>20</td><td>17.6</td><td>18.4</td><td>100</td><td>85</td>
+                  <td>西安-郑州</td><td>512</td><td>80%~90% / 0.5</td><td>1.2</td><td>600</td><td>600</td>
+                  <td>70</td><td>85</td><td>是</td><td>否</td>
+                  <td>否</td><td>否</td><td>否</td><td class="final-amt">600</td>
+                  <td>-</td><td>-</td><td>100%</td><td>-</td>
+                </tr>
+                <tr class="expand-row" id="exp-d3"><td colspan="43">
+                  <table class="sub-table"><thead><tr>
+                    <th>交接单</th><th>任务号</th><th>任务类型</th><th>封签发车时间</th><th>奖励发车时间</th><th>车线</th><th>车次</th>
+                    <th>是否外包操作</th><th>出发分拨</th><th>下一站</th><th>车牌号</th><th>挂车车牌号</th><th>车型</th>
+                    <th>出站操作结算重量</th><th>出站实际重量</th><th>出站交接体积</th><th>是否给奖励</th><th>奖励金额</th>
+                  </tr></thead><tbody>
+                    <tr><td>JD20261105003</td><td>RW20261105003</td><td>自有任务</td><td>2026-11-04 16:00:00</td><td>2026-11-04 16:00:00</td><td>西安-郑州</td><td>西安郑州正班</td><td>否</td><td>西安分拨</td><td>郑州分拨</td><td>陕B22334</td><td>陕B55667</td><td>9.6米</td><td>17.6</td><td>18.4</td><td>85</td><td>是</td><td>600</td></tr>
+                  </tbody></table>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination"><span class="total">共 3 条</span><button class="page-btn disabled">&lt;</button><button class="page-btn active">1</button><button class="page-btn disabled">&gt;</button></div>
+        </section>
+
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      中通快运 © 版权所有
+      <a href="https://beian.miit.gov.cn/" target="_blank">浙ICP备2020042419号</a>
+      中通版权所有 企业邮箱：ztky@zto56.com
+    </footer>
+  </div>
+</div>
+
+
+
+<div class="modal-mask" id="modal-audit">
+  <div class="modal">
+    <div class="modal-header"><span>总部核准</span><span class="modal-close" data-close>×</span></div>
+    <div class="modal-body">
+      <div class="form-item">
+        <span class="form-label"><span style="color:#ff4d4f">*</span>核准类型</span>
+        <div class="form-ctrl radio-row">
+          <label><input type="radio" name="auditType" value="0" checked /> 给奖励</label>
+          <label><input type="radio" name="auditType" value="1" /> 不给奖励</label>
+        </div>
+      </div>
+      <div class="form-item">
+        <span class="form-label">装载率奖励</span>
+        <div class="form-ctrl"><input class="proto-input" id="auditAmount" type="text" placeholder="请输入" /></div>
+      </div>
+      <div class="form-item">
+        <span class="form-label">奖励系数</span>
+        <div class="form-ctrl"><input class="proto-input" id="auditCoef" type="text" placeholder="请输入" /></div>
+      </div>
+      <div class="form-item">
+        <span class="form-label">备注</span>
+        <div class="form-ctrl"><input class="proto-input" id="auditRemark" type="text" placeholder="最多50字" maxlength="50" /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" type="button" data-close>取消</button>
+      <button class="btn btn-primary" type="button" id="btnAuditOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('layout').classList.toggle('sidebar-collapsed');
+  });
+
+  const toastEl = document.getElementById('toast');
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+  }
+
+  function switchPanel(name) {
+    document.querySelectorAll('.content-tab').forEach(t => {
+      t.classList.toggle('active', t.getAttribute('data-panel') === name);
+    });
+    document.querySelectorAll('.panel-actions, .panel-table').forEach(el => {
+      el.classList.toggle('panel-hidden', el.getAttribute('data-panel') !== name);
+    });
+    document.getElementById('filterCompare')?.classList.toggle('is-hidden', name === 'detail');
+  }
+
+  document.getElementById('contentTabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.content-tab');
+    if (!tab) return;
+    switchPanel(tab.getAttribute('data-panel'));
+  });
+
+  function closeAllPickers(except) {
+    document.querySelectorAll('.proto-select.is-open, .proto-auth-type.is-open').forEach(el => {
+      if (el !== except) el.classList.remove('is-open');
+    });
+    const qm = document.getElementById('queryTypeMenu');
+    if (qm && except !== qm) qm.style.display = 'none';
+  }
+
+  document.querySelectorAll('.proto-select').forEach(sel => {
+    if (!sel.querySelector('.proto-dropdown')) return;
+    sel.addEventListener('click', (e) => {
+      if (e.target.closest('.proto-option') || e.target.closest('.clear-x')) return;
+      e.stopPropagation();
+      const opening = !sel.classList.contains('is-open');
+      closeAllPickers(sel);
+      if (opening) sel.classList.add('is-open');
+    });
+    sel.querySelectorAll('.proto-dropdown .proto-option').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sel.querySelectorAll('.proto-option').forEach(o => o.classList.remove('is-selected'));
+        opt.classList.add('is-selected');
+        let sv = sel.querySelector('.single-value');
+        const ph = sel.querySelector('.placeholder');
+        if (!sv) {
+          if (ph) ph.remove();
+          sv = document.createElement('span');
+          sv.className = 'single-value';
+          sel.insertBefore(sv, sel.querySelector('.arrow'));
+        }
+        sv.textContent = opt.textContent.trim();
+        sel.classList.add('has-value');
+        sel.classList.remove('is-open');
+        if (sel.id === 'filterCompareType') {
+          const custom = opt.textContent.trim() === '自定义';
+          const range = document.getElementById('filterCompareRange');
+          if (range) {
+            range.style.opacity = custom ? '1' : '.55';
+            range.style.pointerEvents = custom ? 'auto' : 'none';
+          }
+        }
+        if (sel.id === 'summaryLevel') {
+          document.querySelectorAll('.summary-name').forEach((td, i) => {
+            td.textContent = opt.textContent.trim() === '省区' ? (i === 0 ? '陕西' : '四川') : (i === 0 ? '西安分拨' : '成都分拨');
+          });
+          showToast('已切换汇总纬度：' + opt.textContent.trim());
+        }
+      });
+    });
+  });
+
+  document.querySelectorAll('.proto-auth-type').forEach(type => {
+    type.addEventListener('click', (e) => {
+      if (e.target.closest('.proto-option')) return;
+      e.stopPropagation();
+      const opening = !type.classList.contains('is-open');
+      closeAllPickers(type);
+      if (opening) type.classList.add('is-open');
+    });
+    type.querySelectorAll('.proto-option').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        opt.classList.toggle('is-selected');
+        const selected = [...type.querySelectorAll('.proto-option.is-selected')].map(o => o.textContent.trim());
+        const label = type.querySelector('.type-text');
+        if (label) label.textContent = selected.length ? (selected[0].slice(0, 3) + '...') : '请选择';
+      });
+    });
+  });
+
+  document.addEventListener('click', () => closeAllPickers());
+
+  // 任务号 / 交接单切换
+  const qSwitch = document.getElementById('queryTypeSwitch');
+  const qMenu = document.getElementById('queryTypeMenu');
+  qSwitch?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const show = qMenu.style.display !== 'block';
+    closeAllPickers(qMenu);
+    qMenu.style.display = show ? 'block' : 'none';
+  });
+  qMenu?.querySelectorAll('.proto-option').forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      qMenu.querySelectorAll('.proto-option').forEach(o => o.classList.remove('is-selected'));
+      opt.classList.add('is-selected');
+      qSwitch.innerHTML = opt.dataset.type + ' <span class="arrow-mini">▼</span>';
+      qMenu.style.display = 'none';
+    });
+  });
+
+  // 展开
+  document.body.addEventListener('click', (e) => {
+    const btn = e.target.closest('.expand-btn');
+    if (!btn) return;
+    const id = btn.getAttribute('data-target');
+    const row = document.getElementById('exp-' + id);
+    if (!row) return;
+    const open = row.classList.toggle('show');
+    btn.textContent = open ? '▼' : '▶';
+  });
+
+  function syncAudit() {
+    const n = document.querySelectorAll('#detailTable .row-check:checked').length;
+    const btn = document.getElementById('btnAudit');
+    if (btn) btn.disabled = n === 0;
+  }
+  document.getElementById('checkAllDetail')?.addEventListener('change', function () {
+    document.querySelectorAll('#detailTable .row-check').forEach(cb => { cb.checked = this.checked; });
+    syncAudit();
+  });
+  document.getElementById('detailTable')?.addEventListener('change', (e) => {
+    if (e.target.classList.contains('row-check')) syncAudit();
+  });
+
+  function syncAuditFields() {
+    const give = document.querySelector('input[name="auditType"]:checked')?.value === '0';
+    const n = document.querySelectorAll('#detailTable .row-check:checked').length;
+    const amount = document.getElementById('auditAmount');
+    const coef = document.getElementById('auditCoef');
+    if (amount) {
+      amount.disabled = !give || n !== 1;
+      if (!give || n !== 1) amount.value = '';
+      else if (!amount.value) {
+        const row = document.querySelector('#detailTable tbody tr[data-expand] .row-check:checked')?.closest('tr');
+        amount.value = row?.dataset.reward || '';
+      }
+    }
+    if (coef) {
+      coef.disabled = !give;
+      if (!give) coef.value = '';
+    }
+  }
+
+  document.getElementById('btnAudit')?.addEventListener('click', () => {
+    document.getElementById('modal-audit')?.classList.add('show');
+    syncAuditFields();
+  });
+  document.querySelectorAll('input[name="auditType"]').forEach(r => {
+    r.addEventListener('change', syncAuditFields);
+  });
+  document.querySelectorAll('[data-close], .modal-close').forEach(el => {
+    el.addEventListener('click', () => document.getElementById('modal-audit')?.classList.remove('show'));
+  });
+  document.getElementById('modal-audit')?.addEventListener('click', (e) => {
+    if (e.target.id === 'modal-audit') e.target.classList.remove('show');
+  });
+  document.getElementById('btnAuditOk')?.addEventListener('click', () => {
+    const give = document.querySelector('input[name="auditType"]:checked')?.value === '0';
+    if (give && !document.getElementById('auditAmount')?.value && document.querySelectorAll('#detailTable .row-check:checked').length === 1) {
+      // allow empty -> use reward amount path in real system; prototype just save
+    }
+    document.getElementById('modal-audit')?.classList.remove('show');
+    showToast('保存成功');
+  });
+
+  document.querySelectorAll('[data-export]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const map = { count: '汇总信息', line: '车线装载率情况', detail: '明细信息' };
+      showToast('已提交导出任务：转运装载率奖励报表-' + map[btn.dataset.export]);
+    });
+  });
+  document.getElementById('btnExportDetail')?.addEventListener('click', () => {
+    showToast('已提交导出任务：转运装载率奖励报表-交接单明细');
+  });
+  document.getElementById('btnQuery')?.addEventListener('click', () => showToast('查询完成'));
+  document.getElementById('btnReset')?.addEventListener('click', () => {
+    document.getElementById('filterSite').value = '';
+    document.getElementById('filterQueryStr').value = '';
+    showToast('已重置查询条件');
+  });
+
+  // 明细双击跳转示意：汇总/车线双击进明细
+  document.getElementById('countTable')?.addEventListener('dblclick', (e) => {
+    if (e.target.closest('.expand-btn') || e.target.closest('.proto-select')) return;
+    if (!e.target.closest('tbody tr[data-expand]')) return;
+    switchPanel('detail');
+    showToast('已跳转明细信息');
+  });
+  document.getElementById('lineTable')?.addEventListener('dblclick', (e) => {
+    if (e.target.closest('.expand-btn')) return;
+    if (!e.target.closest('tbody tr[data-expand]')) return;
+    switchPanel('detail');
+    showToast('已跳转明细信息');
+  });
+
+  switchPanel('count');
+</script>
+
+</body>
+</html>
