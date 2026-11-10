@@ -199,11 +199,16 @@
       border-radius: 10px;
       transition: background .12s, color .12s;
     }
-    a.proto:hover {
+    a.proto:hover,
+    a.proto.is-active {
       background: var(--primary-soft);
       color: var(--link-hover);
     }
-    a.proto:hover .arrow { opacity: 1; transform: translateX(0); }
+    a.proto:hover .arrow,
+    a.proto.is-active .arrow { opacity: 1; transform: translateX(0); }
+    a.proto.is-active {
+      box-shadow: inset 0 0 0 1px #bfdbfe;
+    }
     .proto-main {
       flex: 1;
       min-width: 0;
@@ -288,7 +293,7 @@
             <circle cx="11" cy="11" r="7"></circle>
             <path d="M20 20l-3.5-3.5" stroke-linecap="round"></path>
           </svg>
-          <input id="q" type="search" placeholder="搜索原型名称或项目…" autocomplete="off" />
+          <input id="q" type="search" placeholder="搜索原型名称或项目…（↑↓ 选择，回车打开）" autocomplete="off" />
         </div>
         <div class="stats">
           <div class="stat">项目 <strong id="stat-groups">0</strong></div>
@@ -575,6 +580,13 @@
             </a>
           </li>
           <li>
+            <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/移动错分归位/移动错分金额及责任人维护.html" data-label="移动错分金额及责任人维护">
+              <span class="proto-main"><span class="proto-title">移动错分金额及责任人维护</span></span>
+              <span class="tags"><span class="tag tag-other">维护</span></span>
+              <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </li>
+          <li>
             <a class="proto" target="_blank" rel="noopener noreferrer" href="docs/移动错分归位/移动错分归位奖罚报表.html" data-label="移动错分归位奖罚报表">
               <span class="proto-main"><span class="proto-title">移动错分归位奖罚报表</span></span>
               <span class="tags"><span class="tag tag-report">报表</span></span>
@@ -668,6 +680,38 @@
       var q = document.getElementById("q");
       var statGroups = document.getElementById("stat-groups");
       var statProtos = document.getElementById("stat-protos");
+      var activeIndex = -1;
+
+      function visibleLinks() {
+        return Array.prototype.slice.call(document.querySelectorAll("a.proto")).filter(function (link) {
+          var li = link.closest("li");
+          var group = link.closest(".group");
+          if (!li || !group) return false;
+          if (group.classList.contains("hidden")) return false;
+          return li.style.display !== "none";
+        });
+      }
+
+      function clearActive() {
+        Array.prototype.forEach.call(document.querySelectorAll("a.proto.is-active"), function (el) {
+          el.classList.remove("is-active");
+        });
+      }
+
+      function setActive(index) {
+        var links = visibleLinks();
+        clearActive();
+        if (!links.length) {
+          activeIndex = -1;
+          return;
+        }
+        if (index < 0) index = links.length - 1;
+        if (index >= links.length) index = 0;
+        activeIndex = index;
+        var link = links[activeIndex];
+        link.classList.add("is-active");
+        link.scrollIntoView({ block: "nearest" });
+      }
 
       function refreshCounts() {
         var visibleGroups = 0;
@@ -702,9 +746,39 @@
           });
         });
         refreshCounts();
+        if (keyword) {
+          setActive(0);
+        } else {
+          clearActive();
+          activeIndex = -1;
+        }
       }
 
       q.addEventListener("input", filter);
+
+      q.addEventListener("keydown", function (e) {
+        var links = visibleLinks();
+        if (!links.length) return;
+
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setActive(activeIndex < 0 ? 0 : activeIndex + 1);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setActive(activeIndex < 0 ? links.length - 1 : activeIndex - 1);
+          return;
+        }
+        if (e.key === "Enter") {
+          if (activeIndex < 0) return;
+          var link = links[activeIndex];
+          if (!link) return;
+          e.preventDefault();
+          window.open(link.href, "_blank", "noopener,noreferrer");
+        }
+      });
+
       refreshCounts();
     })();
   </script>
