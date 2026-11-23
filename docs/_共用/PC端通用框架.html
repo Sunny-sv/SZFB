@@ -544,7 +544,14 @@
       font-size: 13px;
       outline: none;
     }
-  </style>
+      /* 查询条件展开/收起：仅箭头，无边框及底色 */
+    .filter-toggle { width: 24px; height: 32px; padding: 0; border: 0; background: transparent; color: var(--primary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .filter-toggle::before { content: ""; width: 7px; height: 7px; border: solid currentColor; border-width: 1.5px 1.5px 0 0; transform: translateY(2px) rotate(-45deg); }
+    .filter-toggle[aria-expanded="false"]::before { transform: translateY(-2px) rotate(135deg); }
+    .filter-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+    .filter-grid > .filter-item[hidden] { display: none; }
+</style>
 </head>
 <body>
 
@@ -658,6 +665,7 @@
           <div class="filter-actions">
             <button class="btn">重置</button>
             <button class="btn btn-primary">查询</button>
+            <button class="filter-toggle" id="collapseFilters" type="button" aria-label="收起查询条件" aria-expanded="true" title="收起查询条件"></button>
           </div>
         </section>
 
@@ -717,6 +725,13 @@
 </div>
 
 <script>
+  document.getElementById('collapseFilters').onclick = function () {
+    const expanded = this.getAttribute('aria-expanded') === 'true';
+    document.querySelectorAll('.filter-grid > .filter-item').forEach((item, index) => { if (index > 2) item.hidden = expanded; });
+    this.setAttribute('aria-expanded', String(!expanded));
+    this.setAttribute('aria-label', expanded ? '展开查询条件' : '收起查询条件');
+    this.title = this.getAttribute('aria-label');
+  };
   document.getElementById('sidebarToggle').addEventListener('click', () => {
     document.getElementById('layout').classList.toggle('sidebar-collapsed');
   });
